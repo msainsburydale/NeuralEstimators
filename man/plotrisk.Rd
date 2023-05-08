@@ -4,12 +4,7 @@
 \alias{plotrisk}
 \title{Plot the risk function (with respect to a given loss function) versus the sample size, m.}
 \usage{
-plotrisk(
-  df,
-  parameter_labels = NULL,
-  estimator_labels = waiver(),
-  loss = function(x, y) (x - y)^2
-)
+plotrisk(df, parameter_labels = NULL, loss = function(x, y) abs(x - y))
 }
 \arguments{
 \item{df}{a long form data frame containing fields \code{estimator},
@@ -17,7 +12,7 @@ plotrisk(
 
 \item{parameter_labels}{a named vector containing parameter labels used in the plot.}
 
-\item{loss}{the loss function; defaults to squared error.}
+\item{loss}{the loss function; defaults to absolute-error loss.}
 }
 \value{
 a \code{'ggplot'} object showing the risk function versus the sample size, facetted by parameter.
@@ -26,8 +21,9 @@ a \code{'ggplot'} object showing the risk function versus the sample size, facet
 Plot the risk function (with respect to a given loss function) versus the sample size, m.
 }
 \examples{
-# Two estimators for a single parameter model, m = 1, 5, 10, 15, 25, and 30, and
-# 50 estimates for each combination of estimator and m:
+# Generate toy data. Two estimators for a single parameter model,
+# sample sizes m = 1, 5, 10, 15, 25, and 30, and
+# 50 estimates for each combination of estimator and sample size:
 m         <- rep(rep(c(1, 5, 10, 15, 20, 25, 30), each = 50), times = 2)
 Z         <- lapply(m, rnorm)
 estimate  <- sapply(Z, mean)
@@ -35,7 +31,10 @@ df <- data.frame(
   estimator = c("Estimator 1", "Estimator 2"),
   parameter = "mu", m = m, estimate = estimate, truth = 0
 )
-plotrisk(df, parameter_labels = c("mu" = expression(mu)))
+
+# Plot the risk function
+plotrisk(df)
+plotrisk(df, loss = function(x, y) (x-y)^2)
 }
 \seealso{
 \code{\link{plotdistribution}}, \code{\link{plotruntime}}

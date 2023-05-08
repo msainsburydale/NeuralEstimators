@@ -1,5 +1,9 @@
 # Wrapper functions around the core functions in NeuralEstimators.jl.
 
+#TODO simulation on the fly
+#TODO custom loss functions
+#TODO optimiser
+
 #' @title train a neural estimator
 #' @export
 train <- function(estimator,
@@ -8,11 +12,11 @@ train <- function(estimator,
                   Z_train,
                   Z_val,
                   M = NULL, # if M is left NULL, it is ignored
-                  #loss = Flux.Losses.mae, # TODO need to be able to provide a julia function so that we can cater for arbitrary loss functions
-                  #optimiser = ADAM(1e-4), # TODO maybe just ask the user for the learning rate? Or allow the user to provide either a single number (the learning rate) or a julia object.
+                  #loss = Flux.Losses.mae, #TODO need to be able to provide a julia function so that we can cater for arbitrary loss functions
+                  #optimiser = ADAM(1e-4), #TODO maybe just ask the user for the learning rate? Or allow the user to provide either a single number (the learning rate) or a julia object.
                   epochs = 100L,
-                  batchsize = 256L,
-                  savepath = "runs/",
+                  batchsize = 32L,
+                  savepath = "",
                   stopping_epochs = 10L,
                   use_gpu = TRUE,
                   verbose = TRUE
@@ -66,6 +70,23 @@ train <- function(estimator,
   return(estimator)
 }
 
+
+#' @title load the weights of the best neural estimator
+#' @export
+loadbestweights <- function(estimator, path) {
+  # path: absolute path to the runs folder
+  juliaLet(
+    '
+    using NeuralEstimators
+    using Flux
+    Flux.loadparams!(estimator, NeuralEstimators.loadbestweights(path))
+    estimator
+    ',
+    estimator = estimator, path = path
+    )
+}
+
+
 #' @title create a piecewise neural estimator
 #' @export
 PiecewiseEstimator <- function(estimators, mchange) {
@@ -115,8 +136,7 @@ assess <- function(
 #' @title apply a neural estimator to the data Z
 #' @export
 estimate <- function(estimator, Z) {
-
-  theta_hat <- juliaLet('
+  thetahat <- juliaLet('
 
   using NeuralEstimators
   using Flux
@@ -124,14 +144,16 @@ estimate <- function(estimator, Z) {
   # Convert data to Float32 for computational efficiency
   Z = broadcast.(Float32, Z)
 
-  estimator(Z)
+  # Move the data to the GPU # TODO need to check if the gpu is available and if estimator is on the gpu
+  # Z = Z |> gpu
+
+  theta_hat = estimator(Z)
+
+  # move to the cpu
+  theta_hat = theta_hat |> cpu
   ', estimator = estimator, Z = Z)
-
-
-
-  return(theta_hat)
+  return(thetahat)
 }
-
 
 
 

@@ -3,6 +3,7 @@
 export(PiecewiseEstimator)
 export(assess)
 export(estimate)
+export(loadbestweights)
 export(plotdistribution)
 export(plotrisk)
 export(plotruntime)

@@ -12,8 +12,8 @@ train(
   Z_val,
   M = NULL,
   epochs = 100L,
-  batchsize = 256L,
-  savepath = "runs/",
+  batchsize = 32L,
+  savepath = "",
   stopping_epochs = 10L,
   use_gpu = TRUE,
   verbose = TRUE

@@ -1,37 +1,18 @@
-# suppressMessages({
-# library("ggplot2")
-# library("dplyr")
-# library("tibble")
-# library("viridis")
-# library("reshape2")
-# library("ggpubr")
-# library("stringr")  # str_interp for string interpolation
-# library("gridExtra")
-# library("scales")   # to access break formatting functions
-# library("purrr")    # map()
-# library("combinat")
-# library("tidyr") # separate()
-# })
-#
-# # Suppress summarise info
-# # options(dplyr.summarise.inform = FALSE)
-
 # ---- plotrisk() ----
-
-# TODO This function doesn't actually use estimator_labels
 
 #' Plot the risk function (with respect to a given loss function) versus the sample size, m.
 #'
 #' @param df a long form data frame containing fields \code{estimator},
 #' \code{parameter}, \code{estimate}, \code{truth}, and \code{m}.
 #' @param parameter_labels a named vector containing parameter labels used in the plot.
-#' @param loss the loss function; defaults to squared error.
+#' @param loss the loss function; defaults to absolute-error loss.
 #' @return a \code{'ggplot'} object showing the risk function versus the sample size, facetted by parameter.
 #' @export
 #' @seealso \code{\link{plotdistribution}}, \code{\link{plotruntime}}
 #' @examples
-#' # Two estimators for a single parameter model, m = 1, 5, 10, 15, 25, and 30, and
-#' # 50 estimates for each combination of estimator and m:
+#' # Generate toy data. Two estimators for a single parameter model,
+#' # sample sizes m = 1, 5, 10, 15, 25, and 30, and
+#' # 50 estimates for each combination of estimator and sample size:
 #' m         <- rep(rep(c(1, 5, 10, 15, 20, 25, 30), each = 50), times = 2)
 #' Z         <- lapply(m, rnorm)
 #' estimate  <- sapply(Z, mean)
@@ -39,13 +20,16 @@
 #'   estimator = c("Estimator 1", "Estimator 2"),
 #'   parameter = "mu", m = m, estimate = estimate, truth = 0
 #' )
-#' plotrisk(df, parameter_labels = c("mu" = expression(mu)))
-plotrisk <- function(df, parameter_labels = NULL, estimator_labels = waiver(), loss = function(x, y) (x - y)^2) {
+#'
+#' # Plot the risk function
+#' plotrisk(df)
+#' plotrisk(df, loss = function(x, y) (x-y)^2)
+plotrisk <- function(df, parameter_labels = NULL, loss = function(x, y) abs(x - y)) {
 
   df <- df %>% mutate(residual = estimate - truth)
 
   if (is.null(parameter_labels)) {
-    param_labeller <- identity # TODO Check that this change is ok
+    param_labeller <- identity
   } else {
     param_labeller <- label_parsed
     df <- mutate_at(df, .vars = "parameter", .funs = factor, levels = names(parameter_labels), labels = parameter_labels)
@@ -92,7 +76,7 @@ plotruntime <- function(df) {
   gg <- ggplot(df, aes(x = m, y = time, colour = estimator)) +
     geom_line() +
     geom_point() +
-    labs(colour = "", x = expression(m), y = "time (s)") +
+    labs(colour = "", x = expression(m), y = "run time") +
     theme_bw() +
     theme(legend.text.align = 0,
           panel.grid = element_blank(),
@@ -110,8 +94,11 @@ plotruntime <- function(df) {
 #' @param type string indicating whether to plot kernel density estimates for each individual parameter (\code{type = "density"}) or scatter plots for all parameter pairs (\code{type = "scatter"}).
 #' @param parameter_labels a named vector containing parameter labels used in the plot.
 #' @param truth_colour the colour used to denote the true parameter value.
-#' @param pairs logical; should we combine the scatter plots into a single pairs plot (only applies for \code{type = "scatter"})?
+#' @param truth_size the size of the point used to denote the true parameter value (applicable only for \code{type = "scatter"}).
+#' @param truth_line_size the size of the cross-hairs used to denote the true parameter value. If \code{NULL} (default), the cross-hairs are not plotted. (applicable only for \code{type = "scatter"}).
+#' @param pairs logical; should we combine the scatter plots into a single pairs plot (applicable only for \code{type = "scatter"})?
 #' @param upper_triangle_plots an optional list of plots to include in the uppertriangle of the pairs plot.
+#' @param include_legend Include the legend (only applies when constructing a pairs plot)
 #' @return a list of \code{'ggplot'} objects or, if \code{pairs = TRUE}, a single \code{'ggplot'}.
 #' @export
 #' @examples
@@ -157,6 +144,7 @@ plotruntime <- function(df) {
 #' plotdistribution(df, parameter_labels = parameter_labels, type = "density")
 #' plotdistribution(df, parameter_labels = parameter_labels, type = "scatter")
 #' plotdistribution(df, parameter_labels = parameter_labels, type = "scatter", pairs = TRUE)
+#' plotdistribution(df, parameter_labels = parameter_labels, type = "scatter", pairs = TRUE, legend = FALSE)
 #'
 #'
 #' # Pairs plot with user-specified plots in the upper triangle:
@@ -168,16 +156,18 @@ plotruntime <- function(df) {
 #'     labs(shape = "") +
 #'     theme_bw()
 #' })
-#' plotdistribution(df, parameter_labels = parameter_labels, type = "scatter", pairs = TRUE,
-#'                  upper_triangle_plots = upper_triangle_plots)
+#' plotdistribution(df, parameter_labels = parameter_labels, type = "scatter", pairs = TRUE, upper_triangle_plots = upper_triangle_plots)
 plotdistribution <- function(
   df,
   type = c( "box", "density", "scatter"),
   parameter_labels = NULL,
   estimator_labels = waiver(),
   truth_colour = "red",
+  truth_size = 8,
+  truth_line_size = NULL,
   pairs = FALSE,
-  upper_triangle_plots = NULL
+  upper_triangle_plots = NULL,
+  legend = TRUE
   ) {
 
   type <- match.arg(type)
@@ -209,9 +199,9 @@ plotdistribution <- function(
   if (type == "box" | type == "density") {
     gg <- .marginalplot(df, parameter_labels = parameter_labels, estimator_labels = estimator_labels, truth_colour = truth_colour, type = type)
   } else if (type == "scatter") {
-    gg <- .scatterplot(df, parameter_labels = parameter_labels, estimator_labels = estimator_labels, truth_colour = truth_colour)
+    gg <- .scatterplot(df, parameter_labels = parameter_labels, estimator_labels = estimator_labels, truth_colour = truth_colour, truth_size = truth_size, truth_line_size = truth_line_size)
     if (pairs) {
-      gg <- .pairsplot(gg, parameter_labels = parameter_labels, upper_triangle_plots = upper_triangle_plots)
+      gg <- .pairsplot(gg, parameter_labels = parameter_labels, upper_triangle_plots = upper_triangle_plots, legend = legend)
     }
   }
 
@@ -219,8 +209,7 @@ plotdistribution <- function(
 }
 
 
-
-.scatterplot <- function(df, parameter_labels, truth_colour, estimator_labels) {
+.scatterplot <- function(df, parameter_labels, truth_colour, estimator_labels, truth_size, truth_line_size) {
 
   # all parameter pairs
   combinations <- parameter_labels %>% names %>% combinat::combn(2) %>% as.matrix
@@ -232,7 +221,8 @@ plotdistribution <- function(
 
   # Generate the scatterplot estimation panels
   scatterplots <- apply(combinations, 2, function(p) {
-    ggplot(data = df[sample(nrow(df)), ]) +
+
+    gg <- ggplot(data = df[sample(nrow(df)), ]) +
       geom_point(
         aes_string(
           x = paste("estimate", p[1], sep = "_"),
@@ -245,11 +235,19 @@ plotdistribution <- function(
           x = paste("truth", p[1], sep = "_"),
           y = paste("truth", p[2], sep = "_")
           ),
-        colour = truth_colour
+        colour = truth_colour, shape = "+", size = truth_size
         ) +
       labs(colour = "", x = parameter_labels[[p[1]]], y = parameter_labels[[p[2]]]) +
       scale_colour_viridis(discrete = TRUE, labels = estimator_labels) +
       theme_bw()
+
+    if (!is.null(truth_line_size)) {
+      gg <- gg +
+        geom_vline(aes_string(xintercept = paste("truth", p[1], sep = "_")), colour = truth_colour, size = truth_line_size) +
+        geom_hline(aes_string(yintercept = paste("truth", p[2], sep = "_")), colour = truth_colour, size = truth_line_size)
+    }
+
+    return(gg)
   })
 
   return(scatterplots)
@@ -258,7 +256,7 @@ plotdistribution <- function(
 .marginalplot <- function(df, parameter_labels, truth_colour, type, estimator_labels) {
 
   if (is.null(parameter_labels)) {
-    param_labeller <- identity # TODO Check that this change is ok
+    param_labeller <- identity
   } else {
     param_labeller <- label_parsed
     df <- mutate_at(df, .vars = "parameter", .funs = factor, levels = names(parameter_labels), labels = parameter_labels)
@@ -299,27 +297,18 @@ plotdistribution <- function(
 }
 
 
-
-# Decided not to cater for this, since it complicates matters. It's very easy
-# for the user to do this with lapply().
-
-#, and optional fields
-# \code{k} (signifying the parameter configuration) and \code{m} (signifying
-# the sample size).
-# The \code{'ggplot'} objects may be
-# grouped by fields in \code{df} representing the sample size, \code{m}, and the
-# parameter configuration, \code{k}, in which case the return type is a list
-# (elements corresponding to \code{m}) of lists (elements corresponding to \code{k})
-# of lists.
-
-
 # ---- plotdistribution(): pairsplot ----
 
 
-.pairsplot <- function(scatterplots, parameter_labels, upper_triangle_plots) {
+.pairsplot <- function(scatterplots, parameter_labels, upper_triangle_plots, legend = legend) {
 
   # TODO Need to add a check that the number of upper_triangle_plots is ok.
   # could just recycle to correct length with a warning.
+
+  # TODO Decide if we want estimator_labels (I think it makes sense to include it,
+  # since it's difficult for the user to edit the legend of pairs plots.
+  # Sanity check:
+  # if (!all(network %in% names(estimator_labels))) stop("Not all estimators have been given a label")
 
   p <- length(parameter_labels)
 
@@ -357,10 +346,14 @@ plotdistribution <- function(
   }
   plotlist <- c(plotlist, upper_triangle_plots)
 
+
+
   # Add the scatterplots legend
-  legend_part <- rep(p^2 + 1, p)
-  layout   <- cbind(legend_part, layout)
-  plotlist <- c(plotlist, list(scatterplot_legend.grob))
+  if (legend) {
+    legend_part <- rep(p^2 + 1, p)
+    layout   <- cbind(legend_part, layout)
+    plotlist <- c(plotlist, list(scatterplot_legend.grob))
+  }
 
   if (!is.null(upper_triangle_plots_legend_grob)) {
     # Add upper_triangle_plots legend
@@ -370,10 +363,15 @@ plotdistribution <- function(
   }
 
   # Put everything together
+  legend_width <- 0.5 #TODO could add an argument for the relative width of the legends
   suppressWarnings(
     gg <- grid.arrange(
       grobs = plotlist, layout_matrix = layout,
-      widths = c(0.5, rep(1, p), if(!is.null(upper_triangle_plots_legend_grob)) 0.5) # TODO could add an argument for the relative width of the legend
+      widths = c(
+        if(legend) legend_width,
+        rep(1, p),
+        if(!is.null(upper_triangle_plots_legend_grob)) legend_width
+        )
       )
   )
 
@@ -416,9 +414,10 @@ plottrainingrisk <- function(path, excluded_runs = NULL) {
   # Extract the number of replicates used during training for each estimator:
   m <- regmatches(network, gregexpr("[[:digit:]]+", network)) %>% as.numeric
 
-  # TODO Decide if we want estimator_labels (I think it makes sense to include it)
+  # TODO Decide if we want estimator_labels (I think it makes sense to include it,
+  # since it's difficult for the user to edit the legend of pairs plots.
   # Sanity check:
-  # if (!all(network %in% names(estimator_labels))) stop("Not all neural estimators have been given a label")
+  # if (!all(network %in% names(estimator_labels))) stop("Not all estimators have been given a label")
 
   # Combine the loss matrices into a single data frame:
   df <- do.call("rbind", loss_per_epoch_list)

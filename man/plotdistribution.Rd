@@ -11,7 +11,8 @@ plotdistribution(
   estimator_labels = waiver(),
   truth_colour = "red",
   pairs = FALSE,
-  upper_triangle_plots = NULL
+  upper_triangle_plots = NULL,
+  legend = TRUE
 )
 }
 \arguments{
@@ -26,6 +27,8 @@ plotdistribution(
 \item{pairs}{logical; should we combine the scatter plots into a single pairs plot (only applies for \code{type = "scatter"})?}
 
 \item{upper_triangle_plots}{an optional list of plots to include in the uppertriangle of the pairs plot.}
+
+\item{include_legend}{Include the legend (only applies when constructing a pairs plot)}
 }
 \value{
 a list of \code{'ggplot'} objects or, if \code{pairs = TRUE}, a single \code{'ggplot'}.
