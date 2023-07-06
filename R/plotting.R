@@ -8,7 +8,7 @@
 #' @param loss the loss function; defaults to absolute-error loss.
 #' @return a \code{'ggplot'} object showing the risk function versus the sample size, facetted by parameter.
 #' @export
-#' @seealso \code{\link{plotdistribution}}, \code{\link{plotruntime}}
+#' @seealso \code{\link{plotdistribution}}
 #' @examples
 #' # Generate toy data. Two estimators for a single parameter model,
 #' # sample sizes m = 1, 5, 10, 15, 25, and 30, and
@@ -54,39 +54,7 @@ plotrisk <- function(df, parameter_labels = NULL, loss = function(x, y) abs(x - 
   return(gg)
 }
 
-
-# ---- plotruntime() ----
-
-#' Plot the run time versus the sample size, m.
-#'
-#' @param df a data frame containing fields \code{estimator}, \code{time}, and \code{m}.
-#' @return a \code{'ggplot'} object showing the run time versus the sample size.
-#' @export
-#' @seealso \code{\link{plotdistribution}}, \code{\link{plotrisk}}
-#' @examples
-#' m  <- rep(c(1, 5, 10, 15, 20, 25, 30), each = 2)
-#' df <- data.frame(
-#'   estimator = c("Estimator 1", "Estimator 2"),
-#'   m = m,
-#'   time = 1 / m + 0.1 * runif(length(m))
-#' )
-#' plotruntime(df)
-plotruntime <- function(df) {
-
-  gg <- ggplot(df, aes(x = m, y = time, colour = estimator)) +
-    geom_line() +
-    geom_point() +
-    labs(colour = "", x = expression(m), y = "run time") +
-    theme_bw() +
-    theme(legend.text.align = 0,
-          panel.grid = element_blank(),
-          strip.background = element_blank())
-
-  return(gg)
-}
-
 # ---- plotdistribution() ----
-
 
 #' Plot the empirical distribution of several estimators.
 #'
@@ -98,7 +66,8 @@ plotruntime <- function(df) {
 #' @param truth_line_size the size of the cross-hairs used to denote the true parameter value. If \code{NULL} (default), the cross-hairs are not plotted. (applicable only for \code{type = "scatter"}).
 #' @param pairs logical; should we combine the scatter plots into a single pairs plot (applicable only for \code{type = "scatter"})?
 #' @param upper_triangle_plots an optional list of plots to include in the uppertriangle of the pairs plot.
-#' @param include_legend Include the legend (only applies when constructing a pairs plot)
+#' @param legend Flag; should we include the legend (only applies when constructing a pairs plot)
+#' @param return_list Flag; should the parameters be split into a list?
 #' @return a list of \code{'ggplot'} objects or, if \code{pairs = TRUE}, a single \code{'ggplot'}.
 #' @export
 #' @examples
@@ -167,7 +136,8 @@ plotdistribution <- function(
   truth_line_size = NULL,
   pairs = FALSE,
   upper_triangle_plots = NULL,
-  legend = TRUE
+  legend = TRUE,
+  return_list = FALSE
   ) {
 
   type <- match.arg(type)
@@ -183,8 +153,10 @@ plotdistribution <- function(
   }
   p <- length(parameter_labels)
   param_names <- unique(df$parameter)
-  if (p != length(param_names)) stop("The number of parameter labels differs to the number of parameters: Please ensure length(unique(df$parameter)) == length(parameter_labels)")
   if (!all(param_names %in% names(parameter_labels))) stop("Some parameters have not been given parameter labels: Please ensure all(unique(df$parameter) %in% names(parameter_labels))")
+  if (p != length(param_names)) {
+    parameter_labels <- parameter_labels[param_names]
+  }
 
   if (p == 1 && type == "scatter") {
     warning("Setting type = 'density' since the number of parameters is equal to 1.")
@@ -197,11 +169,15 @@ plotdistribution <- function(
   }
 
   if (type == "box" | type == "density") {
-    gg <- .marginalplot(df, parameter_labels = parameter_labels, estimator_labels = estimator_labels, truth_colour = truth_colour, type = type)
+    if (return_list) {
+      gg <- .marginalplotlist(df, parameter_labels = parameter_labels, estimator_labels = estimator_labels, truth_colour = truth_colour, type = type)
+    } else {
+      gg <- .marginalplot(df, parameter_labels = parameter_labels, estimator_labels = estimator_labels, truth_colour = truth_colour, type = type)
+    }
   } else if (type == "scatter") {
     gg <- .scatterplot(df, parameter_labels = parameter_labels, estimator_labels = estimator_labels, truth_colour = truth_colour, truth_size = truth_size, truth_line_size = truth_line_size)
     if (pairs) {
-      gg <- .pairsplot(gg, parameter_labels = parameter_labels, upper_triangle_plots = upper_triangle_plots, legend = legend)
+    gg <- .pairsplot(gg, parameter_labels = parameter_labels, upper_triangle_plots = upper_triangle_plots, legend = legend)
     }
   }
 
@@ -295,6 +271,54 @@ plotdistribution <- function(
 
   return(gg)
 }
+
+# plotdistribution(df, parameter_labels = parameter_labels, type = "box", return_list = TRUE)
+# plotdistribution(df, parameter_labels = parameter_labels, type = "density", return_list = TRUE)
+
+.marginalplotlist <- function(df, parameter_labels, truth_colour, type, estimator_labels) {
+
+  parameters <- names(parameter_labels)
+
+  lapply(parameters, function(param) {
+
+    df <- df %>% filter(parameter == param)
+    gg <- ggplot(df)
+
+    if (type == "box") {
+      gg <- gg +
+        geom_boxplot(aes(y = estimate, x = estimator, colour = estimator)) +
+        geom_hline(aes(yintercept = truth), colour = truth_colour, linetype = "dashed")
+    } else if (type == "density"){
+      gg <- gg +
+        geom_line(aes(x = estimate, group = estimator, colour = estimator), stat = "density") +
+        geom_vline(aes(xintercept = truth), colour = truth_colour, linetype = "dashed")
+    }
+
+    gg <- gg +
+      labs(colour = "") +
+      scale_colour_viridis(discrete = TRUE, labels = estimator_labels) +
+      theme_bw() +
+      theme(
+        legend.text.align = 0,
+        panel.grid = element_blank(),
+        strip.background = element_blank()
+      )
+
+    if (type == "box") {
+      gg <- gg +
+        labs(x = parameter_labels[param]) +
+        theme(axis.text.x = element_blank(),
+              axis.ticks.x = element_blank())
+    } else if (type == "density") {
+      gg <- gg +
+        labs(title = parameter_labels[param]) +
+        theme(plot.title = element_text(hjust = 0.5))
+    }
+
+    gg
+  })
+}
+
 
 
 # ---- plotdistribution(): pairsplot ----
@@ -392,7 +416,7 @@ plotdistribution <- function(
 #' @param excluded_runs folders to exclude (e.g., "runs_N1" to exclude the folder "runs_N1").
 #' @return a \code{'ggplot'} showing the evolution of the risk function during training for each neural estimator.
 #' @export
-#' @seealso \code{\link{plotrisk}}, \code{\link{plotdistribution}}, \code{\link{plotruntime}}
+#' @seealso \code{\link{plotrisk}}, \code{\link{plotdistribution}}
 plottrainingrisk <- function(path, excluded_runs = NULL) {
 
   # Find the runs_ folders:
@@ -456,36 +480,3 @@ plottrainingrisk <- function(path, excluded_runs = NULL) {
 
   return(gg)
 }
-
-
-
-# ---- Unused ----
-
-
-# MAE <- function(x, y) mean(abs(x - y))
-# MSE <- function(x, y) mean((x - y)^2)
-# RMSE <- function(x, y) sqrt(MSE(x, y))
-# MAD <- mad
-
-# Custom colour scale to enforce consistency for the estimators across the project
-# scale_colour_estimator <- function(df, ...) {
-#   estimators <- unique(df$estimator)
-#   ggplot2:::manual_scale(
-#     'colour',
-#     values = estimator_colours[estimators],
-#     labels = estimator_labels,
-#     breaks = estimator_order,
-#     ...
-#   )
-# }
-
-# scale_estimator <- function(df, scale = "colour", values = estimator_colours, ...) {
-#   estimators <- unique(df$estimator)
-#   ggplot2:::manual_scale(
-#     scale,
-#     values = values[estimators],
-#     labels = estimator_labels,
-#     breaks = estimator_order,
-#     ...
-#   )
-# }

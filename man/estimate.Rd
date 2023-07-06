@@ -2,10 +2,43 @@
 % Please edit documentation in R/core.R
 \name{estimate}
 \alias{estimate}
-\title{apply a neural estimator to the data Z}
+\title{estimate}
 \usage{
-estimate(estimator, Z)
+estimate(estimator, Z, use_gpu = TRUE)
+}
+\arguments{
+\item{estimator}{a neural estimator.}
+
+\item{Z}{data to apply the estimator to; it's format should be amenable to the architecture of \code{estimator}.}
+
+\item{use_gpu}{a boolean indicating whether to use the GPU if it is available (default true)}
+}
+\value{
+a matrix of parameter estimates (i.e., \code{estimator} applied to \code{Z}).
 }
 \description{
-apply a neural estimator to the data Z
+estimate parameters from observed data using a neural estimator
+}
+\examples{
+library("NeuralEstimators")
+library("JuliaConnectoR")
+
+## Observed data: 100 replicates of a univariate random variable
+Z = matrix(rnorm(100), nrow = 1)
+
+## Construct the estimator
+estimator <- juliaEval('
+  using NeuralEstimators
+  using Flux
+
+  p = 2    # number of parameters in the statistical model
+  w = 32   # number of neurons in each layer
+
+  psi = Chain(Dense(1, w, relu), Dense(w, w, relu))
+  phi = Chain(Dense(w, w, relu), Dense(w, p))
+  estimator = DeepSet(psi, phi)
+')
+
+## Apply the estimator
+estimate(estimator, Z)
 }

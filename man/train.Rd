@@ -2,7 +2,7 @@
 % Please edit documentation in R/core.R
 \name{train}
 \alias{train}
-\title{train a neural estimator}
+\title{Train a neural estimator}
 \usage{
 train(
   estimator,
@@ -11,14 +11,101 @@ train(
   Z_train,
   Z_val,
   M = NULL,
-  epochs = 100L,
-  batchsize = 32L,
+  loss = "absolute-error",
+  learning_rate = 1e-04,
+  epochs = 100,
+  batchsize = 32,
   savepath = "",
-  stopping_epochs = 10L,
+  stopping_epochs = 5,
   use_gpu = TRUE,
   verbose = TRUE
 )
 }
+\arguments{
+\item{estimator}{the neural estimator}
+
+\item{theta_train}{the set of parameters used for updating the estimator using stochastic gradient descent}
+
+\item{theta_val}{the set of parameters used for monitoring the performance of the estimator during training}
+
+\item{Z_train}{the data used for updating the estimator using stochastic gradient descent}
+
+\item{Z_val}{the data used for monitoring the performance of the estimator during training}
+
+\item{M}{vector of sample sizes. If null (default), a single neural estimator is trained, with the sample size inferred from \code{Z_val}. If \code{M} is a vector of integers, a sequence of neural estimators is constructed for each sample size; see the Julia documentation for trainx() for details}
+
+\item{loss}{the loss function. It can be a string 'absolute-error' or 'squared-error', in which case the loss function will be the mean absolute-error or squared-error loss. Otherwise, one may provide a custom loss function as Julia code, which will be converted to a Julia function using \code{juliaEval()}}
+
+\item{epochs}{the number of epochs}
+
+\item{batchsize}{the batchsize to use when performing stochastic gradient descent; reducing this can alleviate memory pressure}
+
+\item{savepath}{path to save the trained estimator and other information; if null (default), nothing is saved}
+
+\item{stopping_epochs}{cease training if the risk doesn't improve in this number of epochs (default 5)}
+
+\item{use_gpu}{a boolean indicating whether to use the GPU if it is available (default true)}
+
+\item{verbose}{a boolean indicating whether information should be printed to the console during training}
+
+\item{learning}{the learning rate for the optimiser ADAM (default 1e-4)}
+}
+\value{
+a trained neural estimator or, if \code{M} is provided, a list of trained neural estimators
+}
 \description{
-train a neural estimator
+Train a neural estimator with architecture given by \code{estimator}.
+
+Note that "on-the-fly" simulation is currently not implemented using the R interface.
+}
+\examples{
+# Construct a neural Bayes estimator for univariate Gaussian data
+# with unknown mean and standard deviation, based on m = 15 iid replicates.
+
+library("NeuralEstimators")
+library("JuliaConnectoR")
+
+# Sample from the prior
+prior <- function(K) {
+  mu    <- rnorm(K)
+  sigma <- rgamma(K, 1)
+  theta <- matrix(c(mu, sigma), byrow = TRUE, ncol = K)
+  return(theta)
+}
+theta_train = prior(10000)
+theta_val   = prior(2000)
+
+# Simulate univariate data conditional on the above parameter vectors
+simulate <- function(theta_set, m) {
+ apply(theta_set, 2, function(theta) {
+   t(rnorm(m, theta[1], theta[2]))
+ }, simplify = FALSE)
+}
+m <- 15
+Z_train <- simulate(theta_train, m)
+Z_val   <- simulate(theta_val, m)
+
+# Define the neural-network architecture
+estimator <- juliaEval('
+  using NeuralEstimators
+  using Flux
+  p = 2    # number of parameters in the model
+  w = 32   # width of each layer
+  psi = Chain(Dense(1, w, relu), Dense(w, w, relu))
+  phi = Chain(Dense(w, w, relu), Dense(w, p))
+  estimator = DeepSet(psi, phi)
+')
+
+# Train the neural estimator
+estimator <- train(
+  estimator,
+  theta_train = theta_train,
+  theta_val   = theta_val,
+  Z_train = Z_train,
+  Z_val   = Z_val,
+  epochs = 30
+  )
+}
+\seealso{
+\code{\link[=assess]{assess()}} for assessing an estimator post training, and \code{\link[=estimate]{estimate()}} for applying an estimator to observed data
 }

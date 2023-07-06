@@ -37,5 +37,5 @@ plotrisk(df)
 plotrisk(df, loss = function(x, y) (x-y)^2)
 }
 \seealso{
-\code{\link{plotdistribution}}, \code{\link{plotruntime}}
+\code{\link{plotdistribution}}
 }

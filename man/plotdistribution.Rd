@@ -10,9 +10,12 @@ plotdistribution(
   parameter_labels = NULL,
   estimator_labels = waiver(),
   truth_colour = "red",
+  truth_size = 8,
+  truth_line_size = NULL,
   pairs = FALSE,
   upper_triangle_plots = NULL,
-  legend = TRUE
+  legend = TRUE,
+  return_list = FALSE
 )
 }
 \arguments{
@@ -24,11 +27,17 @@ plotdistribution(
 
 \item{truth_colour}{the colour used to denote the true parameter value.}
 
-\item{pairs}{logical; should we combine the scatter plots into a single pairs plot (only applies for \code{type = "scatter"})?}
+\item{truth_size}{the size of the point used to denote the true parameter value (applicable only for \code{type = "scatter"}).}
+
+\item{truth_line_size}{the size of the cross-hairs used to denote the true parameter value. If \code{NULL} (default), the cross-hairs are not plotted. (applicable only for \code{type = "scatter"}).}
+
+\item{pairs}{logical; should we combine the scatter plots into a single pairs plot (applicable only for \code{type = "scatter"})?}
 
 \item{upper_triangle_plots}{an optional list of plots to include in the uppertriangle of the pairs plot.}
 
-\item{include_legend}{Include the legend (only applies when constructing a pairs plot)}
+\item{legend}{Flag; should we include the legend (only applies when constructing a pairs plot)}
+
+\item{return_list}{Flag; should the parameters be split into a list?}
 }
 \value{
 a list of \code{'ggplot'} objects or, if \code{pairs = TRUE}, a single \code{'ggplot'}.
@@ -79,6 +88,7 @@ plotdistribution(df, parameter_labels = parameter_labels)
 plotdistribution(df, parameter_labels = parameter_labels, type = "density")
 plotdistribution(df, parameter_labels = parameter_labels, type = "scatter")
 plotdistribution(df, parameter_labels = parameter_labels, type = "scatter", pairs = TRUE)
+plotdistribution(df, parameter_labels = parameter_labels, type = "scatter", pairs = TRUE, legend = FALSE)
 
 
 # Pairs plot with user-specified plots in the upper triangle:
@@ -90,6 +100,5 @@ upper_triangle_plots <- lapply(1:3, function(i) {
     labs(shape = "") +
     theme_bw()
 })
-plotdistribution(df, parameter_labels = parameter_labels, type = "scatter", pairs = TRUE,
-                 upper_triangle_plots = upper_triangle_plots)
+plotdistribution(df, parameter_labels = parameter_labels, type = "scatter", pairs = TRUE, upper_triangle_plots = upper_triangle_plots)
 }

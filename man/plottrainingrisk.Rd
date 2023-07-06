@@ -20,5 +20,5 @@ a \code{'ggplot'} showing the evolution of the risk function during training for
 Plots the evolution of the risk function during training.
 }
 \seealso{
-\code{\link{plotrisk}}, \code{\link{plotdistribution}}, \code{\link{plotruntime}}
+\code{\link{plotrisk}}, \code{\link{plotdistribution}}
 }
