@@ -102,6 +102,7 @@ Before proceeding, we load the required packages. The package `JuliaConnectoR` i
 ```{r}
 library("NeuralEstimators")
 library("JuliaConnectoR")
+library("ggpubr")
 ```
 
 
@@ -148,7 +149,7 @@ estimator <- juliaEval('
   p = 2    # number of parameters in the statistical model
   w = 32   # number of neurons in each layer
 
-  psi = Chain(Dense(1, w, relu), Dense(w, w, relu))
+  psi = Chain(Dense(1, w, relu), Dense(w, w, relu), Dense(w, w, relu))
   phi = Chain(Dense(w, w, relu), Dense(w, p))
   estimator = DeepSet(psi, phi)
 ')
@@ -163,7 +164,7 @@ estimator <- train(
   theta_val   = theta_val,
   Z_train = Z_train,
   Z_val   = Z_val,
-  epochs = 30
+  epochs = 50
   )
 ```
 
@@ -177,7 +178,7 @@ head(assessment$estimates)
 
 In addition to assessing the estimator with respect to many parameter configurations, it is often helpful to visualise the empirical sampling distribution of an estimator for a particular parameter configuration. This can be done by calling `assess()` with $J$ data sets simulated under a single parameter configuration, and providing the resulting estimates to `plotdistribution`: 
 
-```{r, echo=FALSE,results='hide',fig.keep='all', fig.width=6, fig.height=3, fig.align='center'}
+```{r, results='hide',fig.keep='all', fig.width=6, fig.height=3, fig.align='center'}
 J     <- 100
 theta <- as.matrix(c(0, 0.5))
 Z     <- lapply(1:J, function(i) simulate(theta, m))
@@ -185,10 +186,12 @@ Z     <- do.call(c, Z)
 assessment <- assess(estimator, theta, Z)
 
 parameter_labels <- c("θ1" = expression(mu), "θ2" = expression(sigma))
-plotdistribution(assessment$estimates, type = "scatter", parameter_labels = parameter_labels)
+joint <- plotdistribution(assessment$estimates, type = "scatter", parameter_labels = parameter_labels)
+marginal <- plotdistribution(assessment$estimates, type = "box", parameter_labels = parameter_labels, return_list = TRUE)
+ggarrange(plotlist = c(joint, marginal), nrow = 1, common.legend = TRUE)
 ```
 
-Once the neural Bayes estimator has been trained, it can be applied to observed data using the function `estimate()`. Below, we use simulated data as a substitute for observed data:
+Once the neural Bayes estimator has been trained, it can be applied to observed data using the function `estimate()`, and compute non-parametric bootstrap estimates using the function `bootstrap()`. Below, we use simulated data as a surrogate for observed data:
 
 ```{r}
 # Generate some "observed" data

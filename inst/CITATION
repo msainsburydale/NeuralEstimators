@@ -1,0 +1,13 @@
+bibentry(
+  bibtype  = "Article",
+  title    = "Likelihood-Free Parameter Estimation with Neural {B}ayes Estimators",
+  author   = c(person("Matthew Sainsbury-Dale"), person("Andrew Zammit-Mangion"), person("Raphael Huser")),
+  journal  = "arXiv:2208.12942",
+  year     = "2022",
+  header   = "To cite the package NeuralEstimators in publications use:",
+  textVersion  = paste(
+        "Sainsbury-Dale, M and Zammit-Mangion, A and Huser, R (2022).",
+        "Likelihood-Free Parameter Estimation with Neural Bayes Estimators.",
+        "arXiv:2208.12942"
+        )
+)
