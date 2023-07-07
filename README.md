@@ -7,7 +7,7 @@ This repository contains the source code for the `R` interface to the `Julia` pa
 To install `NeuralEstimators`, please: 
 
 1. Install `Julia` (see [here](https://julialang.org/)) and `R` (see [here](https://www.r-project.org/)).
-2. Install the `Julia` version of `NeuralEstimators` from [here](`https://github.com/msainsburydale/NeuralEstimators.jl`). 
+2. Install the `Julia` version of `NeuralEstimators` from [here](https://github.com/msainsburydale/NeuralEstimators.jl). 
 3. Install the `R` interface to `NeuralEstimators` using the `R` command `devtools::install_github("MattSainsbury-Dale/NeuralEstimatorsR")`.
 
 ## Getting started
