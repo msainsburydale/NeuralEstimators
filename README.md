@@ -1,6 +1,6 @@
 # NeuralEstimators
 
-This repository contains the source code for the `R` interface to the `Julia` version of `NeuralEstimators`, which is designed to facilitate the development of neural estimators in a user-friendly manner. The documentation for the native `Julia` version is available [here](https://msainsburydale.github.io/NeuralEstimators.jl/dev/). 
+This repository contains the source code for the `R` interface to the `Julia` package `NeuralEstimators`, which facilitates the development of neural estimators in a user-friendly manner. The documentation for the native `Julia` version is available [here](https://msainsburydale.github.io/NeuralEstimators.jl/dev/). 
 
 ## Installation tips
 
