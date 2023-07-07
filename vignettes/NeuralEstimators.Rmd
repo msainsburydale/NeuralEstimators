@@ -118,7 +118,6 @@ prior <- function(K) {
 set.seed(1)
 theta_train = prior(10000) 
 theta_val   = prior(1000)
-theta_test  = prior(1000)
 ```
 
 Next, we implicitly define the statistical model with simulated data. The data are stored as a `list`, where each element of the list is associated with one parameter vector. Since our data is replicated, we will use the Deep Sets framework and, since each replicate is univariate, we will use a dense neural network (DNN) for the inner network. Since the inner network is a DNN, each element of the list should be an `array`, with the independent replicates stored in the final dimension.
@@ -171,7 +170,8 @@ estimator <- train(
 To assess the accuracy of the resulting neural Bayes estimator, we use the function `assess()`. 
 
 ```{r}
-Z_test <- simulate(theta_test, m)
+theta_test <- prior(1000)
+Z_test     <- simulate(theta_test, m)
 assessment <- assess(estimator, theta_test, Z_test)
 head(assessment$estimates)
 ```
@@ -194,14 +194,10 @@ ggarrange(plotlist = c(joint, marginal), nrow = 1, common.legend = TRUE)
 Once the neural Bayes estimator has been trained, it can be applied to observed data using the function `estimate()`, and compute non-parametric bootstrap estimates using the function `bootstrap()`. Below, we use simulated data as a surrogate for observed data:
 
 ```{r}
-# Generate some "observed" data
-theta <- as.matrix(c(0, 0.5))    # true parameters
-Z     <- simulate(theta, m)      # pretend that this is observed data
-
-# Estimates and bootstrap-based credible intervals
-estimate(estimator, Z)         # point estimates from the observed data
-
-bs <- bootstrap(estimator, Z)  # non-parametric bootstrap estimates
+theta    <- as.matrix(c(0, 0.5))     # true parameters
+Z        <- simulate(theta, m)       # pretend that this is observed data
+thetahat <- estimate(estimator, Z)   # point estimates from the "observed data"
+bs <- bootstrap(estimator, Z)        # non-parametric bootstrap estimates
 bs[, 1:6]
 ```
 
