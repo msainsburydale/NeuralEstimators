@@ -1,18 +1,23 @@
 # NeuralEstimators
 
-This repository contains the source code for the `R` interface to the `Julia` package `NeuralEstimators`, which facilitates the development of neural estimators in a user-friendly manner. The native `Julia` version is available [here](https://github.com/msainsburydale/NeuralEstimators.jl). 
+This repository contains the source code for the `R` interface to the `Julia` package `NeuralEstimators`, which facilitates the development of neural estimators in a user-friendly manner. The native `Julia` version is available [here](https://github.com/msainsburydale/NeuralEstimators.jl).
 
 ## Installation tips
 
-To install `NeuralEstimators`, please: 
+To install `NeuralEstimators`, please:
 
 1. Install `Julia` (see [here](https://julialang.org/)) and `R` (see [here](https://www.r-project.org/)).
-2. Install the `Julia` version of `NeuralEstimators` from [here](https://github.com/msainsburydale/NeuralEstimators.jl). 
-3. Install the `R` interface to `NeuralEstimators` using the `R` command `devtools::install_github("msainsburydale/NeuralEstimators")`.
+	- Ensure that your system can find the `julia` executable (this usually needs to be done manually; see, e.g., [here](https://julialang.org/downloads/platform/#linux_and_freebsd)) by entering `julia` from the terminal, which should open the Julia REPL (run `exit()` to leave the REPL).
+1. Install the `Julia` version of `NeuralEstimators`.
+	- To install from terminal, run the command `julia -e 'using Pkg; Pkg.add(PackageSpec(url="https://github.com/msainsburydale/NeuralEstimators.jl"))'`.
+1. Install the deep-learning library `Flux`.
+	- To install from terminal, run the command `julia -e 'using Pkg; Pkg.add("Flux")'`
+1. Install the `R` interface to `NeuralEstimators`.
+ 	- To install from terminal, run the command `Rscript -e 'devtools::install_github("msainsburydale/NeuralEstimators", build_vignettes = TRUE)'`.
 
 ## Getting started
 
-See the package vignette for an overview of the framework and package, and for an illustrative example. 
+See the package vignette for an overview of the framework and package, and for an illustrative example.
 
 ## Supporting and citing
 
