@@ -15,9 +15,19 @@ To install `NeuralEstimators`, please:
 1. Install the `R` interface to `NeuralEstimators`.
  	- To install from terminal, run the command `Rscript -e 'devtools::install_github("msainsburydale/NeuralEstimators", build_vignettes = TRUE)'`.
 
+Note that the vignette takes roughly 5 minutes to compile; if you are not willing to wait this long, remove the argument `build_vignettes=TRUE` in the final command above.
+
 ## Getting started
 
 See the package vignette for an overview of the framework and package, and for an illustrative example.
+
+## Conda
+
+Users may wish to try out `NeuralEstimators` without affecting their current installation. `conda` is a useful tool for this purpose; if you want to run `NeuralEstimators` within a conda environment, you can create one as follows:
+
+```
+conda create -n NeuralEstimators -c conda-forge julia r-base nlopt
+```
 
 ## Supporting and citing
 
@@ -31,3 +41,6 @@ This software was developed as part of academic research. If you would like to s
 	year={2022}
 }
 ```
+
+
+<!-- This package cannot go on CRAN as is, because of the dependence on Julia. The vignette might need to be pre-compiled. I do this in one of my packages, EFDR, where essentially the "vignette" is a link to an HTML file included elsewhere in the package (inst/doc I believe). In your case you may even point it towards the output of the Github Actions CI once you get that working, that would be better. -->
