@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Matthew Sainsbury-Dale, Andrew Zammit-Mangion, and Raphaël Huser" />
+
+
+<title>NeuralEstimators</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">NeuralEstimators</h1>
+<h4 class="author">Matthew Sainsbury-Dale, Andrew Zammit-Mangion, and
+Raphaël Huser</h4>
+
+
+
+<p>Neural estimators are neural networks that transform data into
+parameter point estimates, and they are a promising recent approach to
+inference. They are likelihood free, substantially faster than classical
+methods, and can be designed to be approximate Bayes estimators.
+Uncertainty quantification with neural estimators is also
+straightforward through the bootstrap distribution, which is essentially
+available “for free” with a neural estimator.</p>
+<p>The package <code>NeuralEstimators</code> facilitates the development
+of neural estimators in a user-friendly manner. It caters for arbitrary
+models by having the user implicitly define their model via simulated
+data. This makes the development of neural estimators particularly
+straightforward for models with existing implementations. The
+documentation for the native <code>Julia</code> version of the package
+is available <a href="https://msainsburydale.github.io/NeuralEstimators.jl/dev/">here</a>.</p>
+<p>Below, we outline the theoretical framework of neural estimation, and
+then provide an example of how a neural estimator may be easily
+constructed using the package <code>NeuralEstimators</code>.</p>
+<div id="methodology" class="section level2">
+<h2>Methodology</h2>
+<p>In this section, we provide an overview of point estimation using
+neural Bayes estimators. For a more detailed discussion on the framework
+and its implementation, see Sainsbury-Dale et al. (2022;
+arxiv:2208.12942).</p>
+<div id="neural-bayes-estimators" class="section level3">
+<h3>Neural Bayes estimators</h3>
+<p>A parametric statistical model is a set of probability distributions
+on a sample space <span class="math inline">\(\mathcal{S}\)</span>,
+where the probability distributions are parameterised via some <span class="math inline">\(p\)</span>-dimensional parameter vector <span class="math inline">\(\boldsymbol{\theta}\)</span> on a parameter space
+<span class="math inline">\(\Theta\)</span>. Suppose that we have data
+from one such distribution, which we denote as <span class="math inline">\(\boldsymbol{Z}\)</span>. Then, the goal of
+parameter point estimation is to come up with an estimate of the unknown
+<span class="math inline">\(\boldsymbol{\theta}\)</span> from <span class="math inline">\(\boldsymbol{Z}\)</span> using an estimator, <span class="math display">\[
+\hat{\boldsymbol{\theta}} : \mathcal{S} \to \Theta,
+\]</span> which is a mapping from the sample space to the parameter
+space.</p>
+<p>Estimators can be constructed within a decision-theoretic framework.
+Assume that the sample space is <span class="math inline">\(\mathcal{S}
+= \mathbb{R}^n\)</span>, and consider a non-negative loss function,
+<span class="math inline">\(L(\boldsymbol{\theta},
+\hat{\boldsymbol{\theta}}(\boldsymbol{Z}))\)</span>, which assesses an
+estimator <span class="math inline">\(\hat{\boldsymbol{\theta}}(\cdot)\)</span> for a
+given <span class="math inline">\(\boldsymbol{\theta}\)</span> and data
+set <span class="math inline">\(\boldsymbol{Z} \sim f(\boldsymbol{z}
+\mid \boldsymbol{\theta})\)</span>, where <span class="math inline">\(f(\boldsymbol{z} \mid
+\boldsymbol{\theta})\)</span> is the probability density function of the
+data conditional on <span class="math inline">\(\boldsymbol{\theta}\)</span>. <span class="math inline">\(\boldsymbol{\theta}\)</span>. An estimator’s risk
+function is its loss averaged over all possible data realisations, <span class="math display">\[
+R(\boldsymbol{\theta}, \hat{\boldsymbol{\theta}}(\cdot)) \equiv
+\int_{\mathcal{S}}  L(\boldsymbol{\theta},
+\hat{\boldsymbol{\theta}}(\boldsymbol{z}))f(\boldsymbol{z} \mid
+\boldsymbol{\theta}) \rm{d} \boldsymbol{z}.
+\]</span> So-called Bayes estimators minimise the Bayes risk, <span class="math display">\[
+r_{\Omega}(\hat{\boldsymbol{\theta}}(\cdot))
+\equiv \int_\Theta R(\boldsymbol{\theta},
+\hat{\boldsymbol{\theta}}(\cdot)) \rm{d} \Omega(\boldsymbol{\theta}),  
+\]</span> where <span class="math inline">\(\Omega(\cdot)\)</span> is a
+prior measure for <span class="math inline">\(\boldsymbol{\theta}\)</span>.</p>
+<p>Bayes estimators are theoretically attractive: for example, unique
+Bayes estimators are admissible and, under suitable regularity
+conditions and the squared-error loss, are consistent and asymptotically
+efficient. Further, for a large class of prior distributions, every set
+of conditions that imply consistency of the maximum likelihood (ML)
+estimator also imply consistency of Bayes estimators. Importantly, Bayes
+estimators are not motivated purely by asymptotics: by construction,
+they are Bayes irrespective of the sample size and model class.
+Unfortunately, however, Bayes estimators are typically unavailable in
+closed form for the complex models often encountered in practice. A way
+forward is to assume a flexible parametric model for <span class="math inline">\(\hat{\boldsymbol{\theta}}(\cdot)\)</span>, and to
+optimise the parameters within that model in order to approximate the
+Bayes estimator. Neural networks are ideal candidates, since they are
+universal function approximators, and because they are also fast to
+evaluate, usually involving only simple matrix-vector operations.</p>
+<p>Let <span class="math inline">\(\hat{\boldsymbol{\theta}}(\boldsymbol{Z};
+\boldsymbol{\gamma})\)</span> denote a <em>neural point estimator</em>,
+that is, a neural network that returns a point estimate from data <span class="math inline">\(\boldsymbol{Z}\)</span>, where <span class="math inline">\(\boldsymbol{\gamma}\)</span> contains the
+neural-network parameters. Bayes estimators may be approximated with
+<span class="math inline">\(\hat{\boldsymbol{\theta}}(\cdot;
+\boldsymbol{\gamma}^*)\)</span> by solving the optimisation
+problem,<br />
+<span class="math display">\[
+\boldsymbol{\gamma}^*
+\equiv
+\underset{\boldsymbol{\gamma}}{\mathrm{arg\,min}} \;
+r_{\Omega}(\hat{\boldsymbol{\theta}}(\cdot; \boldsymbol{\gamma})).
+\]</span> Typically, <span class="math inline">\(r_{\Omega}(\cdot)\)</span> cannot be directly
+evaluated, but it can be approximated using Monte Carlo methods.
+Specifically, given a set of <span class="math inline">\(K\)</span>
+parameter vectors sampled from the prior <span class="math inline">\(\Omega(\cdot)\)</span> denoted by <span class="math inline">\(\vartheta\)</span> and, for each <span class="math inline">\(\boldsymbol{\theta} \in \vartheta\)</span>, <span class="math inline">\(J\)</span> realisations from <span class="math inline">\(f(\boldsymbol{z} \mid
+\boldsymbol{\theta})\)</span> collected in <span class="math inline">\(\mathcal{Z}_{\boldsymbol{\theta}}\)</span>, <span class="math display">\[
+r_{\Omega}(\hat{\boldsymbol{\theta}}(\cdot; \boldsymbol{\gamma}))
+\approx
+\frac{1}{K} \sum_{\boldsymbol{\theta} \in \vartheta} \frac{1}{J}
+\sum_{\boldsymbol{z} \in \mathcal{Z}_{\boldsymbol{\theta}}}
+L(\boldsymbol{\theta}, \hat{\boldsymbol{\theta}}(\boldsymbol{z};
+\boldsymbol{\gamma})).  
+\]</span> Note that the above approximation does not involve evaluation,
+or knowledge, of the likelihood function.</p>
+<p>The Monte-Carlo-approximated Bayes risk can be straightforwardly
+minimised with respect to <span class="math inline">\(\boldsymbol{\gamma}\)</span> using
+back-propagation and stochastic gradient descent. For sufficiently
+flexible architectures, the point estimator targets a Bayes estimator
+with respect to <span class="math inline">\(L(\cdot, \cdot)\)</span> and
+<span class="math inline">\(\Omega(\cdot)\)</span>. We therefore call
+the fitted neural point estimator a <em>neural Bayes estimator</em>.
+Like Bayes estimators, neural Bayes estimators target a specific point
+summary of the posterior distribution. For instance, the absolute-error
+and squared-error loss functions lead to neural Bayes estimators that
+approximate the posterior median and mean, respectively.</p>
+</div>
+<div id="construction-of-neural-bayes-estimators" class="section level3">
+<h3>Construction of neural Bayes estimators</h3>
+<p>The neural Bayes estimators is conceptually simple and can be used in
+a wide range of problems where other approaches, such as
+maximum-likelihood estimation, are computationally infeasible. The
+estimator also has marked practical appeal, as the general workflow for
+its construction is only loosely connected to the statistical or
+physical model being considered. The workflow is as follows:</p>
+<ol style="list-style-type: decimal">
+<li>Define the prior, <span class="math inline">\(\Omega(\cdot)\)</span>.</li>
+<li>Choose a loss function, <span class="math inline">\(L(\cdot,
+\cdot)\)</span>, typically the absolute-error or squared-error
+loss.</li>
+<li>Design a suitable neural-network architecture for the neural point
+estimator <span class="math inline">\(\hat{\boldsymbol{\theta}}(\cdot;
+\boldsymbol{\gamma})\)</span>.</li>
+<li>Sample parameters from <span class="math inline">\(\Omega(\cdot)\)</span> to form
+training/validation/test parameter sets.</li>
+<li>Given the above parameter sets, simulate data from the model, to
+form training/validation/test data sets.</li>
+<li>Train the neural network (i.e., estimate <span class="math inline">\(\boldsymbol{\gamma}\)</span>) by minimising the
+loss function averaged over the training sets. During training, monitor
+performance and convergence using the validation sets.</li>
+<li>Assess the fitted neural Bayes estimator, <span class="math inline">\(\hat{\boldsymbol{\theta}}(\cdot;
+\boldsymbol{\gamma}^*)\)</span>, using the test set.</li>
+</ol>
+</div>
+</div>
+<div id="package-overview" class="section level2">
+<h2>Package overview</h2>
+<p>Some general points to keep in mind when working with the
+package.</p>
+<ul>
+<li>Parameters sampled from the prior distribution should be stored as
+<span class="math inline">\(p\times K\)</span> matrices, where <span class="math inline">\(p\)</span> is the number of parameters in the
+statistical model and <span class="math inline">\(K\)</span> is the
+number of sampled parameter vectors.</li>
+<li>The simulated data should be stored as a list, where each element of
+the list corresponds to a data set simulated conditional on one
+parameter vector.</li>
+<li>The format of the data (i.e., each element of the list described
+above) depends on the architecture of the neural estimator, which in
+turn is dictated by the structure of the response variable. For example,
+if the data are spatial and measured on a regular grid, the estimator
+will be based on a convolutional neural network (CNN), and each data set
+is stored as a four-dimensional array, with the first three dimensions
+corresponding to the width, height, and depth/channels dimensions, and
+the fourth dimension storing the independent replicates. For
+unstructured <span class="math inline">\(d\)</span>-dimensional data,
+the estimator will be based on a dense neural network (DNN), and each
+data set is stored as a two-dimensional array (a matrix), with the
+second dimension storing the independent replicates.</li>
+</ul>
+<p>The examples given below serve as a good introduction to the package
+and further illustrate the points above.</p>
+</div>
+<div id="examples" class="section level2">
+<h2>Examples</h2>
+<div id="univariate-data" class="section level3">
+<h3>Univariate data</h3>
+<p>Here, we develop a neural Bayes estimator for <span class="math inline">\(\boldsymbol{\theta} \equiv (\mu,
+\sigma)&#39;\)</span> from data <span class="math inline">\(Z_1, \dots,
+Z_m\)</span> that are independent and identically distributed according
+to a <span class="math inline">\(\rm{N}(\mu, \sigma^2)\)</span>
+distribution.</p>
+<p>Before proceeding, we load the required packages. The package
+<code>JuliaConnectoR</code> is used to call Julia from
+<code>R</code>.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">&quot;NeuralEstimators&quot;</span>)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">&quot;JuliaConnectoR&quot;</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">&quot;ggpubr&quot;</span>)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Loading required package: ggplot2</span></span></code></pre></div>
+<p>First, we sample parameters from the prior <span class="math inline">\(\Omega(\cdot)\)</span> to construct parameter sets
+used for training, validating, and testing the estimator. Here, we use
+the priors <span class="math inline">\(\mu \sim \rm{N}(0, 1)\)</span>
+and <span class="math inline">\(\sigma \sim \rm{Gamma}(1, 1)\)</span>,
+and we assume that the parameters are independent a priori. The sampled
+parameters are stored as <span class="math inline">\(p \times K\)</span>
+matrices, with <span class="math inline">\(p\)</span> the number of
+parameters in the model and <span class="math inline">\(K\)</span> the
+number of sampled parameter vectors.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>prior <span class="ot">&lt;-</span> <span class="cf">function</span>(K) {</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  mu    <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(K)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  sigma <span class="ot">&lt;-</span> <span class="fu">rgamma</span>(K, <span class="dv">1</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  theta <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">c</span>(mu, sigma), <span class="at">byrow =</span> <span class="cn">TRUE</span>, <span class="at">ncol =</span> K)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(theta)</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>theta_train <span class="ot">=</span> <span class="fu">prior</span>(<span class="dv">10000</span>) </span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>theta_val   <span class="ot">=</span> <span class="fu">prior</span>(<span class="dv">1000</span>)</span></code></pre></div>
+<p>Next, we implicitly define the statistical model with simulated data.
+The data are stored as a <code>list</code>, where each element of the
+list is associated with one parameter vector. Since our data is
+replicated, we will use the Deep Sets framework and, since each
+replicate is univariate, we will use a dense neural network (DNN) for
+the inner network. Since the inner network is a DNN, each element of the
+list should be an <code>array</code>, with the independent replicates
+stored in the final dimension.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>simulate <span class="ot">&lt;-</span> <span class="cf">function</span>(theta_set, m) {</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">apply</span>(theta_set, <span class="dv">2</span>, <span class="cf">function</span>(theta) {</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>   Z <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(m, theta[<span class="dv">1</span>], theta[<span class="dv">2</span>])</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>   <span class="fu">dim</span>(Z) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">1</span>, m) </span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>   Z</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  }, <span class="at">simplify =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>m <span class="ot">&lt;-</span> <span class="dv">15</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>Z_train <span class="ot">&lt;-</span> <span class="fu">simulate</span>(theta_train, m)</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>Z_val   <span class="ot">&lt;-</span> <span class="fu">simulate</span>(theta_val, m)</span></code></pre></div>
+<p>We now design architectures for the inner and outer neural networks,
+<span class="math inline">\(\mathbf{\psi}(\cdot)\)</span> and <span class="math inline">\(\mathbf{\phi}(\cdot)\)</span> respectively, in the
+Deep Set framework, and initialise the neural estimator as a
+<code>DeepSet</code> object. Since we have univariate data, we use a
+dense neural network with one input neuron. This is the only stage of
+the workflow that requires the user to write Julia code, which is
+executed using the function <code>JuliaEval</code>.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>estimator <span class="ot">&lt;-</span> <span class="fu">juliaEval</span>(<span class="st">&#39;</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="st">  using NeuralEstimators</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="st">  using Flux</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="st">  p = 2    # number of parameters in the statistical model</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="st">  w = 32   # number of neurons in each layer</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="st">  psi = Chain(Dense(1, w, relu), Dense(w, w, relu), Dense(w, w, relu))</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="st">  phi = Chain(Dense(w, w, relu), Dense(w, p))</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="st">  estimator = DeepSet(psi, phi)</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="st">&#39;</span>)</span></code></pre></div>
+<p>Next, we train the neural estimator using <code>train</code>, here
+using the default absolute-error loss function.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>estimator <span class="ot">&lt;-</span> <span class="fu">train</span>(</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  estimator,</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">theta_train =</span> theta_train,</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">theta_val   =</span> theta_val,</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">Z_train =</span> Z_train,</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">Z_val   =</span> Z_val,</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">epochs =</span> <span class="dv">50</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Computing the initial validation risk... Initial validation risk = 0.9116655</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Computing the initial training risk... Initial training risk = 0.90809786</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 1  Training risk: 0.709  Validation risk: 0.482  Run time of epoch: 18.809 seconds</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 2  Training risk: 0.362  Validation risk: 0.327  Run time of epoch: 0.664 seconds</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 3  Training risk: 0.303  Validation risk: 0.281  Run time of epoch: 0.725 seconds</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 4  Training risk: 0.265  Validation risk: 0.254  Run time of epoch: 0.732 seconds</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 5  Training risk: 0.246  Validation risk: 0.244  Run time of epoch: 0.678 seconds</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 6  Training risk: 0.238  Validation risk: 0.238  Run time of epoch: 0.746 seconds</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 7  Training risk: 0.233  Validation risk: 0.234  Run time of epoch: 0.678 seconds</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 8  Training risk: 0.23  Validation risk: 0.231  Run time of epoch: 0.838 seconds</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 9  Training risk: 0.226  Validation risk: 0.227  Run time of epoch: 0.722 seconds</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 10  Training risk: 0.223  Validation risk: 0.224  Run time of epoch: 0.754 seconds</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 11  Training risk: 0.221  Validation risk: 0.222  Run time of epoch: 0.833 seconds</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 12  Training risk: 0.219  Validation risk: 0.22  Run time of epoch: 0.551 seconds</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 13  Training risk: 0.217  Validation risk: 0.218  Run time of epoch: 0.603 seconds</span></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 14  Training risk: 0.215  Validation risk: 0.215  Run time of epoch: 0.513 seconds</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 15  Training risk: 0.214  Validation risk: 0.215  Run time of epoch: 0.677 seconds</span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 16  Training risk: 0.212  Validation risk: 0.214  Run time of epoch: 0.636 seconds</span></span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 17  Training risk: 0.211  Validation risk: 0.21  Run time of epoch: 0.552 seconds</span></span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 18  Training risk: 0.21  Validation risk: 0.211  Run time of epoch: 0.828 seconds</span></span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 19  Training risk: 0.208  Validation risk: 0.209  Run time of epoch: 0.806 seconds</span></span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 20  Training risk: 0.207  Validation risk: 0.208  Run time of epoch: 0.668 seconds</span></span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 21  Training risk: 0.206  Validation risk: 0.208  Run time of epoch: 0.596 seconds</span></span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 22  Training risk: 0.205  Validation risk: 0.206  Run time of epoch: 0.558 seconds</span></span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 23  Training risk: 0.205  Validation risk: 0.205  Run time of epoch: 0.658 seconds</span></span>
+<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 24  Training risk: 0.204  Validation risk: 0.204  Run time of epoch: 0.732 seconds</span></span>
+<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 25  Training risk: 0.203  Validation risk: 0.205  Run time of epoch: 0.529 seconds</span></span>
+<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 26  Training risk: 0.202  Validation risk: 0.201  Run time of epoch: 0.574 seconds</span></span>
+<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 27  Training risk: 0.201  Validation risk: 0.203  Run time of epoch: 0.695 seconds</span></span>
+<span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 28  Training risk: 0.201  Validation risk: 0.2  Run time of epoch: 0.534 seconds</span></span>
+<span id="cb5-39"><a href="#cb5-39" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 29  Training risk: 0.2  Validation risk: 0.202  Run time of epoch: 0.678 seconds</span></span>
+<span id="cb5-40"><a href="#cb5-40" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 30  Training risk: 0.199  Validation risk: 0.2  Run time of epoch: 0.962 seconds</span></span>
+<span id="cb5-41"><a href="#cb5-41" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 31  Training risk: 0.199  Validation risk: 0.199  Run time of epoch: 0.791 seconds</span></span>
+<span id="cb5-42"><a href="#cb5-42" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 32  Training risk: 0.198  Validation risk: 0.203  Run time of epoch: 0.635 seconds</span></span>
+<span id="cb5-43"><a href="#cb5-43" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 33  Training risk: 0.198  Validation risk: 0.199  Run time of epoch: 0.634 seconds</span></span>
+<span id="cb5-44"><a href="#cb5-44" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 34  Training risk: 0.197  Validation risk: 0.198  Run time of epoch: 0.641 seconds</span></span>
+<span id="cb5-45"><a href="#cb5-45" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 35  Training risk: 0.197  Validation risk: 0.199  Run time of epoch: 0.595 seconds</span></span>
+<span id="cb5-46"><a href="#cb5-46" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 36  Training risk: 0.197  Validation risk: 0.197  Run time of epoch: 0.589 seconds</span></span>
+<span id="cb5-47"><a href="#cb5-47" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 37  Training risk: 0.196  Validation risk: 0.198  Run time of epoch: 0.694 seconds</span></span>
+<span id="cb5-48"><a href="#cb5-48" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 38  Training risk: 0.196  Validation risk: 0.196  Run time of epoch: 0.713 seconds</span></span>
+<span id="cb5-49"><a href="#cb5-49" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 39  Training risk: 0.195  Validation risk: 0.196  Run time of epoch: 0.512 seconds</span></span>
+<span id="cb5-50"><a href="#cb5-50" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 40  Training risk: 0.195  Validation risk: 0.196  Run time of epoch: 0.59 seconds</span></span>
+<span id="cb5-51"><a href="#cb5-51" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 41  Training risk: 0.195  Validation risk: 0.195  Run time of epoch: 0.634 seconds</span></span>
+<span id="cb5-52"><a href="#cb5-52" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 42  Training risk: 0.195  Validation risk: 0.197  Run time of epoch: 0.469 seconds</span></span>
+<span id="cb5-53"><a href="#cb5-53" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 43  Training risk: 0.194  Validation risk: 0.196  Run time of epoch: 0.508 seconds</span></span>
+<span id="cb5-54"><a href="#cb5-54" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 44  Training risk: 0.194  Validation risk: 0.195  Run time of epoch: 0.484 seconds</span></span>
+<span id="cb5-55"><a href="#cb5-55" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 45  Training risk: 0.194  Validation risk: 0.195  Run time of epoch: 0.531 seconds</span></span>
+<span id="cb5-56"><a href="#cb5-56" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 46  Training risk: 0.193  Validation risk: 0.196  Run time of epoch: 0.559 seconds</span></span>
+<span id="cb5-57"><a href="#cb5-57" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Epoch: 47  Training risk: 0.193  Validation risk: 0.195  Run time of epoch: 0.608 seconds</span></span>
+<span id="cb5-58"><a href="#cb5-58" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Stopping early since the validation loss has not improved in 5 epochs</span></span></code></pre></div>
+<p>To assess the accuracy of the resulting neural Bayes estimator, we
+use the function <code>assess()</code>.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>theta_test <span class="ot">&lt;-</span> <span class="fu">prior</span>(<span class="dv">1000</span>)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>Z_test     <span class="ot">&lt;-</span> <span class="fu">simulate</span>(theta_test, m)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>assessment <span class="ot">&lt;-</span> <span class="fu">assess</span>(estimator, theta_test, Z_test)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  Running estimator estimator1...</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(assessment<span class="sc">$</span>estimates)</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    estimator  m k j replicate parameter    estimate       truth</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1 estimator1 15 1 1         1        θ1 -0.20230298 -0.33523899</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2 estimator1 15 2 1         1        θ1  0.87646741  0.92046148</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3 estimator1 15 3 1         1        θ1 -0.47867903 -0.58172023</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 4 estimator1 15 4 1         1        θ1 -0.43670407 -0.09905396</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 5 estimator1 15 5 1         1        θ1  0.06452959  0.88447732</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 6 estimator1 15 6 1         1        θ1  1.63332927  1.47884893</span></span></code></pre></div>
+<p>In addition to assessing the estimator with respect to many parameter
+configurations, it is often helpful to visualise the empirical sampling
+distribution of an estimator for a particular parameter configuration.
+This can be done by calling <code>assess()</code> with <span class="math inline">\(J\)</span> data sets simulated under a single
+parameter configuration, and providing the resulting estimates to
+<code>plotdistribution</code>:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>J     <span class="ot">&lt;-</span> <span class="dv">100</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>theta <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(<span class="fu">c</span>(<span class="dv">0</span>, <span class="fl">0.5</span>))</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>Z     <span class="ot">&lt;-</span> <span class="fu">lapply</span>(<span class="dv">1</span><span class="sc">:</span>J, <span class="cf">function</span>(i) <span class="fu">simulate</span>(theta, m))</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>Z     <span class="ot">&lt;-</span> <span class="fu">do.call</span>(c, Z)</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>assessment <span class="ot">&lt;-</span> <span class="fu">assess</span>(estimator, theta, Z)</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>parameter_labels <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;θ1&quot;</span> <span class="ot">=</span> <span class="fu">expression</span>(mu), <span class="st">&quot;θ2&quot;</span> <span class="ot">=</span> <span class="fu">expression</span>(sigma))</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>joint <span class="ot">&lt;-</span> <span class="fu">plotdistribution</span>(assessment<span class="sc">$</span>estimates, <span class="at">type =</span> <span class="st">&quot;scatter&quot;</span>, <span class="at">parameter_labels =</span> parameter_labels)</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>marginal <span class="ot">&lt;-</span> <span class="fu">plotdistribution</span>(assessment<span class="sc">$</span>estimates, <span class="at">type =</span> <span class="st">&quot;box&quot;</span>, <span class="at">parameter_labels =</span> parameter_labels, <span class="at">return_list =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="fu">ggarrange</span>(<span class="at">plotlist =</span> <span class="fu">c</span>(joint, marginal), <span class="at">nrow =</span> <span class="dv">1</span>, <span class="at">common.legend =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
+<p><img src="data:image/png;base64,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EeZhTfuw2U6FB84EmICpElCsLSnH9+rVK3h7e2tYXxS/nZRLXCnPTeszhbKT03LK81P2S75BtGxG12dhAkzA+giwAmR995xnzASYABNgAkzA6gnwEpjVfwUYABNgAkyACTAB6yPACpD13XOeMRNgAkyACTABqyfACpDVfwUYABNgAkyACTAB6yPACpD13XOeMRNgAkyACTABqyfACpDVfwUYABNgAkyACTAB6yPACpD13XOeMRNgAkyACTABqyfACpDVfwUYABNgAkyACTAB6yPACpD13XOeMRNgAkyACTABqyfACpDVfwUYABNgAkyACTAB6yPACpD13XOeMRNgAkyACTABqyfACpDVfwUYABNgAkyACTAB6yPACpD13XOeMRNgAkyACTABqyfACpDVfwUYABNgAkyACTAB6yPACpD13XOeMRNgAkyACTABqyfACpDVfwUYABNgAkyACTAB6yPACpD13XOeMRNgAkyACTABqyfACpDVfwUYABNgAkyACTAB6yPACpD13XOeMRNgAkyACTABqydgb24E4uPjkZiYaG7D5vFmEwFbW1vY25vd1zxTtBISEkAvFiagELDk7z/9DtDvAQsTSItAet9/s/tlGDhwoJwrTUyX0A9BXFwcnJycYGNjo6upzmNJSUmyH0dHR53t0jtI/1Dp5ezsnF5TncdpPNSPg4ODznbpHTTUeOiPELHO6njoXlFfdL+yItQHvUjpUVgtWrQoK12azblz587FpUuX4OnpaTZj5oEaj4Clf//XrVuHvXv3ImfOnMaDyD2bLQF9vv9mpwDR3Zg1axbSU0giIyMREhICPz8/pKcs6brD9GNK/fj4+Ohqlu6x8PBwhIWFIW/evOm21dWAlA3qy8vLS1ezdI/RWIgR8cmKkOISFRWV5R9dYhwTE4PcuXNnZTiyDxqTu7u7VBT79++fpf7M7eThw4ejbNmy5jZsHq8RCNBDjqV//3v37o169eoZgR53ae4E9Pn+6zajmDsBHj8TYAJMgAkwASbABLQQYAVICxTexQSYABNgAkyACVg2AVaALPv+8uyYABNgAkyACTABLQRYAdIChXcxASbABJgAE2AClk3ALJ2gLfuWZH52QQHBmD/iR9y8cEs4ftvBf+VQFK9YNPMd8plMgAkwASbABCyUAFuALOTGxkTFom+TYbhy6jrcPd1ha2eL79qNx/0bDy1khjwNJsAEmAATYAKGI8AKkOFYZmtPx349hcSERPjk9gZE2iNnVyfYOzpg5/K92TouvjgTYAJMgAkwAVMkwAqQKd6VTIwpPi4+Vb4jO3s7kGWIhQlYE4H7Nx/i+vl/rWnKPFcmgOCXIXj+6AWTyAABVoAyAMuUm1Z6u7xMAhgdGS2HmSQSOL58HoRGreua8rB5bEzA4ARWTl6PST1mGrxf7pAJmDKBpf6rhRvEUFMeosmNjRUgk7slmRtQnkK5MW71CERFRItXDCLDotDrf51QvVGVzHXIZzEBJsAEmAATsGACHAVmQTe3wltlsfzYPLx4HAjPHJ7wzZO18h0WhIanwgSYABNgAkxAgwArQBo4zP+Du5cb6MXCBJgAE2ACTIAJpE2Al8DSZsNHmAATYAJMgAkwAQslwAqQhd5YnhYTYAJMgAkwASaQNgFWgNJmw0eYABNgAkyACTABCyVgdj5ASUlJMtyb3nVJfHy8PBwbGwsbG5EZMJNC10kUIeUxMTGZ7CH5tISEBLlhiH6or6z2Q3wUllmZGPVjiPFQH4YYT1xcHGhMxEeZY1bmx+cyASbABJiAZRIwOwWIbgP9sNna6jZeKQoHtTWEAkT9ZEXUx5OVfkgZo1dWx0N9kGSkH6o1Fhcbj5x5c8hSG3Q+zSu7xkPXTynq46G5pacopzyfPzMBJsAEmIB1EDA7BYiUGTc3Nzg6Ouq8Q9QuOjoarq6u6SpLujqiH3eyKtA1syKKdSOr/Sg/8FntR1Fa9OpHGNsoudzBn/9CkvjPzs4eiw5Oh5uINiM2JHr1owMgKSs0pqz2Q5Yf5X5Rn+kpyjqGxIeYABNgAkzAggnoNqNY8MQtZmpCOdm5/DeRAXQ4+jQagv2b/jT41FZNWY+96w7C3dsdHt4eCA+NwNgvpyJeWINYmAATYAJMgAmYIwFWgMzxrqmNecF3y7Bw5DLEiBIYsdGxoHTov/60X61F1jeP7jklEiu6qzrKnT8nAp+9wr3rD1T7eIMJMAEmwASYgDkRYAXInO5WirEGvwjBoW1HUKRsIVH53R4OTg7wFtXgN87bjriY5KWpFKdk6qOzq3MqX5p40b+tnV2m+uOTmAATYAJMgAlkNwFWgLL7DmTh+jHC4uPm6arh5G1nZystQYZ0/v2wW3OEBIYiMSHZcfrp/eewF8pWsXKFszB6PpUJMAEmwASYQPYRsAgFKDwkAjf+/hePbj3JPpLZcOVc+XyRt0geBD59pbp6SGAIvHw94eis20lcdYIeG00/b4gOg9oi5FUoQl+Fo+77tbHkz1lA5rML6HFVbsIEmAATYAJMwHgEzC4KLCWKu1fuY3LvOdLqQT/Q9VrVweDZX6dsZpGfbYW1Z+SSQcIBehgihBJoZ2+PouWKwH/VMIPPt03vVviwWwvZLy23sTABJsAEmAATMGcCZm0Borw0wz75n1B+YuDi7ow8BXPjj61HRMTSAXO+JxkaO1l7Vp1cgLZ9PhQRWm6IDIvEntW/Z6gPfRuT4sPKj760uB0TYAJMgAmYMgGzVoCunrkBJ2cnofy4JDMWSzI5xbLQXzuPmzJzg4/tzMHzWDtjE8KCIxAaFIYNc7Zh1ZSNBr8Od8gEmAATYAJMwFIImLUCJP1cUvihJMYnGNT/xRxu9PwRP8Irpxec3Zzk3H3z5MCBzX/i+cMX5jB8HiMTYAJMgAkwgTdOwKwVoKr1KsGvQC4E/xehFBUejcjwKPQY++UbB5mdFyQd0MHB4fUQxA7yD4oSLFhMk0BgYCB+//133LhxQ+cAg4KCcODAATx9+lRnOz7IBJgAE2ACGSNg1gqQvYMdpmwegxIViiAuOg7ewgryv9XDUbBk/oxRMPPWVd6tiIDHgapZhL4KQ4IoA5G/WF7VPt4wHQLnz59H165dcfPmTQwbNgzbt2/XOridO3diwIABuHv3LsaNG4c5c+Zobcc7mQATYAJMIOMEzD6ch5bBJm4YlfGZW9AZ/ab2wOWTV2WuHkeRn8dJMJmyZaxMjGhB07SYqZAiM3HiRFSuXBnt2rVD9+7d0bJlS436dlTzbc2aNZg+fTqKFi2Kjh07yradO3eGj4+PxbDgiTABJsAEsouA2StA2QXOlK5LEXCrTv0glKBrwvKTgNJVS8gEiaY0Rh5LMgEq0Pro0SNUqlRJ7vDz85MFex8/fiwVHYWTnciyvXr1alVxWCrsGx4eDlKMFHn27JlUkJTPSmFa5TO/MwEmwASYQNoEWAFKm41ZHSGfn8rvlH+jY35w8xFu/XNXZIW2Q72Wbxvl2kmJSbh0/AqiI2OkYuedy8so13lTnQYEBEilxsbmtfe+l5cXXr16paEA0Xjc3NzksBITEzF37lw0b94cOXPmVA2VFB5SphRhy5BCgt+ZABNgAukTYAUofUbcQguBfRsOYcXkdbIeWJgIvd9V5TdM2/Y/6XytpXmmdlHpDf9OU3H32kNR7gOIjorBlA2jUaJysUz1ZwonkWVH3YpDYyKrkLOzs9bhxcTEYPz48bIW26hRmku9BQsWxKZNm1TnzZolsnOzMAEmwASYgF4EzNoJWq8ZciODE7h//SEWjl4BDy93uHu5wq9QLty+cg+/rPzNoNeaOXAh/r1wW16Dap65iXxPE3vOEuU4wgx6nTfZma+vLyIiIkCKjSJk/cmXL5/yUfUeGRmJIUOGwMPDAxMmTNDwEVI14g0mwASYABPIFAFWgDKFzTRPIovJxWNXcPaPCwgXSRENLfFxCbLe2rk/L8LV3RV2IgpPEU8fD5z785LyMcPv8bHxIot1FOhdkX8vCuXHx135KPIciar0Yo53rz1Q7TO3DXtRrqR27drYtWuXHPrhw4elU7OyfHXv3j2Qvw+Jv78/SpcujREjRoAsRyxMgAkwASZgOAK8BGY4ltnaEykOY7+cioe3HstxxMbEYuaOCShQIrVlITMDffU8CBO6zcCr568Q8OQl4mLi4OGT7KNC/UVFRMPXzzszXePu1fv4vv98hL4MEefbYOzyoShTvaRMa/DsQQDsHV5/TUPEcpuLUITMWb7++mtV+LutrS3Gjh2rmk6fPn0wdepUae05efIk6LV582bV8QULFqgcqFU7eYMJMAEmwAQyTOD1L0uGT+UTTInAhK9m4I5YhlKchG1CgYndZ2L27omvS4VkcsCk7PRvPgJxQsnKkdsbhUq54Mqp63hw4xFyF8wllJ8o4aNjg+7+nTJ8hZfPgjC0jb/MYE0WHoggJ/L7mbFjPLqN6ojRHSZJ/xcHRwe8eBKIinXKoVSV4hm+jimdULhwYem7ExwcDG9vTaVx7969qqEeOXJEtc0bTIAJMAEmYFgCRl0C0zfb7ZUrV2RWXMp6y5I5ArQs5JnDQ3Wyq/CZiRZWmftCScmq3P7nnlBwbKXyQ32RslO6aik4uzrBTxSgrVK3Aub//n2mQu+P7j4pq9i7eiTXc3N0cZSO1Ed+OSmtQLN+mSgTOnrl9ECXEZ9j4rqRWZ2OyZyfUvkxmYHxQJgAE2ACVkDAaBYgynZLpv2mTZti4cKF6NKlC1q3bp0K6eLFi0Fta9SogaVLl2LkyJGoXr16qna8QzcBzxzuiAiJhJNQShQJFktKimKh7MvMu529nfBBeR22TX0kJSVK5WfSxpGIioqCp6dnZrqW1h1btZBwpRPKZ0RSqFQBTBVJHVmYABNgAkyACRiSgNEsQEq22/79+0vFZsWKFYiNjdUY+5MnT3Dw4EHMnDkTPXr0AIX5Xrt2TaONtX548filWP6ZjC+q9sIX1XpLPxldLLqN/EJUgw+X9b9io2OFs/Jj1HyvqlQgdJ2nz7ESFYuicOmCCA4IlgpLgnCGDnkVig6D2upzus42tZtUFxFRsWIZLTkqisZO/kQN29TVeR4fZAJMgAkwASaQFQJGsQDpm+323LlzqFixIl68eIGjR4/inXfeQbVq1TTmQ4njaIlMEYqQoRclh9MlSlZcCjdWTzqn6xxtx5KSkmTeFiUyR2nzj8i6vNR/jYi2Chf+Kw6YvHk0cvilXaKAmJCk7EfpT/2doqH6Nh0md3n5eogkgLEY3vZ/mLxlDPIVy6N1POXeKgX/n4Zh5aT1MpKqxZeN8UGXpmlej8ZDc9NnPDSQoT/0w+jPJ+PZ/efSp+irsV+gVrNqUqmlvvTtR32etO2Txwv+K4dikghvJ6uSk7MTvlv8DXIWyJGpPum+U54dGo8yx5TX5M9MgAkwASbABIyiAOmb7ZYUHwr7paiXUqVKSUsRFYd86623VHeGlKSBAweqPleoUAHkK+To6Kjap2uDHE0NIer+Sc8fvMC4LtNEFJQHnNwc5dLTsDbjMG79UJDvjS5R7yetdn9tOy6LmXoK5Yd+xO0dRWV3EdW+Y/mv6Dgs2eqinkdG6SdnIR8MXdJX+YjgkPTnrs94lA5HLB+gbMp39XO1jUejsY4PuYv5YvpufxkGT47Q5Fuk3reOU9M8RMtyxC5l0sE0T+ADTIAJGI0A/X04e/asfBitWbMmHBwctF7r+fPnuHDhAooVK4aSJUtqbcM7mYChCBhFAdI32y1ZcSgJ3NatW2WeE6qPRJWx1RWgBg0a4I8//lDNl4pI5sqVK10FiCwAYWFhsnRAVi1A1I+6j8uWWb8Ih183uIsXCVWhDwuKwJ2LD9NcuqGkdpQAj8aenrg4uYDyxaj/kXAUUVCO9o5QEulRcrysCI2FlAT10gqZ6S/wmbh/C3ciPCQK1etXQoNMLl0RYxc3F+TIkSMzw1CdQ8uspPi4urrKd86fo0LDG0wgWwjQ35lu3bqhfPnyILeHLVu2gLKWp/y7TL6gU6ZMQZMmTbBz506UKFECgwcPzpYx80Wtg4BRFCDlR5q0fienZKdcbdluSRmgRG/KjxRZgebNm6dB3sXFBfnz51fto7akHNBLl1B+FRJqr2zrap/WMVLS6B+q+vXihYMufdbsN0l4BkOjnXqfSlv1ftSPq2/XfK8aVn+/CXHRcdKpmRyCQ0X+m/c+qaeajz79qPd5bM8p7Nt0SI65Tc8PUKRiwVTzUm+vz3ZUeDSGfDgWMVGxcBLRW4e2HcGFo/9gyLx++pyu0SYjfDROTPGBLD50zxQ+Kf/IpmjOH5kAEzAyASrXQsk/FUt+r169cOrUKY0HXRoCBcSQwkMPwPTbMWnSJLnErq+138jT4O4tkIBRnKDpxyetbLf0NHD//n2Jsk6dOtLpmcyeJOQQTT5Bpi4NW9dF0ItgsUyV7IcUFR4lcuTEoVr9ygYZer6iefC/VcMQKfLrRAvn4FihYAyc0Rvla5fJVP8/L/xF+thQCQvKFTSu6zQc2XUiU32pn7RgxDIkxMWDQtTdvdxQpHQh/P3XRZkjSL0dbzMBJmC9BG7duqXh20l+nlevXtUAQhZpakcPxPv27ZOWIqqBp678hIaGon379qoXKVEsTCArBHSbUbLQc1rZbsmhmb7YVAogd+7coHb0cnd3l0/t06ZNy8JV38ypVetVRJ/xXbF62kYRZu4qfFacZfZi3zxpO0FndGSVRGX3Fcfni8zLQTK/j5dv5sLMqSTGpvnbUKB4PlWhUkcnR6yfuQ0V65bVOizKHxQaFA4PbzedSRRfBQhfLJfXYfciibPM6ROipVZXwKNAGaXmJxInkrLEwgSYgHUQePbsmYYLAbkTPHr0SGPy5DdK1v7hw4ejbNmyWLNmjVSaBg0apGpHVmL1mnmK1VjVgDeYQAYJGE0BSivbLeX7Ueog0VibN28u13zDw8Ph5eWVweFnX/MPujbDux/WQURopIz+IsddQ4ssAJqOU3V616SQciodYWv32thHNbzihOUmMUGs2aWQi0ev4IeRy2Spi0hx7lCxnFWjUZUUrZI/lhJV2W+Kel0+uZPvW4Ko0xUWHIZ8Rfw02v/8wy7pwG0v8glFRcbAf8VQlKtVWqMNf2ACTMAyCZAbgnowAvnokbKjLrRsHRISIov+Vq1aFeQz2bZtW3Tv3l0WA6a29JBMvkOKkJLEwgSyQuD1r2JWetFxrj7ZbukfiDkpP8p0ySpDy1XGUH6Ua2T13UeUrvD1y4GQl6GqrqiauoOjvfTbUe0UG4/vPMX/ukwFFT2lhIpuIjvzxB4zcfXMDayYsA7ju0yXvklKksLPB30iLETOCHz6SuQICkGQsFZ1HNwORcoWUnV7Yu8ZrJi8TmaJpggvUsbGfjkFZBFiYQJMwPIJUKAF+YAqos0flFYDSMqVKyffKYiBfERv374tP/P/mIAxCBhdATLGoLlP/QnYC2vPyKXJkRQyUaLIMUSK2/fbxsLGVjO781HhKO3k4izzGtEVHJ0d4Szy8gz5eCx+3/gH7ly9h71rD6B/0+HS8ZkUv+XH5qLb6A4yKeIEUabi074fagzu0I6jyJnXVxXxQec4iH4vn9D0AdA4iT8wASZgMQTeffddUI07isyl8kjHjx8HWXlIKA0K7aeo1ipVqmD//v1y/927d6UfEAXGsDABYxEw2hKYsQbM/WacQK78vtKf6J9T1+RSWPmapRGXGCfNzOq9OYiq65oqEUTG5zAZTk6WJBKy4rwUlp59Gw6hVbdmsr8Gbd7RWONX79NF+EcpFiNlf6JYKiPFjIUJMAHLJ9C4cWMcO3YMn3/+uYxCJUfmokWLyon36dNH5oGrXLkyhg4dKssn7dixQypK/v7+Mp2F5RPiGWYXAVaAsov8G74uLVVRaQxF4sLilE3V+zsta+PnRTtlEVVSdCgjNUW35fBLVn6UhmQ5Cg4MUT7qfP+4x/s48dsZkc06WliXRILD58FwcHLA2y1q6TyPDzIBJmAZBCgqeMKECTIvG/n+KCkqaHZkGVKkUKFCWLVqlUyCSq4TnMJCIcPvxiLAS2DGImuG/VKE1pTN/sLikyCdu71yeqL3hC4i1F0UJv3PX5rKZ1CEWJnqyVlayZ/oyd1nsgaZtikXLVcYkzeNhqhygUjhMF5ZVI5f9McMqQRpa8/7mAATsEwCtMylrvykNUsfHx9WftKCw/sNSoAtQAbFaf6dFS5dAKtO/SAixBKkudpeOEvfu/YQf+48Cq8cnjLJYKsuzaQ16Y8th7Fy6gYx6SRhKYoX0V3DULZm6jX7EpWKYfWZH8wfDs+ACTABJsAELIYAK0AWcysNNxHpn6PmozNkfl8069AQQaIafK78OVG2RikZGTbr20UgqxEtiVEk3+iOk7DwwHT4FUqO6DDciLgnJsAEmAATYAKGJcAKkGF5WmxvFeskh6cqEzworD8UTWYncvtQDg/yGaKSGOf+uoT3RSV6FibABJgAE2ACpkyAfYBM+e4YaWzxYrnq6b3nCAl8nRsoo5ciR+akRM1EisI9SKzxc3RXRllyeybABJgAE3jzBNgC9OaZZ+sVnz0IwKQes/DqRZBwdI7AJ70/xBdD2mV4TC2+eA9/bD0irT4OTvbJypRNEup+8FaG++ITmAATYAJMgAm8aQJsAXrTxLPxehTWPrDlSLx89kpmZPbJ5Y11s37Goe1HMzyqwqULYuL6kTJMPjwkAhTtNf+370VtNM0U9xnumE9gAkyACTABJvAGCLAF6A1AflOXoASD90TFd0o8SApJymSDlAiR9rl7ucvkhuS8TE7MBzb/hbeb1xJZnvfLshalqpRAPVHnLD0pVaW4jO6KiopKMxFien3wcSbABJgAE2AC2UGAFaDsoG6Ea5ID8oRuM/DozpP/Mi8niYisGfDwcVddzV5kera11fTRIT8eG5H+uXvdAYiNjpNOzT8v2oXDu97C6GXfqs7lDSbABJgAE2AClkSAl8As5G4OaD4Cty7floVZqYp8ZFg0pvSeLfL5iAyE/0n5WmXgLSK3wkTyQhJKcBhO1exFmYswkdyQyl145vBAkTKFQNaic4cu/HemyPQjFKWzf1zAkV9O4Nn9ANV+3mACTIAJMAEmYI4EWAEyx7uWYsxk/QkSpSm8hU+PIlT/6+GtJ3JJS9nn5OIoMj2PgbO7CyiDc4JQjgZO7yUsRolS8VHaKe8vnwXJTVJ+qIL7zEELMXfIEvSoNxCn9/+tNON3JsAEmAATYAJmR4CXwMzulqUesK3w5XFydpDWHlu7/3RaEZIeGR4pK7qrn+Hm5YblR+ci6FWQLIaav2B+PLn/HKcPnhcOzK7JTcW5VDk+d4Gc8vOy8Wtw5cwNBL8IlkoTWY6Gtfkf1l1YgtyFktuoX4O3mQATYAJMgAmYOgG2AJn6HdJjfJST59O+H8tMzXEx8aA8P3ev3UeDj96Bt6jndfnEVRz79TTu33iU3Jvw+aESF/QiaS0Klrq4OeG5CJEPeRmKQBElVq/V26jybkV5/PLJqwh4FIh4ofiQguUglK3YmFgsG/+TPM7/YwJMgAkwASZgbgTYAmRudyyN8X7YrblMQrhj+V753ntCV6HYtMTUPnNx6fgVuS9UWHW6jPgcVKFdXRydHWX9r71rD8oq78UrFMFbzWqomjg4OMhiqHZq5TFs7Gxw9dwtVZvs2rhy6jqW/m+1HHf+onkxYulA2NoLDY+FCTABJsAEmIAOAqwA6YBjbofe79QE9FJk/6Y/ZY6fomULyV3Ork5YM2MTytUsjbzFNet1kWWnZefX5yp90Hub3i1xav856TRNofMJcfFwdnGCm4ezerM3vv34zlP4d5oKN083OInx3L32AKM/n4Tx60a88bFYwwUDHr/AoW1HTX6q9D14JerWbZq/3eTHWq1+JZSsVNzkx8kDZAKWSMDsFCCqOxUcHAxHR0ed9yM+Pl4eDwkJEWHembcIJIn6DnFxcfKaOi+YzkFlPDT2rAjNn/rSp5/jv59GDj8vOX7lmja2trhw/BJ88teVNbz06af8O2XQ6NN3cXjnCREmbwtPbw+ZT6jj0E8QFkbO1Al6jUcZg/r7q+fBImItEl65PEEZpfUZj3L+Yv+V8hx7JzskJCbA1csFAY9f4tSBc6jdtLrkRGNjMQyBBzcfYcaABcmdZf6flGEGo6uX/yq0zPjmv7Hqapudx8Q4h8zrxwpQdt4DvrZVEzA7BchW/IB7eHikqwBRcj5SXNzd3UXum8y7OpHCQT/ydM2sSGRkpBxPVvuhH/SIiIhU46Esz5TQMCoiCpXeLi8rtufOlxPXTt8Qy1+vbzOFxfvm9pX8qK+YsFjcuXIfLu7OSFnwVH2+Y5YPwXzfH0H+QGRx6TjoE9RqWk3OKSYmRnJWb6/P9ub5O7B71T7pV0Q+RSOXD0SFGppFV3X1kxCbCEcnR435ka6bJCL/iTMpilm597qubc3HNl1ZjmLlilgzAoPMvabtewbphzthAkwgcwRe/zJm7vxsOcvOzg700iXKDx+1U7Z1tU/rGFmP6JXe9dI6X9mvWKH06YfCzzfM2Yqg50GoUq8SWnVtpnQj32k+6v1EhVOJi1Gitlek+PVPwoa529BnfFe069caR3efEiHv4TI/UGhQGNyF8tKwdV1EREbgyonrWDFuvewrLCRc/qhN3z5OKiQaFxQf6HqD53ydcre0ImWGz5/bj2Hb4t3IkcdH8o1/GY9JXWdh2dF5WkPyU11Y7GjY+h3MGbIUBUvkA4TiExUejbiYOJSvVVqOl6x3Cndt5/M+JsAEmAATsF4CmTeNWC8zo86cfsQpqeHR3Sdx65+7WDDiR4z8bKLOa07vv0D8+EfJiC/vXF7IWzA31gsFKiYqBksPz0bZ6iVldJeDqNRes1FVobQk4YVYKpo/dJnwnXGGq0ic6CfOuS2ut3XRL6muRVFkfRsPQ4fKPdGn0RCZQyhVowzuIGsVJWxUFBQ3L1eZhfrK6et699SkfUM079AQzx8FiJD/KBnyP37tdzKho96dcEMmwASYABOwSgKsAJnYbV80ZqVYwkkUSQ29xLKUi6zpde/6ffz916U0R0rFTV1FW0VshaJjJ14vHgcKS4gtrp27KZaKHKSic3zvaQx8/zvcOH9LODI7C6VBRHj9J5QJ+vQBzQSHT+4+w5gvpiAiLAKePh5S+RkqcgCRopYVcRIO2bS8qC5xwrlalcdI/YCO7f7TemLBvmkYtXQw5uyeiOIVi+hozYeYABNgAkyACSQTYAXIxL4JQQFBcBQRTepiY2MrFI9Q9V0a236FcgsFhZa/gBdPXuL63//i1sU7+GvHMWycs01UbI+XChWFu3uJvEC0xPbvhTtitew/b9H/eqPlIzfP14oU7d4oltPcRIV3Z1cR8SWWmai2WLgIpz/zx3mNMWT0Q9teHwjnZ+GnJa5J8kqMiZS26vUrZ7Qr5C+WF6WrlgAleWRhAkyACTABJqAPAVaA9KH0BtuUr1lG1uVSLpkoylREhEagcOmCyq5U7z39O0ll5t/Ld/FYFEMlpcI3bw4c2XMSx38/K0PW1U9KFIpPzjw5UKhMARkuTEVQw4IjxJJZHPpO6aHeVOyLFYqJpqsYKU7xwlqTFSkn/HS+WzxIOG1Hy9pkFd4qiylbR6uSM2albz6XCTABJsAEmEB6BDR/2dJrzce1EkiIT5BlKMifRcmurLWhHjs/+fpD7N/8JwIevgAtE1HZiY+7v487V+/jmcjUXKtxtVS95Mzni4X7p6N9pe7IldcXHqKgKS1XkaLy/MEL8Z4Id7KOCAsORYFRiYxS1YqjUfu62LnoN5DfTQHhSNxtZAdQDTF1afDxOziy+wQKuuUH5QAiX6NYoWBVfqeCerNMbVdvWBnrLy6V51K6AoomY2ECTIAJMAEm8CYIsAKURcqUjG/Ot4vx7GEAyFrjv2oYSlXJfGIzUqCWH5uHY8JXhyw/oYGh2PTDTunDQ07N5LA8c/c4wEtz4FToNHf+nHD3dlcdIIWMfIMoKuqkSGTok9NbWm66juiA0tVKyFpgvcZ3UbXXtlGnRU10GvoZtizaJSPIKOHg2BXD4Cuit1iYABNgApZM4PAvx7FtyW6zmOKdf+7JjPgDPxhpFuOtULssuo/5MlvHygpQFvCHBYVjUKtRoFIR5BtDy0WjO0zG9O3/07lkle4lhaXmnfdrydpcXzceCh9R5Z0UI7pGwKMX+Hn+LvSZ+JVGN+T/Uq5GGZkEMG8RP3mMlLOcYils1LJvce3sTfmPI29hPxQRmaEpt5E+QnXF3L1F6PzHdWVxVArJJ+dsFibABJiApROgIJBje06hTvOaJj9V+rtOQlZ+U5erorg2Behkt7AClIU7QP8wRJYgqZhQN2SFiY6MwcEth9FtdEdcP/cv/hClA+xF9uT6bd6GZ+7X1hl9LkvFS6lCu/qymrew4vwj6l9pk0Gze6Nrnf4IFI7QdF71BlWEn81A2bRsjVLaTtG5j/4hdXt7AGIio2HnYC+LrV44+g8mbxqt8zw+yASYABOwGALigXTe3qkWMx1TmEjfpsNMYRhgBSgLt4EyDZNfjLrYis/xsXHyqeH7vvOkcpQk8u7s/mkfBszqjryt86o317lNfjsptflosQyWM1/q5Se6xuIxq+AgK7zbyAgrco4mpYyE+tm1Yi/O/XlRLF/lwGeDPoatg+bYUw5m57JfEfwyBPmK5JGHPIVv0R2RK+jEb2fM4oko5Xz4MxNgAkyACTABhUD226CUkZjhe42GVWXEVbSIZCKh5aIwESL+Tsu3MG/4UuQSpSg8hE8OKQ7eIvx8zZTNqrBvfaZLkVJV61VEoMjzQ9FSIS9DhVN0HPpM6ZbqdMofRIoJlamgazm7OmLsl1OkIkSNh7T2x+rvN+HBv49xfO8Z9G8yQiZDTNWR2o4Htx5LZ2q1XUgSOlPgk1fqu3ibCTABJsAEmIDZEWAFKAu3LE/h3Ji4bhRiomPl0le8iAYb9kN/5BF+Nk7OTrJQp9I95eCJEeHmlJMnI0LFEjsPa49CJfOLJa3KmLFzgihw6p2qiwtHLmuUkCBnaAqHp+zOlESR3v0K5oKLm7M839bWDtt+0O3cV7RMIenXpH6x8OBI2Y/6PmvZpvpyGzduxPjx4/HkyROcPXs2VTJHa2HB82QCTIAJmDsBXgLL4h0sW7MUVp5cIDMku4qEgbRsRYqHh3Acptw6tI+EMidTWDopQhkVcjxW6oFRAdPw8PBUXZCDNCU4VPcXihRWIwdHBwS9CIEHhcGribNYGnspKrHrkve/bIKti3/B0/vPZTRZvAjJp9D1Wk1Sh+Lr6scSjl27dg0tWrTAs2fPpNLTqlUrjBkzBhS+v23bNuTJk7xMaAlzTW8On5XXdMBPrz0ftwwC9ACwc+dO3Lx5E927d5cPAdWqVctSrUXLIMOzMFcCbAEywJ1zFvl6chcQIej/KRkOouwEWW6oPlVwYAhCX4aJEPkEUHRWl9p90anG1/hXZGpOS8h5moqbdq75NYZ87K9X2YmOgz6VGZopEo3yEj2991xYenxQRtQBK1KmoAx/p5xCitCSWumqxZSPWt9JmVp16gf0FRFnLTs1xTfTe2L8mhFa21r6zq+++gp16tRBQEAAChZMTkq5atUq+cd/w4YNlj59np+VE6AHgLJly6JLly6YOHEinj9/Lh8A6tatKx8KrBwPT99MCbAFyEg3rmi5wlj61yzpdEzKz7JJa/FARHWRXxDl8xnZfiKmbfWXtb7UhxDwKBDffTZB+N64y/ITlNn5249GY/buySqHZvX2yna1BpUwZtkQLBi5XDg8J+CDLs3Q9bvP5eFCpQrgq9Ff4odRy4Ulx1XsS0KRcoXQtm+r5NNFRYw/tx/FFRGamEskVWwjylQoliRy8m4qCo5as0RGRuL06dNYvXo1PD09VSj8/PzwzTffYOnSpRg0aJBqvz4bgYGBOHfuHIoUKYLSpUuneYq+7dLswAgH8hXNI5Z3X9eQM8IlrKLL+9cfms08lQeAJUuWoGrVqnLc9ADQtm1b0ANARr//ZjNxHqhFE2AFyIi3lywwTT5rIJULqtNFdbgoOSHV1YqLiQdFWQ2c1UdjBD9N2wRXNxdVrh0vX0+5vHZKJDKs92EdjbYpP1R+twJ+PDI75W75uUn7BjJBIxVBPbzrOG5fuYe+DYejff82oGrvl09eE9d0ltYmihZbeniOavlOa4dWtNNelAKxtbVFREREqllfuXIlw0sA58+fx9ixY9G0aVMsXLhQPlW3bt06Vd/6tkt1opF3zN49CcXKFTHyVSy/+5q275nFJI3xAGAWE+dBWjwBXgLLwi1++fQVTopaW6RA6BLynaFCn+pCVc+jRM6glEJLU3YOmm2F65AMrU/ZNqOfC4ulsF0r9+LCsSsiozT5K7li1dQNOCryGdESHkWs0TspZ5vn78ho9xbb3tHRUSor9JR75swZOU/6UVi/fj0WLVqE5s2bZ2juc+bMkcsI/fv3l9ajFStWIDY2NlUf+rZLdSLvYAIGJGDoBwADDo27YgJZIsAWoEziuygSAk7rNx+2dpRzJ1rmypm9ZxLsUygv1H3FOuUQKyLFqK2Tk5Nwok0SDsuv0KjNu6muXq/VWzjx+xkUdM8nrUXPRf2vgMcvsWj0SuzbeAjjsuCDQ1lNX4i+tj3cBpv/rO/XxAj6umo+iTq7OeHJvaepxqbsoLnsWb1POkfnK54XjT6pqxyy2Hda5iIrTa1ateR9adiwIeJESoL27dtjwIABes+bckc9evQIlSpVkufQMpqrqyseP36MokWLqvrRp92rV6+wZcsW1TnPbt9G4orVSPTVrOdm070rbHLmVLWjjaSgICQtWaaxT36oVQO2jVIveSau24Dcf57Gl3gEzx+XIlFYN+HsDNuB/VP1kXT5HyTt2Ztqv03b1rApWSLV/sSp01Ptg2hnK9qnlMRffwMuXU65GzZiHDZiPOqSJDgnrU3tn2XTqAFsaqXO7Ju45EcgKEVgQE5f2Hbvpt6t3E46cRJJfx1Jtd+mU0fY5MunsT9JWA6T5i/U2Ecf3koKSrWPdiRu2QrcTuEjKCyQtsO+TdU+6cZNJG3fmWq/TauWQOmMJz9N1ZHYof4AMG3aNNlE/QFgxAjr9AvUxor3mRcBVoAycb8o2mpC95nwFBYTRxFNRbl3HoqcOWQ16TC4baoeKfx81LLBmNxrtsjnEyOclOOFT84XqN20eqq29UXx0X8v3cWeNfuQlJCEF09fonDZAiKKyx13rz7A+K7T0WtSZ3h5pSgGlqqn1DvIOZoctm3EIXqRiJ8xUBJFilCj5TmSYBE1Vqx8Ebmd8n+UULF73W9EduhYOIiItqCAIPyyfK9YepsrFDzLNSjmEz9qJ0+exJEjR3D9+nX5o1ClShXQKyNCTtRubm4q1nQu3UtSZtQVIH3aBQklZvHixarLVxTO2YlHTkqHe9VOsWH3kfD1SqEAQZybOCl1dlubAX0BLQpQ0k/r4Hf4GLogBs5LFyOREoD6+GhXgC5e0tq3bcUK2hUgbeNo2QLQogAl7f4VSWvWqU9Pbtv1/EoqZBoHHj7SPg6hcGpVgBYtTa14lCmtXQE6LjhrGbdd40ZACgVIrJ1qbVsHr/3J1MedtHEzkvYdUN8FUW9HuwJ07brWvm2LFjGYAkQDMdQDAPXFwgRMhQArQJm4E7cv3xV+Os5S+VFOJ3+f0wfOaVWAqE3p6iUwbZc/bOPt5FITVXBPS7qP/QIfdG6KQR+MQsmKxUAWGQqtfymUjSe7nuPSiSv46Kv30X1sxgrJkfNq3iJ5gLOaVy4mHLYf3XoixyVW24Svkhfa9ftYs9F/n35Z+bvwSQoXuY5yyz2uHs6yRAY5UTf6pJ7WcyxhZ5MmTbB9+3bUq1dPvpQ5kSPovn375HKYsk/Xu52dHSiVgbqQtcc5hfVCn3bFixcH+QkpMmvWLNh//z3sRbROemJTrBjsw16m10x13O733Th/6Dz6NBqCTWeW6/QBsv2iA+ilr2RoHAvnAfTSQ2zqvJWhOdpfOKNHr8lNbL8dCHrpIza5c2sdx2zhAzRESwd2Wzdp2at9l+3HH8I2jfuYKL5XhhJDPQAYajzcDxMwBAGjKkD6RLA8ePBA5pNQJuMrzPclS5ZUPprkOzkL0zKWusTFxApFRdMEr36ctiknUN68+pXCIAXDTVR+pygssrr8e+mOtNKQlcUzhye2LNyFgiXyo1kH8cSpp5Af0hhRGBU/T9Y4Y9XpH3BeJFIkxc5bKD+N2r6bpjWHqt7TuNSFxkjLdJYmp06dwv79++W0jh49iqlTp2ooKqTI7NixI0PfV/p+kzN1TEyMXA6lzsn6Qz8w6qJvO/VzeJsJGIuAoR4AjDU+7pcJZIaA0RQgfSNYli1bJnNKeHt7y/GTb4SpK0Dk01O6Wgn8IyKnXIUyECcyPFONrgHTembmHqR5ToPW72D97K0ynw8tT5HSRf/RMhZZc8gnKCMKEF2IqsarPxeSOkZKFWWZpld6UrxcEezfdAgeeF3YNfRVGCjU3tKkRIkSGDx4sFRWyN9nz549ooKxnWqaDmJZokiRIhg5cqRqX3ob5FBau3Zt7Nq1C59++ikOHz4sVpJ85IvOvXfvnkyqSBYhXe3Suw4fZwJZJWCMB4CsjonPZwKGJGA0BUiJYKlcuTLatWsnM4e2bNlS+k6oT+Dff//F98JsX6hQIfXdJr9NOXdWTFqHi8f/gVcOL3QROXdIKTGkdBj0CW5dvoczf/wt/HQS4SLC5wuVzp9cgFVYhSi0/k3Le5/WE/5J+3Hr0m2h/LkJP6UE1GhUFW+3SO1U+qbHZujrkRXm2LFjstsPP/xQLnO5u79W/DJ7va+//hrDhg2TS2oUXk8h8Yr06dNHWpro342udkp7fmcCxiJgjAcAY42V+2UCmSFgFAVInwgWGixFEpD5/8WLF/JJuEGDBihQQNOScOnSJaxdu1Y1t+DgYNCLIhN0CY2BhEoVKM69utqndYycgylEma6ZUtr0awl6KaKtjXJMGY+uNkpb9feBc3vi6d3nmPXNYlHSQkSNCN9TqidGfjgdvm2rdVzK+a4+2hUycnWmF4lQoxBrk3rpLkrsTwp6Rk1Sif/aITj521lZYoMSJ1auV17nOFJ1oGUHMU4USl5G+aTsipalqB/iTa+U/jYp2+v7mSw2VAqAIriUe0l90/eLlnopp4++UrhwYWzatEnOVbF8Kufu3fs6ekpXO6U9vzMBYxEw1gOAscbL/TKBjBIwigKkTwQLDfS2CNslXwjKreLi4oKBAweia9euIEuRIlT36s6dO8pH0BIC/QDRk7MuoR9BEmqbVQWIlCDlR0/XNXUdU36IM9NProK+GPvTYIz+bKooqxEqsjQ7oOPQNqjasKLOcakrOmmNLS2KTuKEcMEuLanRuIo8RGwUhSOttvrsp34MwZnGovSTGdZpjZWU8N69e2tNhtijR48MKUDKNVIqP8r+lO/6tkt5Hn9mAoYiYMgHAEONifthAlklYBQFSJ8IFho41ZahyBrygSAhkyslhVNXgN5++23QS5F+/fqJiN6c6VqAyLpET+f0FJOesqT0re2dflCpH2WM2tros48UubCwMDl2fdqnaiPSuKwWdbko7DwwQIRMlyqsKleRqu1/O9JWX9I64/V++mIQ5/SEfGPIMkIlIijM/tn9AFnwNVf+tKPctPVJjEkZ1uea2s5X9lEfNCZaqiIFSN1nR2mTmfehQ4fik08+wZdffinzAZFzNJXHmDJlinxlpk8+hwmYCwFjPACYy9x5nJZLwCgKkL4RLLTcERoaqlIuyA+IiuyR0pEVpcVSb9eR3SexbPwaWdiU/H8mbxqNwqWTC3Nmds5x4sRkW5lmD7oXGDXb0idyhJ4kciM9E4kbw0IjUPXdShi1dFCa0WSpezDdPaScURV4KgJJS7S5cuUCWWUokzMpXJMnT8bMmTNNdwI8MiaQRQL8AJBFgHy6SRJIawVEDpb+qKvnGSHFRB9Rj3Sh9uqRLmQtuH//vuyGfliovADto2WL3bt3o379+qz8aIF8S4TBT+s7TywB2smaXbSsN+TjsXj1XPgFpSH2SdHQ9lJvHig+fNugr8arT/WuiAtNu1/182mbSn183Xgo7ly9BxcR6p87f06c2HsaG+duT9nULD9TpmaK+FJy9ZQpU0blHE2RWhQtw8IELJWA+gPAe++9p/EAQFGS9ACQntCDAgUUHD9+XFpotbUnKzklG1V/aWvH+5iAoQjoVIAoQ+2vv/4K0v4pfw0tc3z88cd4+jTtMgnKwCiC5eeff0aHDh1kFtHvvvtOHqLikfTkTEKJ3Nq0aYOePXvKdhcuXEDnzp3lMf6fJoHf1v8hos08Vcte7t5u4kfZXubv0WyZ8U+RYZGqkyLDooTjcCJWTd6AL6v3RofKPfHbuoOq49o2Hv77WOy2gW/e18teVCLj0PYj2pqb3T5Sfigqy9/fXy5jUvZnKkFBS23070M9g7PZTY4HzATSIZDVBwB6wO3SpQsOHTokA1ooApIeeFMK+YJOnz5dukWQawS9WJiAMQnoXAKjL+ny5ctltApFaNWoUQPnzp3DZ599Jr/Muvwr0opgoT7IoU4RUnjIr4K0f1KwWEQ5ooBgPLj5SBQrdUPxikUlEjuRq4dyAKlLUpKNQaxlkeHRiBWZpm1sbOHgaC/zDO1df1DUN/OTUVQ/imU32v/ep/XVL6/aJquUnahzpiEiZ1GCnhZDjfNM9ANVbW/VqhXo3wE5PVevXl36GZFzu/r32USHz8NiApkmoP4AQMlAlQcA+rutzwMARTySpZSCXEh69eolraZvvfWWxpgoJQqlm+CHYA0s/MGIBHQqQKS5k+MnfenVfXI2b94s0/+3aCHq9aQj+kSwUN+s/AAHNv+FrSLD802x3JXDz1sWUH2rWU18t2igVD4Obj0CJxcn4Vdjg9CgcOErlYCaIgdPVoQSIS79axbOHboo8wtRNXjy5clfLDmE3t7WHj4iOzRlnk5LASpYMj9KVi6OyyeuwjuXl8hcnYTgwBB8NeaLrAzNpM6tWbMmKGs5heuTgzUtDVMJDMqQS8o+CxOwZAJZeQC4deuWRpRktWrVcPXqVWhTgGjf+vXrZTJceljOSgSvJd8PnpthCOhcAqNLkNlfXfmhfR999BFIW2cxHIGVk9bj+37zcOnUVZHnJ05WWndxc8Fx4Uuzd90BlKpSHCMWfiMqz0fKV95CuTF79yTQUlhWheqYNWnfAI3b1RdWJ/dUJT1shIIaFU6ZgdIQYfyhsZEiFPIyTI6f6pS1+KJxGieY526yiJLiQxFgN27ckIrPzZs3QbmqWJiAJRNQHgDooZeyn9O/gx9++EGmMnn//fd1Tp0CCNQfcGn75cvUpXPoN4X8f5ycnPDTTz9J1wv1jilnXOnSpVWv37duQ8L7HyLe1lnjlfjHIfXT5HaSWGFI2Y4+J3zZNVVb2pHwWUfZvu03HXA86Zjq3CSx7J1SEn/7XXVc/RqJS5elbCo/x+crkrp9nXpa2yaMGpu6rRh30tVrqdonCUVT/frKdsLQEana0o74+o1Tt8+pWZJHOTFx1U+p24pxJO7arTTReFeurf6e0PpTjTbKh4SvemntO0nc75SSdPT1vVDvO3HmnJRN5eekhw+17ld26rQAUcQL/YGvWlXTykBOnx4eHkof/J5FAuTIvPunfciRS1h9omJha28L20RbGVFVqFR+HNtzWioTNRpVwapTC/Ay8BX88vrB3uF1WYaMDkFxZ7etrZnBuZBQYnzz5BDFUR8jh3gnCXkZgjrCEqUsa08VAABAAElEQVRL7MUS2Ywd43U1Metjc+fOxZgxY6QPUMqJUEkLsoqyMAFLJqA8AERHR8tpkuWTfh/ISZpKGKUlKdOiUHoKyvuWUigFCq0Y0AM3LTfTgzYlHlWS47q5uWH06NGq0+5fvw7b4iVgW7iIah9t2JTSUktSKFW2c7REapYppXGu8sGmSyfYvPM2/v7rIv7YdgRD5vRLPqRWCkfVtmwZrX3bvF1HaaLxbjvBH4h47XcpD+bx02ijfLD94H0k+Wk5pq29iE7VNkebask525Q+lXfbAX2Btq2Vj8nvzpQBLrXY1K6lve8K5VI3Fnu0jQPFimpta/N5O9hU1vL9Efc7lYg+tPVt8+47qZrSDhtvH637lZ06FSCqfE2JCclJuW7duvJJl8z+q1evBhWHZNGfAFlQQoV1JFdOURk6heISFRENN3cX4VQrMvf85xxIBUYTRHQVRVi5+7z+Ijg4OUjfoJR96D8SyMgwyklEuZL8UvzjIkXGf9Uw9Gs6DBEhEdIE/c77tdH/+x4ZuYRFtaXoR3LOpJw/nTp1Av0hVhc206vT4G1LJJCVBwDK7UXWG0Vou2BBzfQdtLRM0cE5ciQ/dFGmf/rbRNYjRQEiyxD5HSmyZs0a2AglzFb8TqUnNiKQwYZ+8PUU2xbNAPG6hW3Ysv02huk4l8aQob6/0m510jY0mzpvgV76iI0IWsrQOFIqPzouYiOUPHrpK1K50rOxbeP3AHrpITaiaHRG5ggP3aWLdCpA9MWlP/jt27eXP5Y0PnKImz9/vjSD6jFebiIIkG/PqinrEZ8QL8LYHaSlJI9YwlLEr0AueAnfmcAnr2QSwRhhBSKHZ/phjRPOyT3GdlKavpF3L19PrDz5Ax7feQIn8URAlemtWeiPM5W7oAhItnxa8zfBOuee1QeAd999F1Tihd4p2IVC4cmvlOTeveTiv6TczJo1C3379pW+QdeuXZPLZORwzcIEjEUgXR8gMu/Tl3HVqlVYvHgxLl++LL34jTUgS+v3+tl/scR/FRycHUX+HheZxHBgy5EID45QTZWsLqN//FYYfxJBypCTqPbu6OSI2k2qY+qWsWJJSrcZT9WRATfIwkRJFq1d+SGklP+nY8eOmD17tupBwICouSsmYNIEUj4A0BKV+is9C2jjxo2l1fTzzz+Xvx0UWKOkjqDiv+RPR31QlNjKlSvRrVs3WSx4xIgRsvSRScPhwZk1AZ0WIGVmlKGZQxMVGhl7/2XVbyBnZjvh10Mh094ioioyNFJUkb+Cd96vperMr2AurDyxAFfPXBfRWLao+FZZ0HIXi2kQoIrt5cuXB0XDkL+DemBAo0aNZJZo0xgpj4IJGJaA+gPA+PHjQXmBMiKUGHfChAnSf458f+izIurFfym1xJIlS6RPETlKp6dYKX3wOxPILIHX38TM9sDnpUsgZdIvpTBqyhNJ4anybkWhLGXeuTlln4b6HPwiRFahJ2uUrchJZG1C+UkoGWizZs1UpVsUBhUqVFA2+Z0JWCQBQzwA6Lt8TAl4WZjAmyDACpCRKTfr8B7+2nUcOfP5CssORVSFyiyo1epper3vWvEbti3+BdFRMShcqgAmbRityvps5CHK7h/deoKFo1bIYqax0TEiJL4BKtYpi+oNq2DN9M34XWSiJiHlZ+GB6QYJv5cdmsH/yG+BQt0pdwkV8GVhAtZGwKofAJKAGxduWdstN+p8KZ2Ls0tGK04afkisABmQ6cWj/4AyKCfGJ6JVl2ao+HY5VBKvb+f2FcrFcpEt2RYFiufHsAUDZD0v5dLbl+7Bulk/wye3t8jC7Ix71x9i+oAF+G5xcuZUpZ2x3qmQ6aBWo0S2Zwfh+PxUVlFfPmGtjD4rXqEYnj8KgG9u4YdkAwQ8DsTIzydi1s4Jb1RBM9bc9emXEh9SyC8lBmVhAtZGgB8AgC+q9rK2227c+YrfknqttKcJMO6FNXtnBUiTR6Y/Hdp+FAtGLIObR/L6+Pkjl/DV6C/QvON7aNi6LirVLYeXL16ieKliqZa4tv/4q8y2TAoSCSlC18/dlMpI/mKUq9m4sm3pbrHebotoEY5PofeOQjOnd5rLpWOXkY/GIL6wJFTolML5b1+5h9JVSyTv1OP/VC+MLEnBL4JRWSzzdRz8iR5nmU6TcePGoW3bthgyZIh04FTPY5I7d27pH2Q6o+WRMAHDEeAHAMOx5J5MiwArQAa4HxS2vmTMKpnI0O6/HD/OomTF+tlb8a7Qct08XUUJC0d4+LinUn7o8g7CQZry/qhLoihIGk95gd6AREfESOvUc5GQkQp8UqIyqu+VKHIS2QiljDJTqwt9VncCVj+mbfvlsyB8++EYaWFydHbArmW/4u7V+xi97FttzU1y3zfffCOdM/v1+y8hmtooORGiGgzetEgC1v4A0LR9Q4u8r9k1qXN/XsyuS2tclxUgDRyZ+xAvFAIKZVeUH+qFsjkniQR60ZExUgHS1XPDNu9KZalQ6QKyWcCjF3AThVALlsiv6zSDHavTvKa0zpDi818eRlHzipIyJud9IgWPFDLy/3n+4AU8crijxH9FWvUZxNwhS0QaAAd4eCcnpaIw/2tnb4KWDCvXNQ8H4ufPn0vfLW3z1VUUWFt73scEzI2AVT8AiGdT8slkMRyBviLRrikIK0AGuAuU34eWqsh3x0ckNCQJCQyVChElFUxPOojloNtX7uOSCI0na1HpqqVEXqBBmYq2oozTq6ZsxBURTk8Kx5B5/dLNI+QpLFP0CgsOl9YeilqzF/5AL4S/T2NRAZ6coTfN3yGtRDUbV8WgmX1SWax0zTE8NEImVFRvQ8t9EWGm7VNDJV/I/E/h71SjiBREbUIZazkSTBsZ3mcpBPgBwFLuJM9DnQArQOo0MrlNlpGhQtHo33wEwoLChHIgwthFYq+Z5CicouyFtkvQ+f6rhopM0C9l6QuqyE770hJKohj8NBSkXFH1dUXIStOz/mBQaQ2vHJ4IEv42fZsMxZw9k6Fknr5y+jruXXsAOyc7VG2QbH2JE9ae3CIBY96ieUDWrBDhFE0lOGgZz391sqb+YbcWIo9RolzKU66n73uNBlVENfmdoFxHJJTdOiI8EsXKF9a3i2xp99VXX8mcP1SdmuoSUc0jbcJLYNqo8D5LIkCZmlmYgKURYAXIQHeUwtxXnpiPi8eugFLHV6pTTi5jZaR76iM9uXD4MuYPXyqdlsNEra6vRndUVV0/vOuEWHKLRs68yfV0HJzcZdj95gU7MWBaD6ydthm7RGJG8t+JioiSytPyY/NlxmcvXw/Q0pu3KMjqKpyfXz57hbea1lANh5b4Mvtladf/Yxz+5bjoP1D2Tb5Nw+YNUCllqouY2AZVvFaSsQUEBKQ5uoz4Q6XZiRkdOPn7WenDZUZDNs2hiiVmUxZ1C+hff/3FFlBTvlk8tkwRyOxvWqYuZuknObs5o3bT6kabJuXqmdB9prD8eIhweSfYCaWEcvcUKlkA5WuXkcqPepZVGgiFtpNV6vq5f7F54Q7kLZxHLl9RgdUXwuK0a/mvaNO7lbBADceAFiMQIbJUkzs2VX8fOLO3QeZCVrDFh2aKysqXQEt0xcoXQd4iWiocG+RqhuuE6t4p0rJlS2zfvl0uiSn76J1KxFCBYLISWYvMHrzIWqZq1fNkC6hV336rmDwrQGZ0m88cPC98aRxVJTIoUov8fI78clIqQGVrlEasWF6KF0taZLEhJ+aAxy/QadhneHjrMdw93TV8d9w8XETpjZtCAYL0EyIL1oObj2T/VAfM0FKtvmbyR0P3b+j+6Al4//79stujR4/KAo5UFkARyui9Y8cOlCxZUtll0e+V36mA355tMfk5zhA5tO5df4AF+6aZ/FiVtBmmOFC2gJriXeExGZIAK0CGpGnkvsiSoizJKJcivx+yBpEUFlFktNQ1b9hS4UztJmuPvf9FE5HVuT5O7/9bVphXzqP3SOGErPjl0GdHoVyVqFSMNg0i5Ed069IduSRYqnJxs0ucWKJECQwePBgxMTEyPcCePXuEI/jrMiVkISpSpAhGjhxpEF6m3glZE339kpdXTXmsTsJ3zd7B3izGasoc2QJqyneHx2YIAmanANFT96tXr+DoqDuNtlJvKygoKJXSkBFwFBFF0T90zayIEkGUlX4q1isLu3m2YkkrHO4iTD5SLCfRj3O9tm+pxkdtJm8djScio7OHjweKVSgsj5WoXgS5C+XCtdM34Ct8hGKj46Sl54MeTVXnZmZ+5O9EL2V+Sh+01PV97/kIEjmAyHmacgpN+Xk0vHJqj4qj/EPEOit86NrKeKiCNY1J+R4o48rIu6+vL44dOyZPoVIAtMxFUWEsTMAaCLAF1BrusnXP0ewUIHoCz5EjR7oKUGRkpIza8fERxTuF029mhX5QKfqH+smKUDr5sLAwOfbM9kPznr17EkZ9Pkn4+8Qif5G86DvlKxQtrRlNRe1KV0y9LDN392TsXrVPhsiTH1GTjvWRN3+eNIdzdPcpbJ6/XYSrR6Jq/croO6mbxhIanUiKC5WIoOrN6tL1/f4ys7Si8JBT9eLvVmHK5rEaEW5/7TiGn0SGaPJT8s2XA3N+mZypSDPl2oq1hhQVUoDULTZKm8y879q1KzOn8TlMwGwJsAXUbG8dD1xPAmanAOk5L4ttRtabGbvHIbMVkz/o0hT0ImWMlMS0hBSTecN/lOH0lLPnsPicJKxv/af1TOsU1X4qqUGh+N5q1h7fPDnw5N5zGV2WS5TTIDlz4LyIaPtRtPOCZw4PkXfoJf7X+XuRdGyUhpKk6jgbN0gRJmfnRo0aSeV7xowZOHLkCD7++GN07do1G0fGl2YCxiHAFlDjcOVeTYdA5k0jpjMHHokRCCybsFYqMFS6gjJc58jjg9MH/gZFoqUndsI528HRTi59KW2TEpNk6D35GSmydtYW6cQtHbZF6JmnyDD95O4zXBN10ExNRo0ahQ8++ABPnz6VS2EjRoyQQxwwYAA2bdpkasPl8TABgxIgZ38KBKClZRJ6AKDcWCtXrjTodbgzJvAmCbAC9CZpm8m1qCL88wcBuH/jEZ4/fJ3/hhywKcosPXFwcsDn37RFUECQ8DWKlYkP7914iOYd3pPJG1Xniyi1lAkfE4WViZynTU0WLVqEX3/9VVaFX7NmDSgsfufOnRg/fjw2btxoasPl8TABgxLgBwCD4uTOTISAVSlAFB6+eupGDHx/JEa2myCXXEzkPug1DIr4IsWEloqMIWTd+en7TejxzgDpkExRYoFPX8mQ4uAXIUgQy0AFS+TT69Lvd2qCr4XPkLsI0ydn7IEzeqH72C81zm30ST2xLPZMhuvTgVCRgZocpjNSZV6jQyN9IMdsWjJs0KCB9Hf6888/0bp1a3m14sWLIzAw0EhX5m6ZgGkQ4AcA07gPPArDErAeHyBhbehRb5DMjOyTy1P+sPcTZSJmiHIVBUu+maKjWbl1pIxM6TUbZEmhLM5FyxYRDsVj9Cq1oc91L4kM1v5dvpc1zGJF8VMI1dhR5BJKEEtX4SLjdK58OWVJDbLu6CuN2tYDvdKSj7o1x51/7uDI7pOgemrkGzThp+9UYf1pnfem95MDvKurq/T5oSUwWgZo3ry5dLKm5a+GDRu+6SHx9ZjAGyOg7QGAFCISegDYtm3bGxsLX4gJGJKA1ShApw/+LSwMoaLmVbIDroOTI8JeJWHtzC34bvFAQzI1fF9CeevT6FtpIckt6mk5uTrKSK4VE9ei57jOWb4eVXuf3Hs2vEX9sHBRENVe+O8IvUcWRC0kMjZHRsTgq1Ed0y2qmuGBCL+fQbO/RofBnyIwIBA+fl7QpxxIhq+TxRNo6Y+WAJo1aybD7Pv37488efJIB2gKFR4+fHgWr8CnMwHTJcAPAKZ7b3hkWSNgNQoQRSa5iFIV6uLgbC8sQmHqu0xy+5lY9iK/GL9CueXSFA2yYPF8OLrnlEEUIApBd3ZxFoqVk8gv5C6rwDsI5+c4URiVHKATExNQulrqsHpDwaJkjM6ejjKnkaH6NHQ/5PTcokULREdHo1atWrL7b775Rm67ubkZ+nLcHxMwGQL8AGAyt4IHYmACVqMAlapSQvygx0uHXGUZJzI0CjUbVTEwUsN3R47CKfPZUNLA2JjkiIysXjFMWH2ePXguHZxJAXIU1rGYyBjY2NmI2mBR+HbW12ZRuyurHNI7v1SpUtLx+ffff0f37t3h4eEBFxeX9E7j40zA7AnwA4DZ30KegBYCVuMEnadwbgwWP+TBL0MRKQp+hgVHoHrDKmjbp5UWLG9mV0J8giw+GpdOZBUt21WtVxGvAoKlBYicoWn7w67NszzQcMFhWNtxUjGMCImUUV9k8aGK8v2n9sT3W/1x8+ItDGo1Gv5fTgU5Q1ujXLt2DWXLlkWXLl0wceJEPH/+HGPGjEHdunXx7Jlw5GZhAhZOgB4A7t69iwkTJuDJkyf8AGDh99sapmc1FiC6mbWbVcfiP2bi7tX7cBWFQCu8VTbb7jFFc8345gc8vf8cpAiRclazcdU0xzNgek+htIXj6tkbsoRFx0Ft0brXB2m21/fAojGr8FREYtmIbNnkW0TLXjGiTMaXwz5DW1ElvnPtvtIJ2tvXSyhHL6Qv0uw9k5FHLMfRsty6GVtw7NdTcHF1AY0xq7XEbl++ixvnb0mn6PofvZ0qTF7feRm6HVXGrlOnDpYsWYKqVZPvE1WCb9u2LTZs2IBBgwYZ+pLcHxMwGQL0AEBLwKTsU1LQVq1ayQcAypJPTtDkE8fCBMyNgNVYgJQbkyu/L2o1qZatyk+EsEB9I0LxH91+Imt6kTI2rf88XD/3rzLMVO+UXHDsyqFYd2EJFhycmqbyQ6HkP477CZN7zsbOZXtT9ZNyx7Wz16RViRyfyd/HWfhJ2dra4KqoGXZ872lpocotorMoIaKnj6gmb2OLTXOToz4GfTAK25bsEeUw4hEiHMyHfzoeV05fT3kJvT8f3HQYwz4ZJ0tj/PDdcnQRyhc5aGe3UMbs06dPy5w/6iU//Pz8QH5AlB+IhQlYMgHlASAgIAAFCxaUU6UHACozRA8ALEzAHAlYnQJkCjfp3J8XZU0tL9/k+llUZdtJOCHv23goS8MjZaF3w29xcPNfuP73v1g8diUGNP9OlWdHW+d5C+UBZWlWhLbpRRXmqQaYY4qwdwcnewS9CMa1szfx7P4z0NIiVd6mMHY3D1eRZylzWZEf336KDbO2wSe3t8xAnVPUBYsMj8baGZuVoWXbu729vfxDHxERkWoMV65cyVKtuVQd8g4mYGIE+AHAxG4ID8dgBFgBMhhK/TuibMcpC7TaIClLlcvp6qu/3ygzL3sLJYKsSoVLF8SLJ4E4/tuZNAf3ydcfirIV9qDcPwnxifLl4u6Muq3qiISEJUHJI+OFhUcRikir1biGKMYaI5QeV2W3fCdlKSwoVGOfvh+oBIabhxvshaVLEQ9hcbpuAmUxHB0d0bRpU7nMdeZMMkv6UaDq8JQPhXICsTABSyXADwCWemd5XqwAZcN3oErditLXhhyxSRKEL01QYAje/7JJlkYT+OSlUHw0lRKRakfmP0qr46r1K6HziM9ltmZfoTjlKZRL+P58iLdb1BQKVAH0ntgVr54HJzuOB4Wj3kfv4P1OjVGiYlGhxNkIK02UqutQEU5fsU451eeMbHiKbNEJwvlaXcii5SV8j0xBli5dKovHUgg8OYJS8sOOHTvK4qhUD4yFCVgqAX4AsNQ7y/OyKidoU7nd3rm8MGPHeHwnynFEimWmJNjg2zl9s1wConytMjgrltfI+kNC0WLhoREoUqaQzql3G90R9T6sg2N7TuPAz3/JzMw3zv+LqVvG4j1RrqJs9VJ4cPORLFxavnYZ2RdZZ8auGIoR7cbLJTPKFVKtfmX0mdhN57XSOli6eglUqF1WjsFP+BxRzTEK//9GlNAwBcmXLx9Onjwps0Ffv35dVoSvUqUK6MXCBCydAD0AUPkXegCgf+v0ABAXF4f27duDHwAs/e5b7vxYAcqme1uoVAGsPv2DLM1BVhtadsqqtOraTPgR/QEqZuoqfHLixZJWu34fo0z19JMY2trZ4ZdVvwtLkLv05Ql4FIgRn04Qito45CuaR75Sjq9YhSJY/OdMXD9/Ezly5tDrOin7UP/ce0pn1GlaE+cOXRR+QF74tO+HcjzqbbJzm/7w16tXT76ycxx8bSbwpgnwA8CbJs7XexMEWAF6E5TTuIa98L3xFfl2DCVkMfnhwHScED4/FA1GPkD6KD90/Z+E/5Crh8gG7eIoh+OV01PkGgrC+SOXhc9PtTSHSApThTploR4dlWZjPQ40+awB6MXCBJiAaRHgBwDTuh88mqwTYAUo6wxNroc6zWtmeEyxIv8PWYE0RGSbphxFLEyACTABJsAELI0AO0Fb2h3N5HwatXkXlJxROCRJoVxFMcIPh/xyWAxPIDAwEFRS48aNGzo7DwoKwoEDB0BV6FmYABNgAkzAcASMqgDp+0eephMWFoZDh7KWB0dfLP+cvIYjv5zADZErhyWZQON29fFxz5YIeBwoI7vcPF0xa+cEk/LBsZR7df78eXTt2hU3b97EsGHDsH37dq1T27lzp3QwpaizcePGYc6cOVrb8U4mwASYABPIOAGjLYHRH/mxY8fK/CkLFy6UNZQoiiAtmTVrFu7cuSOjC9JqY4j9MwcuxNlD52FvJyrBi+zFrbo0Q4//dTJE12bfR69xndG6R0uR/TlCFD/NI5Mhmv2kTHACpMhQPbHKlSujXbt2srBqy5YtZWSZMtwEkStqzZo1mD59OooWLSpD7qlt586d4ePjozTjdybABJgAE8gkAaMpQPr8kVfGvG/fPty/f1/5aLT3o7tP4sDmP1G4lEjlLhLkULj43vUHZVHUaiIfDgtAhVcBer2W0wf+xql952TZjk/7fSTfXx/lrYwQiI+Px6NHj1CpUvL3jcppuLq64vHjx1LRUfqyE/5Yq1evhpubm9wVHR2N8PBwjWSZlJlaScxIjaguEwsTYAJMgAnoR8AoCpC+f+RpiFRVmzLq9uvXD/Pnz9dv1JlsdfnENeTILZ6eKTugEBuRyM9JZC+mGlysACUzSfn/lZPWYfuPv8qlsHjhE/SbUBjn/TYVfgVzpWzKn/UgQLWUSKmhiBpFvLy88OrVKw0FiI4pyg8Vn5w7d67MOJ0z52vllJSmXr1e50mqWTPjzu/KGPidCTCBNAgIv8gZ3yxI4yDvzgyB+zceonSV4pk51aDnGEUB0vePPP1hnzRpEgYOHCgUESetEyPr0ODBg1XHypQpIx1CKTupPkIKliJ2zjaIjoqGo6uDsguRESKTsV1iuk6mhnJCNVQ/VIrBEKJrPE/uPMO2H3fDN08OqSw6ujggPCgCc4ctQv9ZPTQur61OlkYDPT/oGo+eXchm5FNGiji9sluoXIYyjkaNGmlYcWhsdMzZWXseqJiYGFmENUlE5I0aNUpjKrQ0dvDgQdU+WjJjYQJMwHAEPLzdUaBEPhz79ZThOjVST+GisgAlkM3h522kKxiuWyq/5JvX13AdZrInoyhAZL4nHwZ10fZHnqoIk0JD2XSvXbum3ly1XbJkSQ0F6PDhw/Dw8NDwl1A1VtugLKW0bODuThXMk5+2P+7eEsd+OSPKOkSDinpGiTIObp5uaNm5KajaujahHx7qx8UlObuytjb67IuNjRVRVTFy7Pq0T6sNjYf6SesHM63zUu6nPogR8UlL4qIewyentyx2qrRx93LDq2chqnnQfaZ7m5YCq5yX3jsxpn50jSe9Pug49UGKNSnItJ2y5po+fRi6DVl4aCwkvr6+IGWR+CvMyPpDieZSCim5w4cPR/78+TF06FDQvyt1cXBwQIECBVS7lP5UO3iDCTCBLBFo2akp6GUOMq3fPJw++Dd+vrbKHIZrEmM0igKk7x/5X3/9FS9evMCOHTug/LB/9NFHoOgXRegpl16K/P333/JHMj0LEP140I8qLSMoP4L047r86Fz8OH4NAh6+QCFR6+rzb9rA2U370zddk35MDfHDTP4b9KOX1R94UjhoTFnth3inN68ipQqJa1FcvI2qSGlkaBSKitIayvVJiYqKilJ9Vu5TRt8NNS91xc5UFKAOHTpo4KhduzZ27dqFTz/9FKTQk1Oz4th879495MkjHNCFRcjf3x+lS5eWy8MaHfAHJsAEmAATyDIBoyhAVD04rT/y9GNJS2SFCxfGunXrVBMgC9DUqVOl46dqpxE2KPtyH1HgkyV9AnkK5UbX7zqIJa8lcHF1lsVPyQI0dAEX/0yfXtotvv76a1X4OynnFC2pSJ8+feS/A1LwqfYYvTZv3qwcxoIFC1QO1KqdvMEEmAATYAIZJmAUBYhGkdYf+StXrkifBnoCZjF9Au99Wg8FS+bH5ZNX4eLmgoat6xqkbpnpz9x4IyTlf9OmTQgODoa3t+Z6/d69e1UXPnLkiGqbN5gAE2ACTMCwBIymAKX1R75GjRrS/J9yGmXLljW69SflNc39c3xcsp+VvYOmb4ih51VKeOvTi8WwBFIqP4btnXtjAkyACTABXQSMpgApF+U/8goJw72T8/bS0Wtw/vAl6Q/0xbef4gOR0JGFCTABJsAEmAAT0I+A0RUg/YbBrfQlkCSckr9t5Y+IkEiQj05ifCJWTtkAN+GbQ8tTLEyACTABJsAEmED6BIxaCyz9y1tni8snruKbFt+hS62+8P9yKuJj9c9Vc/ufu4gTuR5I+SGxtbeFt68HdopkhSxMgAkwAVMkQNGZx44dw/Hjx2X6jfTGSHUhKZcXCxMwJgFWgIxJV0vfd6/ex7gu0xHyMhSOzo64eeEWxnSchMSERC2tU+9KiE+Ao5NmEkgbG1tERUSnbsx7mAATYALZTIAif7t06SKLXa9du1ZGQFIajrSEUkNQZCTlx2JhAsYkwAqQMelq6XvpuJ9kDTLKPWRrZwuvnF54ePsZLhz9R0vr1LuKlS8CD29X3L58FzfP3xYK1G28fPoS9VrVSd2Y9zABJsAEspkARTxSWpTRo0eDCmNTjrZTp7RnVg4MDMSKFStSRUdm8xT48hZKgBWgN3xj46LjRNZpTeyUpzo2OlavkTiI2mWR4dGICItEXHycWA6LRXhYlKhlVlmv87kRE2ACTOBNErh16xb+3955wEdVZX/8IOmNloQaKQKiSAtSBBV0EVCKDVlAXQlSpAkoi6LoqoCL6AKCFKkriIog+FdQKRHUVdQFFKQYpfdQAqSSROL//i77hskwmUwyb5Ipv8NneO2+e8/9vszMmXvPPSc+Pt7SJPZ3795tOTZ2MCqEWHDIC2kv0j0Cm+7YscPyYvJfgxy3xSVAJ+jikivmfbd3byPzXnpHql+nUh8oyydTGS/ZF7PlhpvrO1Uj/IfSzqVLo9Y3Sk5Orlyj0nzkKh+iJW98KK8uG+dUHUUpBKfrlXM+lcSP/qMCIYokPPewNL/jamMradvvsv3bXSpWUIh07H2nBIfmn6YrSpssSwIk4DsETp48KVFRUZYOYf/o0aOWY2NnxYoVEhcXJwiVYk9SU1N19HTjGpL/Nm7c2DjklgSKTIAGUJGRFX5DxoUM+fSddZKhktM1vb2RNG9/xWDo3q+z7Ppxj/ywfqtEVYqS4JBAGf/uc1JO7Tsj2Vk5KhBh6OVM9sqHyJDUlFRj19TthAFTZPMXP0q1WlUE/kf/fGKqjJoyWNp2aWVpZ8MHX8niScskWEWLzlOpOt5/c6XMSnxDykc71ydLRdwhARLwOQK2uSExkmObW/HAgQOCIKBIHFyQwHBavny55TJ8hSgk4AoBGkCu0LNzL2L0DOv4jHZKLnNNGZ1N/eFRPaT7wM6XS6tRn7Fvj5JDSUdUMtaLOspyeFSYnZrsn6rXpI6oxGl65Cgs8nKC1rTz6dL2nisGif07i3YWun22ZL38Z/VmqVanqiCFCF7wW3pn8jKLAZSscqotnvyhxFSPtiSUPXfqgh7l+vtbw4vWKEuTAAn4HIHo6Oh8Ds1wbsZIj7UkJibKoUOHpFu3bvo0HKf79+8vEydOlJYtW+pzSLFkPeKzfft26yq4TwJFJpDfGaXIt/MGWwJvjn5bsrOypXxMOT2qU6NONVmzeJ0c3HM4X9Ga18dJg+b1VDZ6540fVICRotEzh+k2stT0WboaZbqh+fXSqded+ep35QB1jujynLw/baXyNcqS37fvEyRBhQQEBqg20y3Vnz2RIpHlIizGDy5EVYi4qr+WG7hDAiTgVwRuu+02PbqD5NRwcsZS+GbNmmkGSP6L8zB2YAStW7dOv5AQeP78+Rbjx6+AsbMlRoAGkMmoTxw6pQZo8tTozmWDAaNAZdUvF4yKmCV1bqopC76dLkMn9deryA7+elhG3/+CDGo3SscIcrWd53pPUNN36VKxcnm1VD9QuSqVkSN7j+opMCzfr6WywRtSTk1zYUgbvkKGZKZnSkT5COOQWxIgAT8m0KFDBwkPD5fevXvLoEGDpEePHlK7dm1NBMl/k5KS/JgOu16aBDgFZiL9vdv3y29qtCTtXJr8qf5hZKRm/RqSei5VKlWtYGJLokeOZo6drx2iY+NidILS4/tPyqznF8qINwa51Na55HMSoUZxyigHaxg7e3fsF+QdS01Jk+ub1ZMXF4621F9dTY/d87e75IOpK7UxBj+hQJWb7NnZIyxluEMCJOC/BDB1NX78eB3YEL4/ODbEOvmvcQ5ba18f6/PcJwEzCVz5SzSzVj+s6/zpCzK213ipVKW8ZKRm6BxdF5TBsF8FPvzbM73kWmUImRnZNPnoaWWU/CEwfgypVruK/Lhhmx6pKRtQ/ASplapUlHOnz2tn6yC17B6JUE8ePiUjlWHVulML7YBttIntvQM6y43x9eUH1XZ4ZJjOS1YhNn+Wc+vy3CcBEvA/ApGRkf7XafbYownQADLp8ST9tFdCQkNUTq4waRBfT86eTFHL23N0yopH/95T0tOv+M2Y0WRgkJqaUhGgrSUvL++q6Sjr687uPzE+QZ5TxlxO9h96NOeM6gsSrt5y92VnRHv1NL+jqVoe39TeJZ4jARIgARIgAY8jQAPIpEeCtBaGYKUUVkVlpGZK5bhY47Sp20pVKsitXVvJRhWfp5zKBYbI8hi1eWjofXq1liuNwTn77U1TZenUFZKTmS2IXdS6s/3YHK60w3tJgARIgARIoLQI0AAyiXyTtg2lRt1qglxfkcoBGKM/cIQerEZT3CUDX3pMrQbLka2btktIWLAkjO0jXfp2NKW5mOqV9JSXKZWxEhIgARIgARLwMAI0gEx6IBj1Gb/0OXl92HTZu/OgxCoDot+4EdoocraJ3T8myea1WyQsIkS6JXRWK6nCHd6KNl11eHbYQBEuIm7Q3l/2C6bmMIJEIQESIAESIAFPJkADyMSnE6BWPyHIYXHk8yUbZNa4hRKhVo7lqZVUq+avkWmrXxU4Nnu6IBji5Cfe0ik9LipDqIKKgfTW+smCvGUUEiABEiABEvBEAvm9aD1RQz/QKUUtO58/4V2pfG2s9uepoOLvBAYEymxlEHm6YApu3F9f1clZw1SKjorKN+nk0TOy6NX3PF116kcCJEACJODHBLxuBAgZg7Ozs5XT75XAe/aeH4LzQXJycnQ8G3tlnDmHdrC6Cm26IpdUjiyIvXpOHE6WCBUR+hoVNBFtQcKiQlTwweNXlUc9eNmrR9/o5H86eOH/WDp5i91ie3fuV3E9yurVb4buUWrqbt2yr6RrQkcV/6ii3ftsT6JPxrO1vVaU49zcXL0SDnyMPhblfpYlARIgARLwDwJeZwDhseCL7RqkJncghsGBsgjoV1wxDCDU44pY62NbT/kYJA0tI3+orO5l1TQaJP1CpkSr0RTbdmFk4GV7Xt9UhP8MY8XVegJVfjDUZRikJw+flvOnzmnmyIk29NXHpfXdha8gM0sfcDb4oG+GXkVAw6IkQAIkQAJ+QMDrDCAYMwirHhR0Zdm5veeEcsgxExaGkRXHxpK9+41z+DLFqALadEWM0Q179eDcgBcflclPzpCwcJXpXdlrgcFB8tLisVe1a3zB26unKPoZRoKr9dRvUldlvG8sWxJ/Vklay8iZ42cE2Z/j6leX0LBQmTl2odRtVEeQ+8yRwFiBTq7qg5Ef43mhTleevSN9eY0ESIAESMC7CXidAeTduAvW/tZurbUP0H8Tf5Lg0CD5S4/bdULVgu/wnCtPTHhMlirn7U8XfqGDQVatXVklRL0c9TVYxUfapVa3FWYAeU5vqAkJkAAJkIA/EKAB5EFPuV6TOoKXtwkSvg6Z2E/y1PTTt2t+tBg/6MelP/KUUeR4tM7b+kt9SYAESIAEvJ9A8eeGvL/v7IHJBHoMvlfylGN1+oUMnafszIlzEhQaqCNJm9wUqyMBEiABEiABlwjQAHIJH2+2JlClZqzM+GKSxFaLloDAALm1SyuVUmOKy6k5rNvgPgmQAAmQAAmYQYBTYGZQZB0WArE1omXK6gmWY+6QAAmQAAmQgCcSoAHkiU+lCDpdOJsqM8bMk91bkgS+OM/NHiUNWzcoQg0sSgIkQAIkQAL+R4BTYF78zHOzc2VIh7/Lju92asfjICyd7/ua/PbzPrf0CsbWyUOnBO0WRfap3GhbN/4sR34/VpTbWJYESIAESIAE3EaAI0BuQ+v+in/csE3lDctT6ScuR1vG8vncnBBZNXe1PDNrhKkK/N+CL2T5zI91XJ1LKlfZ5JUvSfU6Va9q45RKg/HL5t0qKWqA3NK5hSx5fZkkrvhGyqpo0Wnn0+SRp/8qDw7uetV9PEECJEACJEACJUmABlBJ0ja5rUuX8rRhYV1t2bJlBPm5zJStG7fL0n99KOWjywky0KedS5enuo2Ted9Mk9DIEEtTe/77m7zw6KsSHBKsIlVfkilPzZaLmRd1DCAEpgwJC5Z3VT033FxPbmxxveU+7pAACZAACZBASRPgFFhJEzexvZtaNdAZ2DPTsnStf+b9qZKSZkmHh9qZ2IrI50s3SGh4iDZ+UHFkhQgVqTpAfvl+j6UdLH1/KWGyymkWrq8jI3z6+XSV3uOSJRUJjKcgFRhxp9V9lgq4QwIkQAIkQAIlSIAjQCUI2+ymKlauIJM+/IeMe3iiZKWrRKoqEGHPofdJm3taFrsppLRY9M/35Pft+yREZXe/oVldlaE+SqWpyJ98Nu/Sn2o67EqOteTDp3TAwxBlKBkSoaJDnz5x1jjUW0yfwUiikAAJkAAJkEBpEqABVJr0TWj7uka1ZNHmGZJ85LRElAt3Ovu6vaY3rvqPTHtqjpw5kSLXBFwjWRkXZYfy54GvT1Z6lpraCtIxfVKSz+k4P/HtmliqiVSpLzAlh5xnRvLZCJUVPiU5RVJT0tQIUrCaOsvQaT469r7Dch93SIAESIAESKA0CHAKrDSom9wmRl1qNohzyfhBJvq5/3hHGz0BKiO9filH5kxl+GCKrWvfTmp6LVMbM/Wb1pW31r2mjRmjK4j/002VOfzbUVU+U/sJ5WRlq3KTlc9PfeU/VF7a3duGgRENYNySAAmQAAmUKgGOAJUqfs9q/PKElprqMma21PZP9e+Syqper3EdtYLrIZ2xPTAoUMccstX+r0/eLzWuqyYYSQpVWe0fGNRFat9YUxq3bWhblMck4BYCGIE8f/qCHrHMzclVqxED3dIOKyUBEvB+AjSAvP8ZmtKDADXac2OLBvLtZz/oOD/BocHa8MnLU0aQ+lJp2OoGp1JatFXpL/CikEBJE8i+mCNPtB8lST/t1dOxbYI7y+cnlkv0/8JElLQ+bI8ESMCzCXAKzLOfT4lqN2rKExJdraLyJYqQHL2UvozUVyM/r68ar6awokpUFzZGAkUlcH/dR2XP1t9VLKw/1IIAZbkrGXj7SJ2Yt6h1sTwJkIDvE+AIUCk/Y/jXJC7/WvneZEnjNg2lQfN6paZRuHKiXvT9TNn1wx5JPnpaqteuKnUa1pLQiCsru0pNOTZMAoUQgHM+Vhlay/kzF+Tgr4elbqM61qe5TwIkQAJCA6gU/whg/Azv9KxyGs4QrDJ/91/LZfik/nJXr9JbJQXn5ya33mQalbXvf6nTYERVjJKE5/pIeFSYaXWzIhKwJhAYHHiVAYSgndahGazLc58ESMC/CXAKrBSf/2tDp8tFNfJTTkVYRuDA2LgYlTriQ0FMHV+QVxJel9nPL5Jft+2Vrz/5TvrdMlyQKoNCAu4g0O/5h/OtTERy4IYtG0iNOtXc0RzrJAES8HICbjWAzpw5I2vXrpWkpCSHmHbt2iWJiYly/vx5h+V87eJZFW8nNDLU0q0AlS8L0ZJPHfN+I2H3j0ny3y9/kio1YyVM9RFBG8uqvi169T1Lf7lDAmYSSBjbRx5/4VE1ZRuqkwP3GHKvLPhuuplNsC4SIAEfIuA2A+inn36ShIQE+e2332TMmDGyatUqu9hGjx4t77//vuzevVsGDRokR48etVvOF0/COMhIzbR0DaksLqSkqtGg8pZz3rqDfiD2j7VgKuLMce837qz7xH3PIgAj6Ou01ZKY8rGMmTFcGd1lPUtBakMCJOAxBNxmAE2bNk0mTJggw4cPl7lz58rChQslJyd/ks4DBw5Ibm6upVx8fLxs2LDBY+C4W5FBL/fVcXXOKufNVOWrcOJQsjwwsJvUqOv9Q/Zxdaur1Te5+XwyMtMvSp2barsbK+snARIgARIggUIJuMUJ+g8VOA8jOY0bN9YKVK5cWcLCwuTYsWNSu/aVL0Dsv/nmm7oMpr+2b98uAwYMyKf0qVOnZOfOnZZzFy9eFLzyEKDGgcCwgmRnZ1tSMzgoXuAlxMC5pHJsoU1XBEwg1vVEVgqX2RvfkFVvr9HRk5vf0VTi2zfOV8a2TfQbdVnXY1vGmWPUgb6ZUY89faJrVJQ+T/eQeS8t1olUkR4jtkaM/O3ZnnbbBGMz9MFzN56X0UdneJR0GUwPb926VWrVqiXXX399oc1v3LhRbr75ZomMjCy0LAuQAAmQAAkUTsAtBhCMlvDw8HyGR7ly5SQlJSWfAWSot27dOnnttdekQYMG0rZtW+O03uJLYuTIkZZzN910k5w7d06CgoIs5xztmOVXhDbNEHv13PP4XyxV27tuuWi1YzuaZnWpSLvOtldYpTA0beXmjo0lJm6E7N91WELCgqRFh2aSmpZqWyzfsVn6ZGVlaUMRxpCnCaaHX3zxRenYsaPMmjVL+vbtK/fff3+Ban799de6/LvvvksDqEBKvEACJEACRSPgFgMI8+62Xzz4NR4SYj+eDL4Ibr31Vpk+fbqeDnvllVcsvWjfvr3g168h48ePl9jY2EINIHwBpqWlSXR0tMpaXvyZPoy4oB4YcK5IZmampKena91dqQdcMzIyJCrKtcCE0AWMYmJiXFFHT2FiFKmgkQk8qxbtmhfaBhjDqKtUqVKhZR0VgCGGvzUY4Nh6og+IMT3cpEkT6dmzp/Tv31+6dOli928aI0WYPi5fPr8/lSMGvEYCJEACJFA4AbcYQPgSw5c0voyCg4O1Fhj9qVYtv29LcnKyXvmFKQBMkeFX8KhRo/JpHRoaKngZgi8042Wcs7c1jB6UNfbtlSvsHKZu8HL1i9TIkO5qPdAX/XG1HtRhRr9gIJqhj1l8wAU6YYspNaPewp5zSV2HUebM9DD0gf6TJk2SYcOG6RFSWx0x3YfRVkPMGhU06uOWBEiABHyZQPGHRhxQCQgIkFatWsknn3yiS2EIv0KFCvqFUYdDhw7p8xgVefbZZy0+IRjpqVu3roOaeYkEvJuAo+lh256tWLFC4uLitO+P7TUcYxHBnXfeaXlZ+8rZK89zJEACJEACVwi4ZQQI1Q8ZMsSy/B0jBPB5gCDmD6a4YBzBCfrBBx+UgQMH6l/sOIZBRCEBXyIwe/ZsPR2HPsFgcWZ6GMbN559/Lri3IMGI6pw5cyyXN23aZNnnDgmQAAmQgGMCbjOAatasKcuWLdNTXNb+C1jJYowMQbVHHnlE+vTpo0eBMA3mjOzbt08CAwMdFsVIE/xc4FsCA6y4gukU1HP27NniVqHvw2gXpgXxckXw5Ym6CvK5cbZu6AHfHfBxRTClg3oiIiJcqUbrgSmc1FTHTtKFNYI6oBP+lmwNjcLuddd1+I9BJ4iz08MIDIqR0m7duun78PcMX6GJEydKy5Yt9Tkwv+OOO/Q+/oNzNYUESIAESMA5Am4zgIzmrY0f45ztFgaKs8ZPhw4d8hlQtnUZx/A5OnLkiDRq1MglAwj1GX4uRt3F2WLq4+TJk5bQAMWpw7jHDH1OnDihV+U1bNjQqLZYW/ip4OWKkYmGESIBxhhWAroitvrcddddrlRnyr0w8K3FmB5+6KGHxHp6GGUOHjwoVapU0cYODB5DUPaNN94Q/LCgkAAJkAAJuE7A7QaQ6yrmr+G+++7Lf6KAI0Se/vjjj2XevHl6RVABxUrs9KJFi/SUxtKlS0usTUcNIf7SDz/8IIsXL3ZUrMSuYVoUUcPBydeloOlh9Hvw4MHa8RkrxChFJ3Ax86J8s/p7yc3Jlbb3tJJyKgkvhQRIgATsEfA6A8heJ3iOBLyJQEHTw+gD/H7syfLly+2d5jkrAki/0qfJAMnKQKDUPyXjwiT5YOcCua5hLatS3CUBEiCBywSK7xxDgiRAAi4RcGZ62KUG/Ozm7rX6yOnjZyVNpZXJuHDZ127YXWMEo0IUEiABErAl4LMjQO3bt5ePPvooXwwh286X5HH37t0tzqsl2W5BbfXq1Us6depU0OUSP48UKL179y7xdtmg7xDIuZgjSChsLTnZOXIw6Yg0aFbP+jT3SYAESEB81gAy4g55yjPG6h9Xoxyb2RfkZ8PLU6Rq1aqeogr18FICIWEhkv6/kR+jC6kpaRJVgfnTDB7ckgAJXCHAKbArLLhHAiTgxQRGTR0sgcH5w2N07dtJqtWq4sW98g3VkRXg22+/le+++06nzymoV1gt+8UXX+ggnwWV4XkSMIuAT40AJSUl6dgp8fHxOgeYI0goC3EmE7ejehxdc0YfpDNAwlek+2jcuLFbUjc4owc+oLZs2aLbb9GiRaFxlhz129E1Z9spCS6O9OQ17yPQPeFuqVqzikx9apbkXcqT+wZ0kV5PPuB9HfExjRHDql+/foKQG8ePHxc49E+ZMuWqz7rVq1fra7fddpssWbJEx4dDjjyKcwTGvPWkcwVZykLAZ0aApk6dKq+//roOBvf444/L4cOHLZ203UGG+DFjxsjmzZttL5l27Iw+iAsEXxz8Kvr000/l4Ycf1vnTTFNCVeSMHviA6qsykiMVCTKOgw3i6ZgtzrZTElzM7hvr8wwCLe5sJu/9PE8++GUBjR/PeCQ6IC5iX40bN05mzZqlA7kiBIe14PNm3bp18vLLL+sYWCNHjtT3WZfhPgmYTcAnRoAQPO6bb74R5E5CQL4PPvhAEG9n7NixdnlNnjxZKlasaPeaGSed1Qe/hPALB7+OIEgXsn79eunatasZauiges5wQcRufEDhQwcyaNAgHSOodevWpuhhVOJsO+7mYujDLQmQgPsJ7N27Vzp27GhpCCP0u3fvFuvPFyQtnj59ui6D0V9Ml9WqVctyD3YQcR6fIYYg0C0Dgxo0uC0OAZ8wgPbv36+nj4xoxHiDrVmzxi4PjLTAQbpGjRp2r5tx0ll9YGhYZyu/cOGCYJTELHFWD2c+oMzQydl23M3FjL6wDhIgAecIYEQ3KupKQErsHz161O7NSIWDkXB8DiKIrbUgBdCkSZMsp5o3by6333675Zg7JFBUAj4xBYa0Dsi3ZAjeYPZyd+FNt3LlShk2bJhR1C1bZ/UJCgqy+Np8+eWX+kPh7rvvNk0nZ/Ww9wFlj5+rijnbjru5uNoP3k8CJOA8gbJly+bLy4e8ePB5tCf47EauyBdeeEGPRFv/IMSo/Z49eywvTwrjYa8vPOf5BLxyBAjTRL/++qumi9EeZ95geNMhkeTo0aMLfPMV93EVRx/rtvCGh+8NHANdTSpqXa8zXFDe2XLWdRdnv6jtuItLcXTnPSRAAsUjEB0drfMOGncjT2NcXJxxqLdIYrxt2zY9LYZR8Xbt2snMmTNl165dggTaFBJwBwGvNICQONUY8QkJCZGYmBjZsWOHhQ/eYLZxZeCXg18Po0aN0uUwz4w32pkzZ7RRZLm5GDvF0cdoBqsd1q5dKzNmzDA9Lo8zXKCHMx9Qhr6ubIvSjju5uNIHT78X04xG5nlP15X6uZcAkiZ7gmBVF1K8YJuenq4XfRhTWfhcRvLf4OBgmTNnjvbhbNmypWDlKkah6ePjCU/Qd3XwSgOobdu2gpchmDdGck84xcHwgZ8P3kQQGDiQunXryqZNm/Q+/sNqBBguWP3kqhRHHxgDn332mSQmJsrs2bMlMtL8YG1Yzl4YF+jh6APKVTbW9ztqx3hOJcHFWidf2odTKUIZHDhwwJe6xb64QMATlpF36NBBOzUj0jv8NLHytXbt2rpX1sl/sQgDRtDcuXO1QYQVYfgRRyEBdxHwSgPIFgbmjQcOHKiXT2KeGL8a+vTpo4shu3hgYKBlhZPtve44dlafhQsXSnJysl4JZujx4IMPyogRI4xDl7bO6uHoA8olBWxudtSO9XNyNxcbtXzmsE2bNoIXhQQ8iUBAQICMHz9e0tLStPsBjg2xTv7btGlTbQBhlMhMVwCjLW5JwJZAGRV/wfyAL7atlNAxprUQaM9T3jyeoo+zetj7gHLHoyupdtyhO+skARLwDAIIl4FXeHi4ZyhELTyKAEyb2NhYQdibgsSnDKCCOsnzJEACJEACJEACJGBNwCeWwVt3iPskQAIkQAIkQAIkUBgBGkCFEeJ1EiABEiABEiABnyNAA8jnHik7RAIkQAIkQAIkUBgBGkCFEeJ1EiABEiABEiABnyNAA8iLH+kzzzyjM7gbXUD8DNv8OcY1bknAlwkgAOSQIUME+fQgWAGC461bt/pyt9k3EiABFwjQAHIBXmnf+u9//ztfBGxElMaLQgL+RuD48eM6oCgSZkIQBRkBRmEYUUiABEjAHgEaQPaoeOm5jIwML9WcapOAuQQMQ8jcWlkbCXgXAcTFoxRM4EpIzoLL8IqXEPjll1/klltu8RJtqSYJuI8A3gsUEvAHAkgFNW3aNJ0fc9++fXpWADky8SNg2LBh0rNnT3/AUKw+0gAqFjbPuAl5dYxA3silhQjLFBLwRwJ4L0CMBKBIfIwEmxQS8GUCSBgbHx8v7733niU/5tChQ+XkyZMyf/58qVGjhi933+W+cQrMZYSlV0G5cuXk2LFjWoHvv/9exowZI5gG27Vrlxw+fLj0FGPLJFDCBJBfCsmN4QsEQR485JbC+8E631QJq8XmSMCtBCZOnKgTzFonBx8wYICsXLmS/qBOkKcB5AQkTy3So0cP/eH+/PPPy6VLl+SBBx7Qhs/SpUvl2muv9VS1qRcJmE6gbNmykpCQIE8//bRMmDBB/yp+7LHHZMGCBZaVYaY3ygpJoJQJYJUjkn9bS5MmTaRSpUr5VghbX+f+FQKcArvCwuv2MO31888/62H/oKAgrf+2bdvE2Pe6DlFhEigmAUx9NW/eXCc+xEgQZPDgwdoogj8EhQR8kUB0dLSsWbNGsrKyJDQ0VHexTJkyOgkojCCKYwIcAXLMx6Ovrl+/Xv/hWxs88HvAG4BCAv5EICcnR38RGMaP0XcaPwYJbn2RAKa7sNJrw4YNlu5hGnj//v3a+Lec5I5dAhwBsovFO07CzwGrXdq0aeMdClNLEnATgZiYGNmyZYubame1JOCZBDp37ixLliyRsWPHysGDBwW+cF999ZV88skn2gfOM7X2HK3KqFVEf3qOOtSkKAQw7G+sfinKfSxLAr5IgO8HX3yq7JOzmaDQSQAAALFJREFUBE6cOCEY8axQoYKzt/h9ORpAfv8nQAAkQAIkQAIk4H8E6APkf8+cPSYBEiABEiABvydAA8jv/wQIgARIgARIgAT8jwANIP975uwxCZAACZAACfg9ARpAfv8nQAAkQAIkQAIk4H8EaAD53zNnj0mABEiABEjA7wnQAPL7PwECIAESIAESIAH/I0ADyP+eOXtMAiRAAiRAAn5PgAaQ3/8JEAAJkAAJkAAJ+B+B/wfyhTtY+sNUVAAAAABJRU5ErkJggg==" style="display: block; margin: auto;" /></p>
+<p>Once the neural Bayes estimator has been trained, it can be applied
+to observed data using the function <code>estimate()</code>, and compute
+non-parametric bootstrap estimates using the function
+<code>bootstrap()</code>. Below, we use simulated data as a surrogate
+for observed data:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>theta    <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(<span class="fu">c</span>(<span class="dv">0</span>, <span class="fl">0.5</span>))     <span class="co"># true parameters</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>Z        <span class="ot">&lt;-</span> <span class="fu">simulate</span>(theta, m)       <span class="co"># pretend that this is observed data</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>thetahat <span class="ot">&lt;-</span> <span class="fu">estimate</span>(estimator, Z)   <span class="co"># point estimates from the &quot;observed data&quot;</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>bs <span class="ot">&lt;-</span> <span class="fu">bootstrap</span>(estimator, Z)        <span class="co"># non-parametric bootstrap estimates</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>bs[, <span class="dv">1</span><span class="sc">:</span><span class="dv">6</span>]</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;            [,1]       [,2]       [,3]        [,4]       [,5]        [,6]</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1,] -0.1798876 0.02217292 0.05055006 -0.02114162 -0.2352397 -0.04833561</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [2,]  0.3675447 0.48011942 0.42818283  0.46216944  0.4755376  0.37931299</span></span></code></pre></div>
+</div>
+<div id="multivariate-data" class="section level3">
+<h3>Multivariate data</h3>
+<p>Suppose now that our data consists of <span class="math inline">\(m\)</span> replicates of a <span class="math inline">\(d\)</span>-dimensional multivariate distribution.
+Everything remains as given in the univariate example above, except that
+we now store the data as a list of <span class="math inline">\(d \times
+m\)</span> matrices (previously they were stored as <span class="math inline">\(1\times m\)</span> matrices), and the inner
+network of the DeepSets representation takes a <span class="math inline">\(d\)</span>-dimensional input (previously it took a
+1-dimensional input).</p>
+<p>For example, to develop a neural Bayes estimator for <span class="math inline">\(\boldsymbol{\theta} \equiv (\mu_1, \mu_2, \sigma,
+\rho)&#39;\)</span> from data <span class="math inline">\(\mathbf{Z}_1,
+\dots, \mathbf{Z}_m\)</span> that are independent and identically
+distributed according to a multivariate <span class="math inline">\(\rm{N}(\boldsymbol{\mu},
+\boldsymbol{\Sigma})\)</span> distribution, one may use the following
+code for defining the prior distribution, the simulator, and the
+neural-estimator architecture:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>prior <span class="ot">&lt;-</span> <span class="cf">function</span>(K) {</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  mu1    <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(K)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  mu2    <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(K)</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  sigma  <span class="ot">&lt;-</span> <span class="fu">rgamma</span>(K, <span class="dv">1</span>)</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  rho    <span class="ot">&lt;-</span> <span class="fu">runif</span>(K, <span class="sc">-</span><span class="dv">1</span>, <span class="dv">1</span>)</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  theta  <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">c</span>(mu1, mu2, sigma, rho), <span class="at">byrow =</span> <span class="cn">TRUE</span>, <span class="at">ncol =</span> K)</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(theta)</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">&quot;MASS&quot;</span>)</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>simulate <span class="ot">&lt;-</span> <span class="cf">function</span>(theta_set, m) {</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">apply</span>(theta_set, <span class="dv">2</span>, <span class="cf">function</span>(theta) {</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>    mu    <span class="ot">&lt;-</span> <span class="fu">c</span>(theta[<span class="dv">1</span>], theta[<span class="dv">2</span>])</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>    sigma <span class="ot">&lt;-</span> theta[<span class="dv">3</span>]</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>    rho   <span class="ot">&lt;-</span> theta[<span class="dv">4</span>]</span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>    Sigma <span class="ot">&lt;-</span> sigma<span class="sc">^</span><span class="dv">2</span> <span class="sc">*</span> <span class="fu">matrix</span>(<span class="fu">c</span>(<span class="dv">1</span>, rho, rho, <span class="dv">1</span>), <span class="dv">2</span>, <span class="dv">2</span>)</span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>    Z <span class="ot">&lt;-</span> <span class="fu">mvrnorm</span>(m, mu, Sigma)</span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>    Z <span class="ot">&lt;-</span> <span class="fu">t</span>(Z)      <span class="co"># convert to dxm matrix</span></span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>    Z</span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>  }, <span class="at">simplify =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>estimator <span class="ot">&lt;-</span> <span class="fu">juliaEval</span>(<span class="st">&#39;</span></span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a><span class="st">  using NeuralEstimators</span></span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a><span class="st">  using Flux</span></span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a><span class="st">  p = 2    # number of parameters in the statistical model</span></span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a><span class="st">  w = 32   # number of neurons in each layer</span></span>
+<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a><span class="st">  d = 2    # dimension of the response variable</span></span>
+<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a><span class="st">  psi = Chain(Dense(d, w, relu), Dense(w, w, relu), Dense(w, w, relu))</span></span>
+<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a><span class="st">  phi = Chain(Dense(w, w, relu), Dense(w, p))</span></span>
+<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a><span class="st">  estimator = DeepSet(psi, phi)</span></span>
+<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a><span class="st">&#39;</span>)</span></code></pre></div>
+<p>Note that, when estimating a covariance matrix, one may wish to
+constrain the neural estimator to only produce parameters that imply a
+valid (i.e., positive definite) covariance matrix. This can be achieved
+by appending a <a href="https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/architectures/#NeuralEstimators.CovarianceMatrix">CovarianceMatrix</a>
+layer to the end of the outer network <code>phi</code> above. However,
+this is often unnecessary as the estimator will typically learn to
+provide valid estimates, even if not constrained to do so.</p>
+</div>
+<div id="gridded-spatial-data" class="section level3">
+<h3>Gridded spatial data</h3>
+<p>For spatial data measured on a regular grid, the estimator is based
+on a convolutional neural network (CNN), and each data set is stored as
+a four-dimensional array, with the first three dimensions corresponding
+to width, height, and depth/channels dimensions, and the fourth
+dimension storing independent replicates. Note that, for univariate
+spatial processes, the channels dimension is simply equal to 1.</p>
+<p>Below, we give example code for a <span class="math inline">\(16\times 16\)</span> spatial grid, and where the
+spatial model is Schlather’s max-stable process with unknown range and
+smoothness parameters.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>prior <span class="ot">&lt;-</span> <span class="cf">function</span>(K) {</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  range      <span class="ot">&lt;-</span> <span class="fu">runif</span>(K, <span class="dv">1</span>, <span class="dv">10</span>)</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  smoothness <span class="ot">&lt;-</span> <span class="fu">runif</span>(K, <span class="fl">0.5</span>, <span class="dv">3</span>)</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>  theta      <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">c</span>(range, smoothness), <span class="at">byrow =</span> <span class="cn">TRUE</span>, <span class="at">ncol =</span> K)</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(theta)</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>coord <span class="ot">&lt;-</span> <span class="fu">cbind</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">16</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">16</span>)</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>simulate <span class="ot">&lt;-</span> <span class="cf">function</span>(theta_set, m) {</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">apply</span>(theta_set, <span class="dv">2</span>, <span class="cf">function</span>(theta) {</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>    range  <span class="ot">&lt;-</span> theta[<span class="dv">1</span>]</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>    smooth <span class="ot">&lt;-</span> theta[<span class="dv">2</span>]</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>    Z <span class="ot">&lt;-</span> SpatialExtremes<span class="sc">::</span><span class="fu">rmaxstab</span>(</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>      m, coord, <span class="at">cov.mod =</span> <span class="st">&quot;whitmat&quot;</span>, <span class="at">grid =</span> <span class="cn">TRUE</span>, <span class="at">nugget =</span> <span class="dv">0</span>, </span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>      <span class="at">range =</span> range, <span class="at">smooth =</span> smooth</span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>      )</span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">dim</span>(Z) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fu">dim</span>(Z)[<span class="dv">1</span>], <span class="fu">dim</span>(Z)[<span class="dv">2</span>], <span class="dv">1</span>, <span class="fu">dim</span>(Z)[<span class="dv">3</span>]) </span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>    Z</span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>  }, <span class="at">simplify =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>estimator <span class="ot">&lt;-</span> <span class="fu">juliaEval</span>(<span class="st">&#39;</span></span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a><span class="st">  using NeuralEstimators</span></span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a><span class="st">  using Flux</span></span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a><span class="st">  p = 2    # number of parameters in the statistical model</span></span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a><span class="st">  w = 32   # number of neurons in each layer</span></span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a><span class="st">  d = 2    # dimension of the response variable</span></span>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a><span class="st">  psi = Chain(</span></span>
+<span id="cb10-33"><a href="#cb10-33" aria-hidden="true" tabindex="-1"></a><span class="st">        Conv((10, 10), 1 =&gt; 64,  relu),</span></span>
+<span id="cb10-34"><a href="#cb10-34" aria-hidden="true" tabindex="-1"></a><span class="st">        Conv((5, 5),  64 =&gt; 128,  relu),</span></span>
+<span id="cb10-35"><a href="#cb10-35" aria-hidden="true" tabindex="-1"></a><span class="st">        Conv((3, 3),  128 =&gt; 256, relu),</span></span>
+<span id="cb10-36"><a href="#cb10-36" aria-hidden="true" tabindex="-1"></a><span class="st">        Flux.flatten</span></span>
+<span id="cb10-37"><a href="#cb10-37" aria-hidden="true" tabindex="-1"></a><span class="st">        )</span></span>
+<span id="cb10-38"><a href="#cb10-38" aria-hidden="true" tabindex="-1"></a><span class="st">        </span></span>
+<span id="cb10-39"><a href="#cb10-39" aria-hidden="true" tabindex="-1"></a><span class="st">  phi = Chain(</span></span>
+<span id="cb10-40"><a href="#cb10-40" aria-hidden="true" tabindex="-1"></a><span class="st">        Dense(256, 500, relu),</span></span>
+<span id="cb10-41"><a href="#cb10-41" aria-hidden="true" tabindex="-1"></a><span class="st">        Dense(500, p)</span></span>
+<span id="cb10-42"><a href="#cb10-42" aria-hidden="true" tabindex="-1"></a><span class="st">    )</span></span>
+<span id="cb10-43"><a href="#cb10-43" aria-hidden="true" tabindex="-1"></a><span class="st">    </span></span>
+<span id="cb10-44"><a href="#cb10-44" aria-hidden="true" tabindex="-1"></a><span class="st">  estimator = DeepSet(psi, phi)</span></span>
+<span id="cb10-45"><a href="#cb10-45" aria-hidden="true" tabindex="-1"></a><span class="st">&#39;</span>)</span></code></pre></div>
+</div>
+<div id="irregular-spatial-data" class="section level3">
+<h3>Irregular spatial data</h3>
+<p>Coming soon! (Using Graph Neural Networks.)</p>
+</div>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
