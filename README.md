@@ -19,7 +19,7 @@ Note that the vignette takes roughly 5 minutes to compile; if you are not willin
 
 ## Getting started
 
-See the package vignette for an overview of the framework and package, and for an illustrative example.
+See the package vignette for an overview of the framework and package, and for an illustrative example. You can view the vignette directly in your browser by clicking [here](https://raw.githack.com/msainsburydale/NeuralEstimators/main/NeuralEstimators.html). 
 
 ## Conda
 
