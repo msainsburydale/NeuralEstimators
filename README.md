@@ -2,6 +2,10 @@
 
 This repository contains the source code for the `R` interface to the `Julia` package `NeuralEstimators`, which facilitates the development of neural estimators in a user-friendly manner. The native `Julia` version is available [here](https://github.com/msainsburydale/NeuralEstimators.jl).
 
+## Getting started
+
+See the package vignette for an overview of the framework and package, and for an illustrative example. You can view the vignette directly in your browser by clicking [here](https://raw.githack.com/msainsburydale/NeuralEstimators/main/NeuralEstimators.html). 
+
 ## Installation tips
 
 To install `NeuralEstimators`, please:
@@ -16,10 +20,6 @@ To install `NeuralEstimators`, please:
  	- To install from terminal, run the command `Rscript -e 'devtools::install_github("msainsburydale/NeuralEstimators", build_vignettes = TRUE)'`.
 
 Note that the vignette takes roughly 5 minutes to compile; if you are not willing to wait this long, remove the argument `build_vignettes=TRUE` in the final command above.
-
-## Getting started
-
-See the package vignette for an overview of the framework and package, and for an illustrative example. You can view the vignette directly in your browser by clicking [here](https://raw.githack.com/msainsburydale/NeuralEstimators/main/NeuralEstimators.html). 
 
 ## Conda
 
