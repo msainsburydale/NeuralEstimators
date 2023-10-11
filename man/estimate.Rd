@@ -7,14 +7,14 @@
 estimate(estimator, Z, use_gpu = TRUE)
 }
 \arguments{
-\item{estimator}{a neural estimator.}
+\item{estimator}{a neural estimator}
 
-\item{Z}{data to apply the estimator to; it's format should be amenable to the architecture of \code{estimator}.}
+\item{Z}{data to apply the estimator to; it's format should be amenable to the architecture of \code{estimator}}
 
 \item{use_gpu}{a boolean indicating whether to use the GPU if it is available (default true)}
 }
 \value{
-a matrix of parameter estimates (i.e., \code{estimator} applied to \code{Z}).
+a matrix of parameter estimates (i.e., \code{estimator} applied to \code{Z})
 }
 \description{
 estimate parameters from observed data using a neural estimator

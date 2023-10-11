@@ -4,32 +4,30 @@
 \alias{bootstrap}
 \title{bootstrap}
 \usage{
-bootstrap(
-  estimator,
-  parameters = NULL,
-  Z = NULL,
-  simulator = NULL,
-  use_gpu = TRUE,
-  B = 400,
-  blocks = NULL
-)
+bootstrap(estimator, Z, B = 400, blocks = NULL, use_gpu = TRUE)
 }
 \arguments{
-\item{estimator}{a neural estimator.}
+\item{estimator}{a neural estimator}
 
-\item{parameters}{a single parameter configuration (default \code{NULL})
+\item{Z}{either simulated data of length B or a single observed data set, which will be bootstrap sampled B times to generate B bootstrap estimates}
 
-Parametric bootstrapping is facilitated by passing a single parameter configuration, \code{parameters}, and corresponding simulated data, Z, whose length implicitly defines B. Alternatively, one may provide a simulator and the desired sample size, in which case the data will be simulated using simulator(parameters, m).
+\item{B}{number of bootstrap samples (default 400)}
 
-Non-parametric bootstrapping is facilitated by passing a single data set, Z. The argument blocks caters for block bootstrapping, and it should be a vector of integers specifying the block for each replicate. For example, with 5 replicates, the first two corresponding to block 1 and the remaining three corresponding to block 2, blocks should be \link{1, 1, 2, 2, 2}. The resampling algorithm aims to produce resampled data sets that are of a similar size to Z, but this can only be achieved exactly if all blocks are equal in length.
+\item{blocks}{integer vector specifying the blocks in non-parameteric bootstrapping (default \code{NULL}). For example, with 5 replicates, the first two corresponding to block 1 and the remaining three corresponding to block 2, blocks should be \code{c(1, 1, 2, 2, 2)}}
 
-The keyword argument use_gpu is a flag determining whether to use the GPU, if it is available (default true).}
+\item{use_gpu}{a boolean indicating whether to use the GPU if it is available (default true)}
+
+\item{parameters}{a single parameter configuration (default \code{NULL})}
 }
 \value{
-p × B matrix, where p is the number of parameters in the model.
+p × B matrix, where p is the number of parameters in the model and B is the number of bootstrap samples
 }
 \description{
-Generate bootstrap estimates from an estimator.
+Generate bootstrap estimates from an estimator
+
+Parametric bootstrapping is facilitated by passing multiple simulated data set, Z, which should be stored as a list and whose length implicitly defines B.
+
+Non-parametric bootstrapping is facilitated by passing a single data set, Z. The argument \code{blocks} caters for block bootstrapping, and it should be a vector of integers specifying the block for each replicate. For example, with 5 replicates, the first two corresponding to block 1 and the remaining three corresponding to block 2, blocks should be \code{c(1, 1, 2, 2, 2)}. The resampling algorithm aims to produce resampled data sets that are of a similar size to Z, but this can only be achieved exactly if all blocks are equal in length.
 }
 \examples{
 library("NeuralEstimators")
@@ -51,6 +49,13 @@ estimator <- juliaEval('
   estimator = DeepSet(psi, phi)
 ')
 
-## Apply the estimator
-bootstrap()
+## Non-parametric bootstrap
+bootstrap(estimator, Z = Z)
+bootstrap(estimator, Z = Z, blocks = rep(1:5, each = 20))
+
+## Parametric bootstrap (pretend that the following data generating process
+involves simulation from the model given estimated parameters)
+B = 400
+Z = lapply(1:B, function(b) matrix(rnorm(100), nrow = 1))
+bootstrap(estimator, Z = Z)
 }

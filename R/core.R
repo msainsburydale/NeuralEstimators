@@ -158,9 +158,25 @@ train <- function(estimator,
 }
 
 
+#' @title load the weights of a neural estimator
+#' @param estimator the neural estimator that we wish to load weights into
+#' @param file file (including absolute path) of the neural-network weights saved as a \code{bson} file
+#' @export
+loadweights <- function(estimator, filename) {
+  juliaLet(
+    '
+    using NeuralEstimators
+    using Flux
+    Flux.loadparams!(estimator, NeuralEstimators.loadweights(file))
+    estimator
+    ',
+    estimator = estimator, path = path
+  )
+}
+
 #' @title load the weights of the best neural estimator
 #' @param estimator the neural point estimator that we wish to load weights into
-#' @param path absolute path to the folder containing the neural-network weights, saved as \code{best_network.bson}
+#' @param path absolute path to the folder containing the saved neural-network weights, saved as \code{best_network.bson}
 #' @export
 loadbestweights <- function(estimator, path) {
   juliaLet(
@@ -174,9 +190,35 @@ loadbestweights <- function(estimator, path) {
     )
 }
 
+#' @title computes a Monte Carlo approximation of the Bayes risk
+#' @param df the \code{estimates} dataframe returned by a call to \code{assess()}
+#' @param loss a binary operator defining the loss function (default absolute-error loss)
+#' @param average_over_parameters if \code{TRUE} (default), the loss is averaged over all parameters; otherwise, the loss is averaged over each parameter separately
+#' @param average_over_sample_sizes if \code{TRUE} (default), the loss is averaged over all sample sizes (the column \code{m} in \code{df}); otherwise, the loss is averaged over each sample size separately
+#' @return a dataframe giving the estimated risk and an estimate of its standard deviation
+#' @export
+risk <- function(df, 
+                 loss = function(x, y) abs(x - y), 
+                 average_over_parameters = TRUE, 
+                 average_over_sample_sizes = TRUE) {
+
+  # Determine which variables we are grouping by
+  grouping_variables = "estimator"
+  if (!average_over_parameters) grouping_variables <- c(grouping_variables, "parameter")
+  if (!average_over_sample_sizes) grouping_variables <- c(grouping_variables, "m")
+  
+  # Compute the risk and its standard deviation
+  df %>%
+    mutate(loss = loss(estimate, truth)) %>%
+    group_by(across(grouping_variables)) %>%
+    summarise(risk = mean(loss), risk_sd = sd(loss)/sqrt(length(loss))) 
+}
+
+
+
+
 
 #' @title assess a neural estimator
-#'
 #' @param estimators a list of (neural) estimators
 #' @param parameters true parameters, stored as a pxK matrix, where p is the number of parameters in the statistical model and K is the number of sampled parameter vectors
 #' @param Z data simulated conditionally on the \code{parameters}. If \code{Z} contains more data sets than parameter vectors, the parameter matrix will be recycled by horizontal concatenation.

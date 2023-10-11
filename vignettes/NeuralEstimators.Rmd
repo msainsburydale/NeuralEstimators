@@ -28,7 +28,8 @@ Below, we outline the theoretical framework of neural estimation, and then provi
 
 ## Methodology
 
-In this section, we provide an overview of point estimation using neural Bayes estimators. For a more detailed discussion on the framework and its implementation, see Sainsbury-Dale et al. (2022; arxiv:2208.12942). 
+In this section, we provide an overview of point estimation using neural Bayes estimators. For a more detailed discussion on the framework and its implementation, see Sainsbury-Dale, Zammit-Mangion, and Huser (2023), "Likelihood-free parameter estimation with neural Bayes estimators", The American Statistician, DOI:
+10.1080/00031305.2023.2249522.
 
 ### Neural Bayes estimators
 
@@ -102,6 +103,7 @@ Before proceeding, we load the required packages. The package `JuliaConnectoR` i
 ```{r}
 library("NeuralEstimators")
 library("JuliaConnectoR")
+library("ggplot2")
 library("ggpubr")
 ```
 
@@ -154,7 +156,7 @@ estimator <- juliaEval('
 ')
 ```
 
-Next, we train the neural estimator using `train`, here using the default absolute-error loss function. 
+Next, we train the neural estimator using `train()`, here using the default absolute-error loss function. 
 
 ```{r}
 estimator <- train(
@@ -167,6 +169,8 @@ estimator <- train(
   )
 ```
 
+The function `train()` contains an argument `savepath`: if it is specified, the neural-network parameters (i.e., the weights and biases) will be saved during training as `bson` files; the risk function evaluated over the training and validation sets will also be saved, in the first and second columns of `loss_per_epoch.csv`, respectively. The best set of parameters (as measured by validation risk) will be saved as `best_network.bson`: to load these best weights into a neural estimator in a later `R` session, use the function `loadbestweights()`. 
+
 To assess the accuracy of the resulting neural Bayes estimator, we use the function `assess()`. 
 
 ```{r}
@@ -176,7 +180,14 @@ assessment <- assess(estimator, theta_test, Z_test)
 head(assessment$estimates)
 ```
 
-In addition to assessing the estimator with respect to many parameter configurations, it is often helpful to visualise the empirical sampling distribution of an estimator for a particular parameter configuration. This can be done by calling `assess()` with $J$ data sets simulated under a single parameter configuration, and providing the resulting estimates to `plotdistribution`: 
+Given a dataframe of estimates and true value returned by a call to `assess()`, the function `risk()` can be used to compute a Monte Carlo approximation of the Bayes risk: 
+
+```{r}
+risk(assessment$estimates, average_over_parameters = F)
+```
+
+
+In addition to assessing the estimator with respect to many parameter configurations, it is often helpful to visualise the empirical sampling distribution of an estimator for a particular parameter configuration. This can be done by calling `assess()` with $J$ data sets simulated under a single parameter configuration, and providing the resulting estimates to `plotdistribution()`: 
 
 ```{r, results='hide',fig.keep='all', fig.width=6, fig.height=3, fig.align='center'}
 J     <- 100
@@ -191,7 +202,9 @@ marginal <- plotdistribution(assessment$estimates, type = "box", parameter_label
 ggarrange(plotlist = c(joint, marginal), nrow = 1, common.legend = TRUE)
 ```
 
-Once the neural Bayes estimator has been trained, it can be applied to observed data using the function `estimate()`, and compute non-parametric bootstrap estimates using the function `bootstrap()`. Below, we use simulated data as a surrogate for observed data:
+
+
+Once the neural Bayes estimator has been trained and assessed, it can be applied to observed data using the function `estimate()`, and compute non-parametric bootstrap estimates using the function `bootstrap()`. Below, we use simulated data as a surrogate for observed data:
 
 ```{r}
 theta    <- as.matrix(c(0, 0.5))     # true parameters
