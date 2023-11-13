@@ -13,7 +13,7 @@
 #' @param theta_val the set of parameters used for monitoring the performance of the estimator during training
 #' @param Z_train the data used for updating the estimator using stochastic gradient descent
 #' @param Z_val the data used for monitoring the performance of the estimator during training
-#' @param M vector of sample sizes. If null (default), a single neural estimator is trained, with the sample size inferred from \code{Z_val}. If \code{M} is a vector of integers, a sequence of neural estimators is constructed for each sample size; see the Julia documentation for trainx() for details
+#' @param M vector of sample sizes. If null (default), a single neural estimator is trained, with the sample size inferred from \code{Z_val}. If \code{M} is a vector of integers, a sequence of neural estimators is constructed for each sample size; see the Julia documentation for \code{trainx()} for details
 #' @param loss the loss function. It can be a string 'absolute-error' or 'squared-error', in which case the loss function will be the mean absolute-error or squared-error loss. Otherwise, one may provide a custom loss function as Julia code, which will be converted to a Julia function using \code{juliaEval()}
 #' @param learning the learning rate for the optimiser ADAM (default 1e-4)
 #' @param epochs the number of epochs
@@ -48,7 +48,7 @@
 #'    t(rnorm(m, theta[1], theta[2]))
 #'  }, simplify = FALSE)
 #' }
-#' m <- 15
+#' m <- 30
 #' Z_train <- simulate(theta_train, m)
 #' Z_val   <- simulate(theta_val, m)
 #'
@@ -63,15 +63,26 @@
 #'   estimator = DeepSet(psi, phi)
 #' ')
 #'
-#' # Train the neural estimator
+#' # Train a neural estimator
 #' estimator <- train(
 #'   estimator,
 #'   theta_train = theta_train,
 #'   theta_val   = theta_val,
 #'   Z_train = Z_train,
 #'   Z_val   = Z_val,
-#'   epochs = 30
+#'   epochs = 50
 #'   )
+#'   
+#'  # List of neural estimators, one trained with 15 replicates, and another with 30 replicates
+#' estimators <- train(
+#'   estimator,
+#'   theta_train = theta_train,
+#'   theta_val   = theta_val,
+#'   Z_train = Z_train,
+#'   Z_val   = Z_val,
+#'   M = c(15, 30), 
+#'   epochs = 2
+#' )
 train <- function(estimator,
                   theta_train,
                   theta_val,
@@ -113,7 +124,6 @@ train <- function(estimator,
     loss = juliaEval(loss)
   }
 
-
   code <- paste0(
   "
   using NeuralEstimators
@@ -127,8 +137,9 @@ train <- function(estimator,
 
   estimator = ",
      train_code,
-    "optimiser = ADAM(learning_rate),
+    "
     loss = loss,
+    #optimiser = ADAM(learning_rate),
     epochs = epochs,
     batchsize = batchsize,
     savepath = savepath,

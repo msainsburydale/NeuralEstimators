@@ -32,7 +32,7 @@ train(
 
 \item{Z_val}{the data used for monitoring the performance of the estimator during training}
 
-\item{M}{vector of sample sizes. If null (default), a single neural estimator is trained, with the sample size inferred from \code{Z_val}. If \code{M} is a vector of integers, a sequence of neural estimators is constructed for each sample size; see the Julia documentation for trainx() for details}
+\item{M}{vector of sample sizes. If null (default), a single neural estimator is trained, with the sample size inferred from \code{Z_val}. If \code{M} is a vector of integers, a sequence of neural estimators is constructed for each sample size; see the Julia documentation for \code{trainx()} for details}
 
 \item{loss}{the loss function. It can be a string 'absolute-error' or 'squared-error', in which case the loss function will be the mean absolute-error or squared-error loss. Otherwise, one may provide a custom loss function as Julia code, which will be converted to a Julia function using \code{juliaEval()}}
 
@@ -81,7 +81,7 @@ simulate <- function(theta_set, m) {
    t(rnorm(m, theta[1], theta[2]))
  }, simplify = FALSE)
 }
-m <- 15
+m <- 30
 Z_train <- simulate(theta_train, m)
 Z_val   <- simulate(theta_val, m)
 
@@ -96,15 +96,26 @@ estimator <- juliaEval('
   estimator = DeepSet(psi, phi)
 ')
 
-# Train the neural estimator
+# Train a neural estimator
 estimator <- train(
   estimator,
   theta_train = theta_train,
   theta_val   = theta_val,
   Z_train = Z_train,
   Z_val   = Z_val,
-  epochs = 30
+  epochs = 50
   )
+  
+ # List of neural estimators, one trained with 15 replicates, and another with 30 replicates
+estimators <- train(
+  estimator,
+  theta_train = theta_train,
+  theta_val   = theta_val,
+  Z_train = Z_train,
+  Z_val   = Z_val,
+  M = c(15, 30), 
+  epochs = 2
+)
 }
 \seealso{
 \code{\link[=assess]{assess()}} for assessing an estimator post training, and \code{\link[=estimate]{estimate()}} for applying an estimator to observed data
