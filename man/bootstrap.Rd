@@ -11,30 +11,31 @@ bootstrap(estimator, Z, B = 400, blocks = NULL, use_gpu = TRUE)
 
 \item{Z}{either simulated data of length B or a single observed data set, which will be bootstrap sampled B times to generate B bootstrap estimates}
 
-\item{B}{number of bootstrap samples (default 400)}
+\item{B}{number of bootstrap estimates (default 400)}
 
-\item{blocks}{integer vector specifying the blocks in non-parameteric bootstrapping (default \code{NULL}). For example, with 5 replicates, the first two corresponding to block 1 and the remaining three corresponding to block 2, blocks should be \code{c(1, 1, 2, 2, 2)}}
+\item{blocks}{integer vector specifying the blocks in non-parameteric bootstrapping (default \code{NULL}). For example, with 5 replicates, the first two corresponding to block 1 and the remaining three corresponding to block 2, blocks should be \code{c(1,1,2,2,2)}. The bootstrap sampling algorithm aims to produce bootstrap data sets that are of a similar size to \code{Z}, but this can only be achieved exactly if all blocks are equal in length.}
 
-\item{use_gpu}{a boolean indicating whether to use the GPU if it is available (default true)}
-
-\item{parameters}{a single parameter configuration (default \code{NULL})}
+\item{use_gpu}{a boolean indicating whether to use the GPU if it is available (default \code{TRUE})}
 }
 \value{
 p × B matrix, where p is the number of parameters in the model and B is the number of bootstrap samples
 }
 \description{
-Generate bootstrap estimates from an estimator
+Generate \code{B} bootstrap estimates from a neural estimator
 
-Parametric bootstrapping is facilitated by passing multiple simulated data set, Z, which should be stored as a list and whose length implicitly defines B.
-
-Non-parametric bootstrapping is facilitated by passing a single data set, Z. The argument \code{blocks} caters for block bootstrapping, and it should be a vector of integers specifying the block for each replicate. For example, with 5 replicates, the first two corresponding to block 1 and the remaining three corresponding to block 2, blocks should be \code{c(1, 1, 2, 2, 2)}. The resampling algorithm aims to produce resampled data sets that are of a similar size to Z, but this can only be achieved exactly if all blocks are equal in length.
+Non-parametric bootstrap is facilitated by setting the data \code{Z} to
+be a single data set.
+Parametric bootstrap is facilitated by setting the data \code{Z} to be
+multiple simulated data sets stored as a list whose length implicitly
+defines \code{B}.
 }
 \examples{
 library("NeuralEstimators")
 library("JuliaConnectoR")
 
-## Observed data: 100 replicates of a univariate random variable
-Z = matrix(rnorm(100), nrow = 1)
+## Observed data: m independent replicates of a N(0, 1) random variable
+m = 100
+Z = t(rnorm(m))
 
 ## Construct the estimator
 estimator <- juliaEval('
@@ -45,17 +46,17 @@ estimator <- juliaEval('
   w = 32   # number of neurons in each layer
 
   psi = Chain(Dense(1, w, relu), Dense(w, w, relu))
-  phi = Chain(Dense(w, w, relu), Dense(w, p))
+  phi = Chain(Dense(w, w, relu), Dense(w, p, exp))
   estimator = DeepSet(psi, phi)
 ')
 
 ## Non-parametric bootstrap
 bootstrap(estimator, Z = Z)
-bootstrap(estimator, Z = Z, blocks = rep(1:5, each = 20))
+bootstrap(estimator, Z = Z, blocks = rep(1:5, each = m/5))
 
-## Parametric bootstrap (pretend that the following data generating process
-involves simulation from the model given estimated parameters)
+## Parametric bootstrap 
+thetahat = estimate(estimator, Z)  # estimated parameters
 B = 400
-Z = lapply(1:B, function(b) matrix(rnorm(100), nrow = 1))
+Z = lapply(1:B, function(b) t(rnorm(m, mean = thetahat[1], sd = thetahat[2])))
 bootstrap(estimator, Z = Z)
 }

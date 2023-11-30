@@ -177,7 +177,7 @@ plotdistribution <- function(
   } else if (type == "scatter") {
     gg <- .scatterplot(df, parameter_labels = parameter_labels, estimator_labels = estimator_labels, truth_colour = truth_colour, truth_size = truth_size, truth_line_size = truth_line_size)
     if (pairs) {
-    gg <- .pairsplot(gg, parameter_labels = parameter_labels, upper_triangle_plots = upper_triangle_plots, legend = legend)
+      gg <- .pairsplot(gg, parameter_labels = parameter_labels, upper_triangle_plots = upper_triangle_plots, legend = legend)
     }
   }
 
@@ -320,19 +320,7 @@ plotdistribution <- function(
 }
 
 
-
-# ---- plotdistribution(): pairsplot ----
-
-
 .pairsplot <- function(scatterplots, parameter_labels, upper_triangle_plots, legend = legend) {
-
-  # TODO Need to add a check that the number of upper_triangle_plots is ok.
-  # could just recycle to correct length with a warning.
-
-  # TODO Decide if we want estimator_labels (I think it makes sense to include it,
-  # since it's difficult for the user to edit the legend of pairs plots.
-  # Sanity check:
-  # if (!all(network %in% names(estimator_labels))) stop("Not all estimators have been given a label")
 
   p <- length(parameter_labels)
 
@@ -359,18 +347,17 @@ plotdistribution <- function(
   plotlist <- c(plotlist, diag_plots)
 
   # Upper-diagonal part of the plot
-  upper_idx <- (choose(p, 2) + p + 1):p^2
+  upper_idx <- (choose(p + 1, 2) + 1):p^2
   layout[upper.tri(layout)] <- upper_idx
   if (is.null(upper_triangle_plots)) {
     upper_triangle_plots <- lapply(upper_idx, function(i) ggplot() + theme_void())
     upper_triangle_plots_legend_grob <- NULL
   } else {
     upper_triangle_plots_legend_grob <<- get_legend(upper_triangle_plots[[1]])
+    if (length(upper_triangle_plots) != choose(p, 2)) stop("The number of upper_triangle_plots should be choose(p, 2), where p is the number of parameters in the statistical model")
     upper_triangle_plots <- lapply(upper_triangle_plots, function(gg) gg + theme(legend.position = "none"))
   }
   plotlist <- c(plotlist, upper_triangle_plots)
-
-
 
   # Add the scatterplots legend
   if (legend) {
@@ -387,7 +374,7 @@ plotdistribution <- function(
   }
 
   # Put everything together
-  legend_width <- 0.5 #TODO could add an argument for the relative width of the legends
+  legend_width <- 0.5 #NB could add an argument for the relative width of the legends
   suppressWarnings(
     gg <- grid.arrange(
       grobs = plotlist, layout_matrix = layout,
@@ -403,96 +390,4 @@ plotdistribution <- function(
   gg <- ggplotify::as.ggplot(gg)
 
   return(gg)
-}
-
-
-# ---- plottrainingrisk() ----
-
-#' Plots the evolution of the risk function during training.
-#'
-#' @param path a path containing one or more folders titled "runs_x", each of
-#' which corresponds to a training run of a neural estimator and, hence, each
-#' contains a .csv file called 'loss_per_epoch.csv'.
-#' @param excluded_runs folders to exclude (e.g., "runs_N1" to exclude the folder "runs_N1").
-#' @return a \code{'ggplot'} showing the evolution of the risk function during training for each neural estimator.
-#' @export
-#' @seealso \code{\link{plotrisk}}, \code{\link{plotdistribution}}
-plottrainingrisk <- function(path, excluded_runs = NULL) {
-
-  # Find the runs_ folders:
-  all_dirs <- list.dirs(path = path, recursive = TRUE)
-  runs_dirs <- all_dirs[which(grepl("runs_", all_dirs))]
-  if (!is.null(excluded_m)) runs_dirs <- runs_dirs[!grepl(excluded_m, runs_dirs)]
-
-  # Load the loss function per epoch files:
-  loss_per_epoch_list <- lapply(runs_dirs, function(x) {
-    loss_per_epoch <- read.csv(paste0(x, "/loss_per_epoch.csv"), header = FALSE)
-    colnames(loss_per_epoch) <- c("training", "validation")
-    loss_per_epoch$epoch <- 0:(nrow(loss_per_epoch) - 1)
-    return(loss_per_epoch)
-  })
-
-  # Extract the title of each network:
-  network <- sub(".*runs_", "", runs_dirs)
-
-  # Extract the number of replicates used during training for each estimator:
-  m <- regmatches(network, gregexpr("[[:digit:]]+", network)) %>% as.numeric
-
-  # TODO Decide if we want estimator_labels (I think it makes sense to include it,
-  # since it's difficult for the user to edit the legend of pairs plots.
-  # Sanity check:
-  # if (!all(network %in% names(estimator_labels))) stop("Not all estimators have been given a label")
-
-  # Combine the loss matrices into a single data frame:
-  df <- do.call("rbind", loss_per_epoch_list)
-  df$network <- rep(network, sapply(loss_per_epoch_list, nrow))
-  df$m       <- rep(m, sapply(loss_per_epoch_list, nrow))
-  df <- df %>%
-    melt(c("epoch", "network", "m"), variable.name = "set", value.name = "loss")# %>%
-  #mutate_at(.vars = "network", .funs = factor, labels = estimator_labels[network])
-
-  # Create y limits using the minimum loss over all sets for a given m, so that
-  # the panels are directly comparable when appropriate.
-  # (see here https://stackoverflow.com/a/42590452)
-  df <- df %>%
-    group_by(m) %>%
-    mutate(ymin = min(loss), ymax = max(loss))
-
-  # Compute the minimum validation loss for a given m.
-  min_df <- df %>% filter(set == "validation") %>% summarise(min_val_loss = min(loss))
-  min_val_loss <- setNames(min_df$min_val_loss, min_df$m)
-  df$min_val_loss <- min_val_loss[as.character(df$m)]
-
-  # Plot the loss functions:
-  gg <- ggplot(df) +
-    geom_line(aes(x = epoch, y = loss, colour = set)) +
-    scale_color_manual(values = c("blue", "red")) +
-    facet_wrap(~network, scales = "free", labeller = label_parsed, nrow = 1) +
-    labs(colour = "", y = "loss") +
-    geom_hline(aes(yintercept = min_val_loss), colour = "red", alpha = 0.3, linetype = "dashed") +
-    geom_blank(aes(y = ymin)) +
-    geom_blank(aes(y = ymax)) +
-    theme_bw()  +
-    theme(
-      panel.grid = element_blank(),
-      strip.background = element_blank()
-    )
-
-  return(gg)
-}
-
-
-remove_geom <- function(ggplot2_object, geom_type) {
-  # Delete layers that match the requested type.
-  layers <- lapply(ggplot2_object$layers, function(x) {
-    if (class(x$geom)[1] == geom_type) {
-      NULL
-    } else {
-      x
-    }
-  })
-  # Delete the unwanted layers.
-  layers <- layers[!sapply(layers, is.null)]
-  ggplot2_object$layers <- layers
-  ggplot2_object
 }

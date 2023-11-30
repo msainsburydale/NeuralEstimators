@@ -14,7 +14,7 @@
 #' @param Z_train the data used for updating the estimator using stochastic gradient descent
 #' @param Z_val the data used for monitoring the performance of the estimator during training
 #' @param M vector of sample sizes. If null (default), a single neural estimator is trained, with the sample size inferred from \code{Z_val}. If \code{M} is a vector of integers, a sequence of neural estimators is constructed for each sample size; see the Julia documentation for \code{trainx()} for details
-#' @param loss the loss function. It can be a string 'absolute-error' or 'squared-error', in which case the loss function will be the mean absolute-error or squared-error loss. Otherwise, one may provide a custom loss function as Julia code, which will be converted to a Julia function using \code{juliaEval()}
+#' @param loss the loss function. It can be a string 'absolute-error' or 'squared-error', in which case the loss function will be the mean-absolute-error or mean-squared-error loss. Otherwise, one may provide a custom loss function as a string of Julia code, which will be converted to a Julia function using \code{juliaEval()}
 #' @param learning the learning rate for the optimiser ADAM (default 1e-4)
 #' @param epochs the number of epochs
 #' @param stopping_epochs cease training if the risk doesn't improve in this number of epochs (default 5)
@@ -168,7 +168,6 @@ train <- function(estimator,
   return(estimator)
 }
 
-
 #' @title load the weights of a neural estimator
 #' @param estimator the neural estimator that we wish to load weights into
 #' @param file file (including absolute path) of the neural-network weights saved as a \code{bson} file
@@ -226,9 +225,6 @@ risk <- function(df,
 }
 
 
-
-
-
 #' @title assess a neural estimator
 #' @param estimators a list of (neural) estimators
 #' @param parameters true parameters, stored as a pxK matrix, where p is the number of parameters in the statistical model and K is the number of sampled parameter vectors
@@ -255,7 +251,7 @@ assess <- function(
   estimators, # should be a list of estimators
   parameters,
   Z,
-  # NB don't bother with xi, might be too complicated for now
+  # NB xi is not implemented for now
   # xi = NULL,
   # use_xi = FALSE,
   estimator_names = NULL,
@@ -309,7 +305,6 @@ assess <- function(
 #'
 #' @description estimate parameters from observed data using a neural estimator
 #'
-#'
 #' @param estimator a neural estimator
 #' @param Z data to apply the estimator to; it's format should be amenable to the architecture of \code{estimator}
 #' @param use_gpu a boolean indicating whether to use the GPU if it is available (default true)
@@ -361,28 +356,29 @@ estimate <- function(estimator, Z, use_gpu = TRUE) {
   return(thetahat)
 }
 
-#TODO
 #' @title bootstrap
-#' @description Generate bootstrap estimates from an estimator
-#'
-#' Parametric bootstrapping is facilitated by passing multiple simulated data set, Z, which should be stored as a list and whose length implicitly defines B.
-#'
-#' Non-parametric bootstrapping is facilitated by passing a single data set, Z. The argument \code{blocks} caters for block bootstrapping, and it should be a vector of integers specifying the block for each replicate. For example, with 5 replicates, the first two corresponding to block 1 and the remaining three corresponding to block 2, blocks should be \code{c(1, 1, 2, 2, 2)}. The resampling algorithm aims to produce resampled data sets that are of a similar size to Z, but this can only be achieved exactly if all blocks are equal in length.
+#' @description Generate \code{B} bootstrap estimates from a neural estimator
+#' 
+#' Non-parametric bootstrap is facilitated by setting the data \code{Z} to 
+#' be a single data set.  
+#' Parametric bootstrap is facilitated by setting the data \code{Z} to be 
+#' multiple simulated data sets stored as a list whose length implicitly 
+#' defines \code{B}. 
 #'
 #' @param estimator a neural estimator
 #' @param Z either simulated data of length B or a single observed data set, which will be bootstrap sampled B times to generate B bootstrap estimates
-#' @param parameters a single parameter configuration (default \code{NULL})
-#' @param B number of bootstrap samples (default 400)
-#' @param blocks integer vector specifying the blocks in non-parameteric bootstrapping (default \code{NULL}). For example, with 5 replicates, the first two corresponding to block 1 and the remaining three corresponding to block 2, blocks should be \code{c(1, 1, 2, 2, 2)}
-#' @param use_gpu a boolean indicating whether to use the GPU if it is available (default true)
+#' @param B number of bootstrap estimates (default 400)
+#' @param blocks integer vector specifying the blocks in non-parameteric bootstrapping (default \code{NULL}). For example, with 5 replicates, the first two corresponding to block 1 and the remaining three corresponding to block 2, blocks should be \code{c(1,1,2,2,2)}. The bootstrap sampling algorithm aims to produce bootstrap data sets that are of a similar size to \code{Z}, but this can only be achieved exactly if all blocks are equal in length.
+#' @param use_gpu a boolean indicating whether to use the GPU if it is available (default \code{TRUE})
 #' @return p × B matrix, where p is the number of parameters in the model and B is the number of bootstrap samples
 #' @export
 #' @examples
 #' library("NeuralEstimators")
 #' library("JuliaConnectoR")
-#'
-#' ## Observed data: 100 replicates of a univariate random variable
-#' Z = matrix(rnorm(100), nrow = 1)
+#' 
+#' ## Observed data: m independent replicates of a N(0, 1) random variable
+#' m = 100
+#' Z = t(rnorm(m))
 #'
 #' ## Construct the estimator
 #' estimator <- juliaEval('
@@ -393,18 +389,18 @@ estimate <- function(estimator, Z, use_gpu = TRUE) {
 #'   w = 32   # number of neurons in each layer
 #'
 #'   psi = Chain(Dense(1, w, relu), Dense(w, w, relu))
-#'   phi = Chain(Dense(w, w, relu), Dense(w, p))
+#'   phi = Chain(Dense(w, w, relu), Dense(w, p, exp))
 #'   estimator = DeepSet(psi, phi)
 #' ')
 #'
 #' ## Non-parametric bootstrap
 #' bootstrap(estimator, Z = Z)
-#' bootstrap(estimator, Z = Z, blocks = rep(1:5, each = 20))
+#' bootstrap(estimator, Z = Z, blocks = rep(1:5, each = m/5))
 #'
-#' ## Parametric bootstrap (pretend that the following data generating process
-#' involves simulation from the model given estimated parameters)
+#' ## Parametric bootstrap 
+#' thetahat = estimate(estimator, Z)  # estimated parameters
 #' B = 400
-#' Z = lapply(1:B, function(b) matrix(rnorm(100), nrow = 1))
+#' Z = lapply(1:B, function(b) t(rnorm(m, mean = thetahat[1], sd = thetahat[2])))
 #' bootstrap(estimator, Z = Z)
 bootstrap <- function(estimator,
                       Z,
@@ -415,12 +411,13 @@ bootstrap <- function(estimator,
 
   B <- as.integer(B)
 
-  if (length(Z) > 1) {
+  if (is.list(Z) && length(Z) > 1) {
+    #NB Can alternatively just use estimateinbatches() since thats all we're doing here
     thetahat <- juliaLet('
       using NeuralEstimators
       bootstrap(estimator, parameters, Z, use_gpu = use_gpu)',
-      estimator=estimator, parameters=matrix(1), Z=Z, use_gpu=use_gpu # NB dummy value of parameters provided here, since we don't actually need it. Probably should change the Julia code to not require parameters.
-      )
+                         estimator=estimator, parameters=matrix(1), Z=Z, use_gpu=use_gpu # NB dummy value of parameters provided here, since we don't actually need it. 
+    )
   } else {
     thetahat <- juliaLet('
       using NeuralEstimators
@@ -431,6 +428,3 @@ bootstrap <- function(estimator,
 
   return(thetahat)
 }
-
-
-
