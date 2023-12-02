@@ -6,43 +6,65 @@
 \usage{
 train(
   estimator,
-  theta_train,
-  theta_val,
-  Z_train,
-  Z_val,
+  sampler = NULL,
+  simulator = NULL,
+  theta_train = NULL,
+  theta_val = NULL,
+  Z_train = NULL,
+  Z_val = NULL,
+  m = NULL,
   M = NULL,
+  K = 10000,
+  xi = NULL,
   loss = "absolute-error",
   learning_rate = 1e-04,
   epochs = 100,
   batchsize = 32,
   savepath = "",
   stopping_epochs = 5,
+  epochs_per_Z_refresh = 1,
+  epochs_per_theta_refresh = 1,
+  simulate_just_in_time = FALSE,
   use_gpu = TRUE,
   verbose = TRUE
 )
 }
 \arguments{
-\item{estimator}{the neural estimator}
+\item{estimator}{a neural estimator}
 
-\item{theta_train}{the set of parameters used for updating the estimator using stochastic gradient descent}
+\item{sampler}{a function that takes an integer \code{K}, samples \code{K} parameter vectors from the prior, and returns them as a px\code{K} matrix}
 
-\item{theta_val}{the set of parameters used for monitoring the performance of the estimator during training}
+\item{simulator}{a function that takes a px\code{K} matrix of parameters and an integer \code{m}, and returns \code{K} simulated data sets each containing \code{m} independent replicates}
 
-\item{Z_train}{the data used for updating the estimator using stochastic gradient descent}
+\item{theta_train}{a set of parameters used for updating the estimator using stochastic gradient descent}
 
-\item{Z_val}{the data used for monitoring the performance of the estimator during training}
+\item{theta_val}{a set of parameters used for monitoring the performance of the estimator during training}
 
-\item{M}{vector of sample sizes. If null (default), a single neural estimator is trained, with the sample size inferred from \code{Z_val}. If \code{M} is a vector of integers, a sequence of neural estimators is constructed for each sample size; see the Julia documentation for \code{trainx()} for details}
+\item{Z_train}{a simulated data set used for updating the estimator using stochastic gradient descent}
 
-\item{loss}{the loss function. It can be a string 'absolute-error' or 'squared-error', in which case the loss function will be the mean absolute-error or squared-error loss. Otherwise, one may provide a custom loss function as Julia code, which will be converted to a Julia function using \code{juliaEval()}}
+\item{Z_val}{a simulated data set used for monitoring the performance of the estimator during training}
+
+\item{m}{vector of sample sizes. If \code{NULL} (default), a single neural estimator is trained, with the sample size inferred from \code{Z_val}. If \code{m} is a vector of integers, a sequence of neural estimators is constructed for each sample size; see the Julia documentation for \code{trainx()} for further details}
+
+\item{K}{the number of parameter vectors sampled in the training set at each epoch; the size of the validation set is set to \code{K}/5.}
+
+\item{xi}{an list of objects used for data simulation that are fixed (e.g., distance matrices); if it is provided, the parameter sampler is called as \code{sampler(K, xi)}.}
+
+\item{loss}{the loss function. It can be a string 'absolute-error' or 'squared-error', in which case the loss function will be the mean-absolute-error or mean-squared-error loss. Otherwise, one may provide a custom loss function as a string of Julia code, which will be converted to a Julia function using \code{juliaEval()}}
 
 \item{epochs}{the number of epochs}
 
-\item{batchsize}{the batchsize to use when performing stochastic gradient descent; reducing this can alleviate memory pressure}
+\item{batchsize}{the batchsize to use when performing stochastic gradient descent}
 
 \item{savepath}{path to save the trained estimator and other information; if null (default), nothing is saved}
 
 \item{stopping_epochs}{cease training if the risk doesn't improve in this number of epochs (default 5)}
+
+\item{epochs_per_Z_refresh}{integer indicating how often to refresh the training data}
+
+\item{epochs_per_theta_refresh}{integer indicating how often to refresh the training parameters; must be a multiple of \code{epochs_per_Z_refresh}}
+
+\item{simulate_just_in_time}{flag indicating whether we should simulate "just-in-time", in the sense that only a \code{batchsize} number of parameter vectors and corresponding data are in memory at a given time}
 
 \item{use_gpu}{a boolean indicating whether to use the GPU if it is available (default true)}
 
@@ -51,71 +73,93 @@ train(
 \item{learning}{the learning rate for the optimiser ADAM (default 1e-4)}
 }
 \value{
-a trained neural estimator or, if \code{M} is provided, a list of trained neural estimators
+a trained neural estimator or, if \code{m} is provided a vector, a list of trained neural estimators
 }
 \description{
-Train a neural estimator with architecture given by \code{estimator}.
+The function caters for different variants of "on-the-fly" simulation.
+Specifically, a \code{sampler} can be provided to continuously sample new
+parameter vectors from the prior, and a \code{simulator} can be provided to
+continuously simulate new data conditional on the parameters. If provided
+with specific sets of parameters (\code{theta_train} and \code{theta_val})
+and/or data (\code{Z_train} and \code{Z_val}), they will be held fixed during
+training.
 
-Note that "on-the-fly" simulation is currently not implemented using the R interface.
+Note that using \code{R} functions to perform "on-the-fly" simulation requires the user to have installed the Julia package \code{RCall}.
 }
 \examples{
-# Construct a neural Bayes estimator for univariate Gaussian data
-# with unknown mean and standard deviation, based on m = 15 iid replicates.
+# Construct a neural Bayes estimator for replicated univariate Gaussian 
+# data with unknown mean and standard deviation. 
 
+# Load R and Julia packages
 library("NeuralEstimators")
 library("JuliaConnectoR")
-
-# Sample from the prior
-prior <- function(K) {
-  mu    <- rnorm(K)
-  sigma <- rgamma(K, 1)
-  theta <- matrix(c(mu, sigma), byrow = TRUE, ncol = K)
-  return(theta)
-}
-theta_train = prior(10000)
-theta_val   = prior(2000)
-
-# Simulate univariate data conditional on the above parameter vectors
-simulate <- function(theta_set, m) {
- apply(theta_set, 2, function(theta) {
-   t(rnorm(m, theta[1], theta[2]))
- }, simplify = FALSE)
-}
-m <- 30
-Z_train <- simulate(theta_train, m)
-Z_val   <- simulate(theta_val, m)
+juliaEval("using NeuralEstimators; using Flux; using Distributions")
 
 # Define the neural-network architecture
 estimator <- juliaEval('
-  using NeuralEstimators
-  using Flux
-  p = 2    # number of parameters in the model
-  w = 32   # width of each layer
-  psi = Chain(Dense(1, w, relu), Dense(w, w, relu))
-  phi = Chain(Dense(w, w, relu), Dense(w, p))
-  estimator = DeepSet(psi, phi)
+ d = 1    # dimension of each replicate
+ p = 2    # number of parameters in the model
+ w = 32   # width of each layer
+ psi = Chain(Dense(d, w, relu), Dense(w, w, relu))
+ phi = Chain(Dense(w, w, relu), Dense(w, p))
+ estimator = DeepSet(psi, phi)
 ')
 
-# Train a neural estimator
-estimator <- train(
-  estimator,
-  theta_train = theta_train,
-  theta_val   = theta_val,
-  Z_train = Z_train,
-  Z_val   = Z_val,
-  epochs = 50
-  )
-  
- # List of neural estimators, one trained with 15 replicates, and another with 30 replicates
-estimators <- train(
-  estimator,
-  theta_train = theta_train,
-  theta_val   = theta_val,
-  Z_train = Z_train,
-  Z_val   = Z_val,
-  M = c(15, 30), 
-  epochs = 2
-)
+# Sampler from the prior
+sampler <- function(K) {
+  mu    <- rnorm(K)      # Gaussian prior for the mean
+  sigma <- rgamma(K, 1)  # Gamma prior for the standard deviation
+  theta <- matrix(c(mu, sigma), byrow = TRUE, ncol = K)
+  return(theta)
+}
+
+# Data simulator
+simulator <- function(theta_set, m) {
+  apply(theta_set, 2, function(theta) {
+    t(rnorm(m, theta[1], theta[2]))
+  }, simplify = FALSE)
+}
+
+# Train the estimator using simulation on-the-fly
+m <- 30 # number of iid replicates
+estimator <- train(estimator, sampler = sampler, simulator = simulator, m = m)
+
+# Train the estimator using fixed parameter and data sets 
+theta_train <- sampler(10000)
+theta_val   <- sampler(2000)
+Z_train <- simulator(theta_train, m)
+Z_val   <- simulator(theta_val, m)
+estimator <- train(estimator, 
+                   theta_train = theta_train, 
+                   theta_val = theta_val, 
+                   Z_train = Z_train, 
+                   Z_val = Z_val)
+
+##### Simulation on-the-fly using Julia functions ####
+
+# Defining the sampler and simulator in Julia can improve computational 
+# efficiency by avoiding the overhead of communicating between R and Julia. 
+# Julia is also fast (comparable to C) and so it can be useful to define 
+# these functions in Julia when they involve for loops. 
+
+# Parameter sampler
+sampler <- juliaEval("
+      function sampler(K)
+      	μ = rand(Normal(0, 1), K)
+      	σ = rand(Gamma(1), K)
+      	θ = hcat(μ, σ)'
+      	return θ
+      end")
+
+# Data simulator
+simulator <- juliaEval("
+      function simulator(θ_matrix, m)
+      	Z = [rand(Normal(θ[1], θ[2]), 1, m) for θ ∈ eachcol(θ_matrix)]
+      	return Z
+      end")
+
+# Train the estimator
+estimator <- train(estimator, sampler = sampler, simulator = simulator, m = m)
 }
 \seealso{
 \code{\link[=assess]{assess()}} for assessing an estimator post training, and \code{\link[=estimate]{estimate()}} for applying an estimator to observed data

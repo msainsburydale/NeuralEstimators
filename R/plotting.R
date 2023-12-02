@@ -121,7 +121,8 @@ plotrisk <- function(df, parameter_labels = NULL, loss = function(x, y) abs(x - 
 #'   x = rnorm(10)
 #'   y = rnorm(10)
 #'   shape = sample(c("Class 1", "Class 2"), 10, replace = TRUE)
-#'   qplot(x = x, y = y, shape = shape) +
+#'   ggplot() +
+#'     geom_point(aes(x = x, y = y, shape = shape)) + 
 #'     labs(shape = "") +
 #'     theme_bw()
 #' })
@@ -184,6 +185,7 @@ plotdistribution <- function(
   return(gg)
 }
 
+aes_string_quiet <- function(...) suppressWarnings(aes_string(...))
 
 .scatterplot <- function(df, parameter_labels, truth_colour, estimator_labels, truth_size, truth_line_size) {
 
@@ -200,14 +202,14 @@ plotdistribution <- function(
 
     gg <- ggplot(data = df[sample(nrow(df)), ]) +
       geom_point(
-        aes_string(
+        aes_string_quiet(
           x = paste("estimate", p[1], sep = "_"),
           y = paste("estimate", p[2], sep = "_"),
           colour = "estimator"
           ),
         alpha = 0.75) +
       geom_point(
-        aes_string(
+        aes_string_quiet(
           x = paste("truth", p[1], sep = "_"),
           y = paste("truth", p[2], sep = "_")
           ),
@@ -219,8 +221,8 @@ plotdistribution <- function(
 
     if (!is.null(truth_line_size)) {
       gg <- gg +
-        geom_vline(aes_string(xintercept = paste("truth", p[1], sep = "_")), colour = truth_colour, size = truth_line_size) +
-        geom_hline(aes_string(yintercept = paste("truth", p[2], sep = "_")), colour = truth_colour, size = truth_line_size)
+        geom_vline(aes_string_quiet(xintercept = paste("truth", p[1], sep = "_")), colour = truth_colour, size = truth_line_size) +
+        geom_hline(aes_string_quiet(yintercept = paste("truth", p[2], sep = "_")), colour = truth_colour, size = truth_line_size)
     }
 
     return(gg)

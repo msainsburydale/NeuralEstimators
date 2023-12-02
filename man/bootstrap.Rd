@@ -24,10 +24,9 @@ p × B matrix, where p is the number of parameters in the model and B is the num
 Generate \code{B} bootstrap estimates from a neural estimator
 
 Non-parametric bootstrap is facilitated by setting the data \code{Z} to
-be a single data set.
-Parametric bootstrap is facilitated by setting the data \code{Z} to be
-multiple simulated data sets stored as a list whose length implicitly
-defines \code{B}.
+be a single data set.  Parametric bootstrap is facilitated by setting the
+data \code{Z} to be multiple simulated data sets stored as a list whose
+length implicitly defines \code{B}.
 }
 \examples{
 library("NeuralEstimators")

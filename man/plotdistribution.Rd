@@ -96,7 +96,8 @@ upper_triangle_plots <- lapply(1:3, function(i) {
   x = rnorm(10)
   y = rnorm(10)
   shape = sample(c("Class 1", "Class 2"), 10, replace = TRUE)
-  qplot(x = x, y = y, shape = shape) +
+  ggplot() +
+    geom_point(aes(x = x, y = y, shape = shape)) + 
     labs(shape = "") +
     theme_bw()
 })
