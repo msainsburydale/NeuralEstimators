@@ -1,5 +1,5 @@
 Package: NeuralEstimators
-Title: NeuralEstimators: Parameter Estimation using Neural Networks
+Title: NeuralEstimators: Likelihood-Free Parameter Estimation using Neural Networks
 Version: 0.0.1
 Authors@R: 
     person(given = "Matthew",
@@ -21,6 +21,7 @@ Imports:
  gridExtra,
  JuliaConnectoR,
  reshape2,
+ tidyr,
  viridis
 Suggests: 
     knitr,

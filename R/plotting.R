@@ -60,7 +60,8 @@ plotrisk <- function(df, parameter_labels = NULL, loss = function(x, y) abs(x - 
 #'
 #' @param df a long form data frame containing fields \code{estimator}, \code{parameter}, \code{estimate}, \code{truth}, and a column (e.g., \code{replicate}) to uniquely identify each observation.
 #' @param type string indicating whether to plot kernel density estimates for each individual parameter (\code{type = "density"}) or scatter plots for all parameter pairs (\code{type = "scatter"}).
-#' @param parameter_labels a named vector containing parameter labels used in the plot.
+#' @param parameter_labels a named vector containing parameter labels.
+#' @param estimator_labels a named vector containing estimator labels.
 #' @param truth_colour the colour used to denote the true parameter value.
 #' @param truth_size the size of the point used to denote the true parameter value (applicable only for \code{type = "scatter"}).
 #' @param truth_line_size the size of the cross-hairs used to denote the true parameter value. If \code{NULL} (default), the cross-hairs are not plotted. (applicable only for \code{type = "scatter"}).

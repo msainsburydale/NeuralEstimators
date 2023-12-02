@@ -18,10 +18,11 @@
 #' @param Z_train a simulated data set used for updating the estimator using stochastic gradient descent
 #' @param Z_val a simulated data set used for monitoring the performance of the estimator during training
 #' @param m vector of sample sizes. If \code{NULL} (default), a single neural estimator is trained, with the sample size inferred from \code{Z_val}. If \code{m} is a vector of integers, a sequence of neural estimators is constructed for each sample size; see the Julia documentation for \code{trainx()} for further details
+#' @param M deprecated; use \code{m}
 #' @param K the number of parameter vectors sampled in the training set at each epoch; the size of the validation set is set to \code{K}/5.
 #' @param xi an list of objects used for data simulation that are fixed (e.g., distance matrices); if it is provided, the parameter sampler is called as \code{sampler(K, xi)}.
 #' @param loss the loss function. It can be a string 'absolute-error' or 'squared-error', in which case the loss function will be the mean-absolute-error or mean-squared-error loss. Otherwise, one may provide a custom loss function as a string of Julia code, which will be converted to a Julia function using \code{juliaEval()}
-#' @param learning the learning rate for the optimiser ADAM (default 1e-4)
+#' @param learning_rate the learning rate for the optimiser ADAM (default 1e-4)
 #' @param epochs the number of epochs
 #' @param stopping_epochs cease training if the risk doesn't improve in this number of epochs (default 5)
 #' @param batchsize the batchsize to use when performing stochastic gradient descent
@@ -262,7 +263,7 @@ train <- function(estimator,
 
 #' @title load the weights of a neural estimator
 #' @param estimator the neural estimator that we wish to load weights into
-#' @param file file (including absolute path) of the neural-network weights saved as a \code{bson} file
+#' @param filename file (including absolute path) of the neural-network weights saved as a \code{bson} file
 #' @export
 loadweights <- function(estimator, filename) {
   juliaLet(
