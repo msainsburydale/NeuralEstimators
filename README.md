@@ -9,7 +9,7 @@
 [![][julia-docs-img]][julia-docs-url]
 
 [docs-dev-img]: https://img.shields.io/badge/vignette-blue.svg
-[docs-dev-url]: https://msainsburydale.github.io/NeuralEstimators.jl/dev/
+[docs-dev-url]: https://raw.githack.com/msainsburydale/NeuralEstimators/main/NeuralEstimators.html
 
 [julia-repo-img]: https://img.shields.io/badge/Julia_repo-purple.svg
 [julia-repo-url]: https://github.com/msainsburydale/NeuralEstimators.jl
