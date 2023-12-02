@@ -46,11 +46,15 @@ train(
 
 \item{m}{vector of sample sizes. If \code{NULL} (default), a single neural estimator is trained, with the sample size inferred from \code{Z_val}. If \code{m} is a vector of integers, a sequence of neural estimators is constructed for each sample size; see the Julia documentation for \code{trainx()} for further details}
 
+\item{M}{deprecated; use \code{m}}
+
 \item{K}{the number of parameter vectors sampled in the training set at each epoch; the size of the validation set is set to \code{K}/5.}
 
-\item{xi}{an list of objects used for data simulation that are fixed (e.g., distance matrices); if it is provided, the parameter sampler is called as \code{sampler(K, xi)}.}
+\item{xi}{a list of objects used for data simulation (e.g., distance matrices); if it is provided, the parameter sampler is called as \code{sampler(K, xi)}.}
 
 \item{loss}{the loss function. It can be a string 'absolute-error' or 'squared-error', in which case the loss function will be the mean-absolute-error or mean-squared-error loss. Otherwise, one may provide a custom loss function as a string of Julia code, which will be converted to a Julia function using \code{juliaEval()}}
+
+\item{learning_rate}{the learning rate for the optimiser ADAM (default 1e-4)}
 
 \item{epochs}{the number of epochs}
 
@@ -69,8 +73,6 @@ train(
 \item{use_gpu}{a boolean indicating whether to use the GPU if it is available (default true)}
 
 \item{verbose}{a boolean indicating whether information should be printed to the console during training}
-
-\item{learning}{the learning rate for the optimiser ADAM (default 1e-4)}
 }
 \value{
 a trained neural estimator or, if \code{m} is provided a vector, a list of trained neural estimators
@@ -87,6 +89,7 @@ training.
 Note that using \code{R} functions to perform "on-the-fly" simulation requires the user to have installed the Julia package \code{RCall}.
 }
 \examples{
+\dontrun{
 # Construct a neural Bayes estimator for replicated univariate Gaussian 
 # data with unknown mean and standard deviation. 
 
@@ -159,7 +162,7 @@ simulator <- juliaEval("
       end")
 
 # Train the estimator
-estimator <- train(estimator, sampler = sampler, simulator = simulator, m = m)
+estimator <- train(estimator, sampler = sampler, simulator = simulator, m = m)}
 }
 \seealso{
 \code{\link[=assess]{assess()}} for assessing an estimator post training, and \code{\link[=estimate]{estimate()}} for applying an estimator to observed data

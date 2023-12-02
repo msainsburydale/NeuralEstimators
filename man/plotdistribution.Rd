@@ -23,7 +23,9 @@ plotdistribution(
 
 \item{type}{string indicating whether to plot kernel density estimates for each individual parameter (\code{type = "density"}) or scatter plots for all parameter pairs (\code{type = "scatter"}).}
 
-\item{parameter_labels}{a named vector containing parameter labels used in the plot.}
+\item{parameter_labels}{a named vector containing parameter labels.}
+
+\item{estimator_labels}{a named vector containing estimator labels.}
 
 \item{truth_colour}{the colour used to denote the true parameter value.}
 
@@ -46,24 +48,24 @@ a list of \code{'ggplot'} objects or, if \code{pairs = TRUE}, a single \code{'gg
 Plot the empirical distribution of several estimators.
 }
 \examples{
+\dontrun{
 # In the following, we have two estimators and, for each parameter, 50 estimates
 # from each estimator.
 
-# Single parameter:
 estimators <- c("Estimator 1", "Estimator 2")
+estimator_labels <- c("Estimator 1" = expression(hat(theta)[1]("·")),
+                      "Estimator 2" = expression(hat(theta)[2]("·")))
+
+# Single parameter:
 df <- data.frame(
   estimator = estimators, truth = 0, parameter = "mu",
   estimate  = rnorm(2*50),
   replicate = rep(1:50, each = 2)
 )
-
 parameter_labels <- c("mu" = expression(mu))
-estimator_labels <- c("Estimator 1" = expression(hat(theta)[1]("·")),
-                      "Estimator 2" = expression(hat(theta)[2]("·")))
-
+plotdistribution(df)
+plotdistribution(df, type = "density")
 plotdistribution(df, parameter_labels = parameter_labels, estimator_labels = estimator_labels)
-plotdistribution(df, parameter_labels = parameter_labels, type = "density")
-
 
 # Two parameters:
 df <- rbind(df, data.frame(
@@ -83,12 +85,10 @@ df <- rbind(df, data.frame(
   estimate  = 0.5 * runif(2*50),
   replicate = rep(1:50, each = 2)
 ))
-parameter_labels <- c(parameter_labels, "alpha" = expression(alpha))
 plotdistribution(df, parameter_labels = parameter_labels)
 plotdistribution(df, parameter_labels = parameter_labels, type = "density")
 plotdistribution(df, parameter_labels = parameter_labels, type = "scatter")
 plotdistribution(df, parameter_labels = parameter_labels, type = "scatter", pairs = TRUE)
-plotdistribution(df, parameter_labels = parameter_labels, type = "scatter", pairs = TRUE, legend = FALSE)
 
 
 # Pairs plot with user-specified plots in the upper triangle:
@@ -101,5 +101,9 @@ upper_triangle_plots <- lapply(1:3, function(i) {
     labs(shape = "") +
     theme_bw()
 })
-plotdistribution(df, parameter_labels = parameter_labels, type = "scatter", pairs = TRUE, upper_triangle_plots = upper_triangle_plots)
+plotdistribution(
+    df, 
+    parameter_labels = parameter_labels, estimator_labels = estimator_labels,
+    type = "scatter", pairs = TRUE, upper_triangle_plots = upper_triangle_plots
+    )}
 }

@@ -1,0 +1,7 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^doc$
+^Meta$
+^\.github$
+^cran-comments.md$
+^NeuralEstimators.html$

@@ -29,6 +29,7 @@ data \code{Z} to be multiple simulated data sets stored as a list whose
 length implicitly defines \code{B}.
 }
 \examples{
+\dontrun{
 library("NeuralEstimators")
 library("JuliaConnectoR")
 
@@ -57,5 +58,5 @@ bootstrap(estimator, Z = Z, blocks = rep(1:5, each = m/5))
 thetahat = estimate(estimator, Z)  # estimated parameters
 B = 400
 Z = lapply(1:B, function(b) t(rnorm(m, mean = thetahat[1], sd = thetahat[2])))
-bootstrap(estimator, Z = Z)
+bootstrap(estimator, Z = Z)}
 }

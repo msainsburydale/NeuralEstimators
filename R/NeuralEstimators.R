@@ -6,6 +6,7 @@
 #' @importFrom gridExtra grid.arrange
 #' @import JuliaConnectoR
 #' @import reshape2
+#' @importFrom stats sd
 #' @importFrom tidyr pivot_wider
 #' @import viridis
 NULL

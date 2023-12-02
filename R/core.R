@@ -20,7 +20,7 @@
 #' @param m vector of sample sizes. If \code{NULL} (default), a single neural estimator is trained, with the sample size inferred from \code{Z_val}. If \code{m} is a vector of integers, a sequence of neural estimators is constructed for each sample size; see the Julia documentation for \code{trainx()} for further details
 #' @param M deprecated; use \code{m}
 #' @param K the number of parameter vectors sampled in the training set at each epoch; the size of the validation set is set to \code{K}/5.
-#' @param xi an list of objects used for data simulation that are fixed (e.g., distance matrices); if it is provided, the parameter sampler is called as \code{sampler(K, xi)}.
+#' @param xi a list of objects used for data simulation (e.g., distance matrices); if it is provided, the parameter sampler is called as \code{sampler(K, xi)}.
 #' @param loss the loss function. It can be a string 'absolute-error' or 'squared-error', in which case the loss function will be the mean-absolute-error or mean-squared-error loss. Otherwise, one may provide a custom loss function as a string of Julia code, which will be converted to a Julia function using \code{juliaEval()}
 #' @param learning_rate the learning rate for the optimiser ADAM (default 1e-4)
 #' @param epochs the number of epochs
@@ -36,6 +36,7 @@
 #' @export
 #' @seealso [assess()] for assessing an estimator post training, and [estimate()] for applying an estimator to observed data
 #' @examples
+#' \dontrun{
 #' # Construct a neural Bayes estimator for replicated univariate Gaussian 
 #' # data with unknown mean and standard deviation. 
 #' 
@@ -108,7 +109,7 @@
 #'       end")
 #' 
 #' # Train the estimator
-#' estimator <- train(estimator, sampler = sampler, simulator = simulator, m = m)
+#' estimator <- train(estimator, sampler = sampler, simulator = simulator, m = m)}
 train <- function(estimator,
                   sampler = NULL,   
                   simulator = NULL, 
@@ -182,7 +183,7 @@ train <- function(estimator,
   if (!is.null(simulator) && !("JLFUN" %in% names(attributes(simulator)))) {
     tryCatch( { juliaEval("using RCall") }, error = function() "using R functions to perform 'on-the-fly' simulation requires the user to have installed the Julia package RCall")
     juliaLet('@rput simulator', simulator = simulator)
-    simulator <- juliaEval('simulator(θ, m) = rcopy(R"simulator($θ, $m)")')
+    simulator <- juliaEval('simulator(theta, m) = rcopy(R"simulator($theta, $m)")')
   }
 
   # Metaprogramming: Define the Julia code based on the value of m
@@ -200,7 +201,7 @@ train <- function(estimator,
   
   # Metaprogramming: All other keyword arguments for on-the-fly simulation 
   if (!is.null(simulator)) train_code <- paste(train_code, "epochs_per_Z_refresh = epochs_per_Z_refresh, simulate_just_in_time = simulate_just_in_time,")
-  if (!is.null(sampler)) train_code <- paste(train_code, "K = K, ξ = xi, epochs_per_θ_refresh = epochs_per_theta_refresh,")
+  if (!is.null(sampler)) train_code <- paste(train_code, "K = K, xi = xi, epochs_per_theta_refresh = epochs_per_theta_refresh,")
 
   # Identify which loss function we are using; if it is a string that matches
   # absolute-error or squared-error, convert it to the Julia function
@@ -261,6 +262,9 @@ train <- function(estimator,
   return(estimator)
 }
 
+# TODO should clean these functions up... bit untidy with how it is
+# TODO need to add testing of these functions
+
 #' @title load the weights of a neural estimator
 #' @param estimator the neural estimator that we wish to load weights into
 #' @param filename file (including absolute path) of the neural-network weights saved as a \code{bson} file
@@ -270,10 +274,10 @@ loadweights <- function(estimator, filename) {
     '
     using NeuralEstimators
     using Flux
-    Flux.loadparams!(estimator, NeuralEstimators.loadweights(file))
+    Flux.loadparams!(estimator, NeuralEstimators.loadweights(filename))
     estimator
     ',
-    estimator = estimator, path = path
+    estimator = estimator, filename = filename
   )
 }
 
@@ -304,6 +308,10 @@ risk <- function(df,
                  loss = function(x, y) abs(x - y), 
                  average_over_parameters = TRUE, 
                  average_over_sample_sizes = TRUE) {
+  
+  # TODO add checks that df contains the correct columns
+  
+  truth <- NULL # Setting the variables to NULL first to appease CRAN checks (see https://stackoverflow.com/questions/9439256/how-can-i-handle-r-cmd-check-no-visible-binding-for-global-variable-notes-when)
 
   # Determine which variables we are grouping by
   grouping_variables = "estimator"
@@ -404,6 +412,7 @@ assess <- function(
 #' @return a matrix of parameter estimates (i.e., \code{estimator} applied to \code{Z})
 #' @export
 #' @examples
+#' \dontrun{
 #' library("NeuralEstimators")
 #' library("JuliaConnectoR")
 #'
@@ -424,7 +433,7 @@ assess <- function(
 #' ')
 #'
 #' ## Apply the estimator
-#' estimate(estimator, Z)
+#' estimate(estimator, Z)}
 estimate <- function(estimator, Z, use_gpu = TRUE) {
 
   if (!is.list(Z)) Z <- list(Z)
@@ -434,6 +443,7 @@ estimate <- function(estimator, Z, use_gpu = TRUE) {
   using Flux
 
   # Estimate the parameters
+  # TODO should change to estimate_in_batches() at some point
   theta_hat = NeuralEstimators._runondevice(estimator, Z, use_gpu)
   # if use_gpu
   #   Z = Z |> gpu
@@ -466,6 +476,7 @@ estimate <- function(estimator, Z, use_gpu = TRUE) {
 #' @return p × B matrix, where p is the number of parameters in the model and B is the number of bootstrap samples
 #' @export
 #' @examples
+#' \dontrun{
 #' library("NeuralEstimators")
 #' library("JuliaConnectoR")
 #' 
@@ -494,7 +505,7 @@ estimate <- function(estimator, Z, use_gpu = TRUE) {
 #' thetahat = estimate(estimator, Z)  # estimated parameters
 #' B = 400
 #' Z = lapply(1:B, function(b) t(rnorm(m, mean = thetahat[1], sd = thetahat[2])))
-#' bootstrap(estimator, Z = Z)
+#' bootstrap(estimator, Z = Z)}
 bootstrap <- function(estimator,
                       Z,
                       B = 400,
@@ -503,17 +514,20 @@ bootstrap <- function(estimator,
                       ) {
 
   B <- as.integer(B)
+  if (!is.list(Z)) Z <- list(Z)
 
-  if (is.list(Z) && length(Z) > 1) {
+  if (length(Z) > 1) {
     #NB Can alternatively just use estimateinbatches() since thats all we're doing here
     thetahat <- juliaLet('
       using NeuralEstimators
+      Z = broadcast.(Float32, Z)
       bootstrap(estimator, parameters, Z, use_gpu = use_gpu)',
                          estimator=estimator, parameters=matrix(1), Z=Z, use_gpu=use_gpu # NB dummy value of parameters provided here, since we don't actually need it. 
     )
   } else {
     thetahat <- juliaLet('
       using NeuralEstimators
+      Z = broadcast.(Float32, Z)
       bootstrap(estimator, Z, use_gpu = use_gpu, B = B, blocks = blocks)',
       estimator=estimator, Z=Z, use_gpu=use_gpu, blocks=blocks, B=B
     )

@@ -20,6 +20,7 @@ a matrix of parameter estimates (i.e., \code{estimator} applied to \code{Z})
 estimate parameters from observed data using a neural estimator
 }
 \examples{
+\dontrun{
 library("NeuralEstimators")
 library("JuliaConnectoR")
 
@@ -40,5 +41,5 @@ estimator <- juliaEval('
 ')
 
 ## Apply the estimator
-estimate(estimator, Z)
+estimate(estimator, Z)}
 }

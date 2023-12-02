@@ -10,6 +10,7 @@
 #' @export
 #' @seealso \code{\link{plotdistribution}}
 #' @examples
+#' \dontrun{
 #' # Generate toy data. Two estimators for a single parameter model,
 #' # sample sizes m = 1, 5, 10, 15, 25, and 30, and
 #' # 50 estimates for each combination of estimator and sample size:
@@ -23,8 +24,12 @@
 #'
 #' # Plot the risk function
 #' plotrisk(df)
-#' plotrisk(df, loss = function(x, y) (x-y)^2)
+#' plotrisk(df, loss = function(x, y) (x-y)^2)}
 plotrisk <- function(df, parameter_labels = NULL, loss = function(x, y) abs(x - y)) {
+  
+  # TODO add checks that df contains the correct columns
+  
+  truth <- estimator <- parameter <- m <- NULL # Setting the variables to NULL first to appease CRAN checks (see https://stackoverflow.com/questions/9439256/how-can-i-handle-r-cmd-check-no-visible-binding-for-global-variable-notes-when)
 
   df <- df %>% mutate(residual = estimate - truth)
 
@@ -72,24 +77,24 @@ plotrisk <- function(df, parameter_labels = NULL, loss = function(x, y) abs(x - 
 #' @return a list of \code{'ggplot'} objects or, if \code{pairs = TRUE}, a single \code{'ggplot'}.
 #' @export
 #' @examples
+#' \dontrun{
 #' # In the following, we have two estimators and, for each parameter, 50 estimates
 #' # from each estimator.
+#' 
+#' estimators <- c("Estimator 1", "Estimator 2")
+#' estimator_labels <- c("Estimator 1" = expression(hat(theta)[1]("·")),
+#'                       "Estimator 2" = expression(hat(theta)[2]("·")))
 #'
 #' # Single parameter:
-#' estimators <- c("Estimator 1", "Estimator 2")
 #' df <- data.frame(
 #'   estimator = estimators, truth = 0, parameter = "mu",
 #'   estimate  = rnorm(2*50),
 #'   replicate = rep(1:50, each = 2)
 #' )
-#'
 #' parameter_labels <- c("mu" = expression(mu))
-#' estimator_labels <- c("Estimator 1" = expression(hat(theta)[1]("·")),
-#'                       "Estimator 2" = expression(hat(theta)[2]("·")))
-#'
+#' plotdistribution(df)
+#' plotdistribution(df, type = "density")
 #' plotdistribution(df, parameter_labels = parameter_labels, estimator_labels = estimator_labels)
-#' plotdistribution(df, parameter_labels = parameter_labels, type = "density")
-#'
 #'
 #' # Two parameters:
 #' df <- rbind(df, data.frame(
@@ -109,12 +114,10 @@ plotrisk <- function(df, parameter_labels = NULL, loss = function(x, y) abs(x - 
 #'   estimate  = 0.5 * runif(2*50),
 #'   replicate = rep(1:50, each = 2)
 #' ))
-#' parameter_labels <- c(parameter_labels, "alpha" = expression(alpha))
 #' plotdistribution(df, parameter_labels = parameter_labels)
 #' plotdistribution(df, parameter_labels = parameter_labels, type = "density")
 #' plotdistribution(df, parameter_labels = parameter_labels, type = "scatter")
 #' plotdistribution(df, parameter_labels = parameter_labels, type = "scatter", pairs = TRUE)
-#' plotdistribution(df, parameter_labels = parameter_labels, type = "scatter", pairs = TRUE, legend = FALSE)
 #'
 #'
 #' # Pairs plot with user-specified plots in the upper triangle:
@@ -127,7 +130,11 @@ plotrisk <- function(df, parameter_labels = NULL, loss = function(x, y) abs(x - 
 #'     labs(shape = "") +
 #'     theme_bw()
 #' })
-#' plotdistribution(df, parameter_labels = parameter_labels, type = "scatter", pairs = TRUE, upper_triangle_plots = upper_triangle_plots)
+#' plotdistribution(
+#'     df, 
+#'     parameter_labels = parameter_labels, estimator_labels = estimator_labels,
+#'     type = "scatter", pairs = TRUE, upper_triangle_plots = upper_triangle_plots
+#'     )}
 plotdistribution <- function(
   df,
   type = c( "box", "density", "scatter"),
@@ -189,6 +196,8 @@ plotdistribution <- function(
 aes_string_quiet <- function(...) suppressWarnings(aes_string(...))
 
 .scatterplot <- function(df, parameter_labels, truth_colour, estimator_labels, truth_size, truth_line_size) {
+  
+  parameter <- NULL # Setting the variables to NULL first to appease CRAN checks (see https://stackoverflow.com/questions/9439256/how-can-i-handle-r-cmd-check-no-visible-binding-for-global-variable-notes-when)
 
   # all parameter pairs
   combinations <- parameter_labels %>% names %>% combinat::combn(2) %>% as.matrix
@@ -233,6 +242,8 @@ aes_string_quiet <- function(...) suppressWarnings(aes_string(...))
 }
 
 .marginalplot <- function(df, parameter_labels, truth_colour, type, estimator_labels) {
+  
+  estimator <- truth <- NULL # Setting the variables to NULL first to appease CRAN checks
 
   if (is.null(parameter_labels)) {
     param_labeller <- identity
@@ -275,10 +286,9 @@ aes_string_quiet <- function(...) suppressWarnings(aes_string(...))
   return(gg)
 }
 
-# plotdistribution(df, parameter_labels = parameter_labels, type = "box", return_list = TRUE)
-# plotdistribution(df, parameter_labels = parameter_labels, type = "density", return_list = TRUE)
-
 .marginalplotlist <- function(df, parameter_labels, truth_colour, type, estimator_labels) {
+  
+  parameter <- estimator <- truth <- NULL # Setting the variables to NULL first to appease CRAN checks
 
   parameters <- names(parameter_labels)
 
@@ -330,7 +340,7 @@ aes_string_quiet <- function(...) suppressWarnings(aes_string(...))
   scatterplots <- lapply(scatterplots, function(gg) gg + theme(axis.title = element_blank()))
 
   # Extract legend so that it can be placed in the final plot
-  scatterplot_legend.grob <<- get_legend(scatterplots[[1]])
+  scatterplot_legend.grob <- get_legend(scatterplots[[1]])
   scatterplots <- lapply(scatterplots, function(gg) gg + theme(legend.position = "none"))
 
   param_names <- names(parameter_labels)

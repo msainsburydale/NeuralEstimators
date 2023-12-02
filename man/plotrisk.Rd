@@ -21,6 +21,7 @@ a \code{'ggplot'} object showing the risk function versus the sample size, facet
 Plot the risk function (with respect to a given loss function) versus the sample size, m.
 }
 \examples{
+\dontrun{
 # Generate toy data. Two estimators for a single parameter model,
 # sample sizes m = 1, 5, 10, 15, 25, and 30, and
 # 50 estimates for each combination of estimator and sample size:
@@ -34,7 +35,7 @@ df <- data.frame(
 
 # Plot the risk function
 plotrisk(df)
-plotrisk(df, loss = function(x, y) (x-y)^2)
+plotrisk(df, loss = function(x, y) (x-y)^2)}
 }
 \seealso{
 \code{\link{plotdistribution}}
