@@ -18,30 +18,28 @@
 [julia-docs-url]: https://msainsburydale.github.io/NeuralEstimators.jl/dev/
 
 
-This repository contains the `R` interface to the `Julia` package `NeuralEstimators` (see [here](https://github.com/msainsburydale/NeuralEstimators.jl)). `NeuralEstimators` facilitates the user-friendly development of neural point estimators, which are neural networks that transform data into parameter point estimates. They are likelihood free, substantially faster than classical methods, and can be designed to be approximate Bayes estimators. The package caters for any model for which simulation is feasible.  
-
-See the [vignette](https://raw.githack.com/msainsburydale/NeuralEstimators/main/NeuralEstimators.html) to get started!
+This repository contains the `R` interface to the `Julia` package `NeuralEstimators` (see [here](https://github.com/msainsburydale/NeuralEstimators.jl)). The package facilitates the user-friendly development of neural point estimators, which are neural networks that transform data into parameter point estimates. They are likelihood free, substantially faster than classical methods, and can be designed to be approximate Bayes estimators. The package caters for any model for which simulation is feasible.  See the [vignette](https://raw.githack.com/msainsburydale/NeuralEstimators/main/NeuralEstimators.html) to get started!
 
 ### Installation tips
 
-To install `NeuralEstimators`, please:
+To install the package, please:
 
 1. Install `Julia` (see [here](https://julialang.org/)) and `R` (see [here](https://www.r-project.org/)).
 	- Ensure that your system can find the `julia` executable (this usually needs to be done manually; see, e.g., [here](https://julialang.org/downloads/platform/#linux_and_freebsd)) by entering `julia` from the terminal, which should open the Julia REPL (run `exit()` to leave the REPL).
-1. Install the `Julia` version of `NeuralEstimators`.
+1. Install the Julia version of `NeuralEstimators`.
 	- To install from terminal, run the command `julia -e 'using Pkg; Pkg.add(url="https://github.com/msainsburydale/NeuralEstimators.jl")'`.
-1. Install the deep-learning library `Flux`.
+1. Install the Julia deep-learning library `Flux`.
 	- To install from terminal, run the command `julia -e 'using Pkg; Pkg.add("Flux")'`.
 1. Install the `R` interface to `NeuralEstimators`.
- 	- To install from terminal, run the command `Rscript -e 'devtools::install_github("msainsburydale/NeuralEstimators", build_vignettes = TRUE)'`.
+ 	- To install from terminal, run the command `Rscript -e 'devtools::install_github("msainsburydale/NeuralEstimators")'`.
 
-Note that the vignette takes roughly 5 minutes to compile; if you are not willing to wait this long, remove the argument `build_vignettes=TRUE` in the final command above. Note also that you will need to install the Julia package `RCall` if you wish to simulate training data "on-the-fly" with `R` functions.
+Note that if you wish to simulate training data "on-the-fly" using `R` functions, you will also need to install the Julia package `RCall`. Note also that one may compile the vignette during installation (which takes roughly 5 minutes) by adding the argument `build_vignettes = TRUE` in the final command above.   
 
-
-Users may wish to try out `NeuralEstimators` without affecting their current installation. `conda` is a useful tool for this purpose; if you want to run `NeuralEstimators` within a conda environment, you can create one as follows:
+Users can try out the package without affecting their current installation by running it within a `conda` environment, created and activated as follows:
 
 ```
 conda create -n NeuralEstimators -c conda-forge julia r-base nlopt
+conda activate NeuralEstimators
 ```
 
 ### Supporting and citing
