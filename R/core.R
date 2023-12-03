@@ -173,7 +173,7 @@ train <- function(estimator,
   # initialised, we must use the macro @rput to move the R functions to this 
   # separate R environment before the R functions can be invoked. 
   if (!is.null(sampler) && !("JLFUN" %in% names(attributes(sampler)))) {
-    tryCatch( { juliaEval("using RCall") }, error = function() "using R functions to perform 'on-the-fly' simulation requires the user to have installed the Julia package RCall")
+    tryCatch( { juliaEval("using RCall") }, error = function(e) "using R functions to perform 'on-the-fly' simulation requires the user to have installed the Julia package RCall")
     juliaLet('@rput sampler', sampler = sampler)
     sampler <- juliaEval('
         sampler(K) = rcopy(R"sampler($K)")
@@ -181,7 +181,7 @@ train <- function(estimator,
                        ')
   }
   if (!is.null(simulator) && !("JLFUN" %in% names(attributes(simulator)))) {
-    tryCatch( { juliaEval("using RCall") }, error = function() "using R functions to perform 'on-the-fly' simulation requires the user to have installed the Julia package RCall")
+    tryCatch( { juliaEval("using RCall") }, error = function(e) "using R functions to perform 'on-the-fly' simulation requires the user to have installed the Julia package RCall")
     juliaLet('@rput simulator', simulator = simulator)
     simulator <- juliaEval('simulator(theta, m) = rcopy(R"simulator($theta, $m)")')
   }
