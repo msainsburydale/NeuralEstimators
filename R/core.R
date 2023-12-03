@@ -174,16 +174,17 @@ train <- function(estimator,
   # separate R environment before the R functions can be invoked. 
   if (!is.null(sampler) && !("JLFUN" %in% names(attributes(sampler)))) {
     tryCatch( { juliaEval("using RCall") }, error = function(e) "using R functions to perform 'on-the-fly' simulation requires the user to have installed the Julia package RCall")
-    juliaLet('@rput sampler', sampler = sampler)
+    juliaLet('using RCall; @rput sampler', sampler = sampler)
     sampler <- juliaEval('
+        using RCall
         sampler(K) = rcopy(R"sampler($K)")
         sampler(K, xi) = rcopy(R"sampler($K, $xi)")
                        ')
   }
   if (!is.null(simulator) && !("JLFUN" %in% names(attributes(simulator)))) {
     tryCatch( { juliaEval("using RCall") }, error = function(e) "using R functions to perform 'on-the-fly' simulation requires the user to have installed the Julia package RCall")
-    juliaLet('@rput simulator', simulator = simulator)
-    simulator <- juliaEval('simulator(theta, m) = rcopy(R"simulator($theta, $m)")')
+    juliaLet('using RCall; @rput simulator', simulator = simulator)
+    simulator <- juliaEval('using RCall; simulator(theta, m) = rcopy(R"simulator($theta, $m)")')
   }
 
   # Metaprogramming: Define the Julia code based on the value of m
