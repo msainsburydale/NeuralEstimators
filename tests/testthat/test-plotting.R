@@ -20,6 +20,7 @@ test_that("plotrisk() is working", {
   # Plot the risk function
   plotrisk(df)
   plotrisk(df, loss = function(x, y) (x-y)^2)
+  plotrisk(df, parameter_labels = c("mu" = expression(mu)))
   
   expect_equal(1, 1)
 })
@@ -52,6 +53,7 @@ test_that("plotdistribution() is working", {
     replicate = rep(1:50, each = 2)
   ))
   parameter_labels <- c(parameter_labels, "sigma" = expression(sigma))
+  plotdistribution(df, return_list = TRUE)
   plotdistribution(df, parameter_labels = parameter_labels)
   plotdistribution(df, parameter_labels = parameter_labels, type = "density")
   plotdistribution(df, parameter_labels = parameter_labels, type = "scatter")
@@ -82,6 +84,7 @@ test_that("plotdistribution() is working", {
       theme_bw()
   })
   plotdistribution(df, parameter_labels = parameter_labels, type = "scatter", pairs = TRUE, upper_triangle_plots = upper_triangle_plots)
+  
   
   expect_equal(1, 1)
 })

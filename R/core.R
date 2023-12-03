@@ -303,6 +303,7 @@ loadbestweights <- function(estimator, path) {
 #' @param average_over_parameters if \code{TRUE} (default), the loss is averaged over all parameters; otherwise, the loss is averaged over each parameter separately
 #' @param average_over_sample_sizes if \code{TRUE} (default), the loss is averaged over all sample sizes (the column \code{m} in \code{df}); otherwise, the loss is averaged over each sample size separately
 #' @return a dataframe giving the estimated risk and an estimate of its standard deviation
+#' @seealso [assess()]
 #' @export
 risk <- function(df, 
                  loss = function(x, y) abs(x - y), 
@@ -321,7 +322,7 @@ risk <- function(df,
   # Compute the risk and its standard deviation
   df %>%
     mutate(loss = loss(estimate, truth)) %>%
-    group_by(across(grouping_variables)) %>%
+    group_by(across(all_of(grouping_variables))) %>%
     summarise(risk = mean(loss), risk_sd = sd(loss)/sqrt(length(loss))) 
 }
 
@@ -346,13 +347,13 @@ risk <- function(df,
 #' \item{"k"}{ the index of the parameter vector in the test set}
 #' \item{"j"}{ the index of the data set}
 #' }
-#' @seealso [plotdistribution()] and [plotrisk()] for functions that visualise the results contained in the \code{estimates} data frame described above
+#' @seealso [risk()] for computing the empirical Bayes risk from the returned object, and [plotdistribution()] and [plotrisk()] for functions that visualise the results contained in the \code{estimates} data frame described above
 #' @export
 assess <- function(
   estimators, # should be a list of estimators
   parameters,
   Z,
-  # NB xi is not implemented for now
+  # NB not sure if there is a reason to implement xi
   # xi = NULL,
   # use_xi = FALSE,
   estimator_names = NULL,

@@ -68,6 +68,8 @@ test_that("the neural estimator can be trained with fixed a training set", {
   Z_train <- simulator(theta_train, m)
   Z_val   <- simulator(theta_val, m)
   
+  expect_error(train(estimator, Z_train = Z_train, Z_val = Z_val, epochs = 2, verbose = F))
+  
   estimator <- train(
     estimator,
     theta_train = theta_train,
@@ -80,19 +82,19 @@ test_that("the neural estimator can be trained with fixed a training set", {
   expect_equal(1, 1)
 })
 
-# NB This requires the user to have installed the Julia package RCall - not sure that I want NeuralEstimators to depend on RCall, so I've omitted this test for now
-# test_that("the neural estimator can be trained with simulation on-the-fly (using R functions)", {
-#   
-#   estimator <- train(
-#     estimator,
-#     sampler = sampler, 
-#     simulator = simulator,
-#     m = m, 
-#     epochs = 2, 
-#     verbose = F
-#   )
-#   expect_equal(1, 1)
-# })
+# NB This requires the user to have installed the Julia package RCall
+test_that("the neural estimator can be trained with simulation on-the-fly (using R functions)", {
+
+  estimator <- train(
+    estimator,
+    sampler = sampler,
+    simulator = simulator,
+    m = m,
+    epochs = 2,
+    verbose = F
+  )
+  expect_equal(1, 1)
+})
 
 test_that("the neural estimator can be trained with simulation on-the-fly (using Julia functions)", {
   
@@ -110,25 +112,31 @@ test_that("the neural estimator can be trained with simulation on-the-fly (using
       simulator(θ_matrix, m) = [θ[1] .+ θ[2] * randn(1, m) for θ ∈ eachcol(θ_matrix)]
       ")
   
-  estimator <- train(
-    estimator,
-    sampler = sampler, 
-    simulator = simulator,
-    m = m, 
-    epochs = 2, 
-    verbose = F
-  )
+  
+  estimator  <- train(estimator, sampler = sampler, simulator = simulator, m = m, epochs = 2, verbose = F)
+  estimator  <- train(estimator, sampler = sampler, simulator = simulator, m = m, epochs = 2, loss = "squared-error", verbose = F)
+  estimator  <- train(estimator, sampler = sampler, simulator = simulator, m = m, epochs = 2, loss = "Flux.Losses.mae", verbose = F)
+  estimators <- train(estimator, sampler = sampler, simulator = simulator, m = c(m, 2*m), epochs = 2, verbose = F)
+  
+  expect_warning(train(estimator, sampler = sampler, simulator = simulator, M = m, epochs = 2, verbose = F))
+  expect_error(train(estimator, sampler = sampler, simulator = simulator))
+  expect_error(train(estimator, sampler = sampler, Z_train = Z_train, Z_val = Z_val, epochs = 2, verbose = F))
+  expect_error(train(estimator, sampler = sampler, theta_train = theta_train, theta_val = theta_val, epochs = 2, verbose = F))
+  expect_error(train(estimator, sampler = sampler, epochs = 2, verbose = F))
+  expect_error(train(estimator, theta_train = theta_train, theta_val = theta_val, simulator = simulator, Z_train = Z_train, Z_val = Z_val, epochs = 2, verbose = F))
+  
   expect_equal(1, 1)
 })
 
-test_that("the neural estimator can be assessed", {
+test_that("the neural estimator can be assessed with assess()", {
   theta_test  <- sampler(100)
   Z_test      <- simulator(theta_test, m)
   assessment  <- assess(estimator, theta_test, Z_test)
+  risk <- risk(assessment$estimates)
   expect_equal(1, 1)
 })
 
-test_that("the neural estimator can be applied to real data", {
+test_that("the neural estimator can be applied to real data using estimate() and bootstrap()", {
   # Generate some "observed" data
   theta    <- as.matrix(c(0, 0.5))         # true parameters
   Z        <- simulator(theta, m)          # pretend that this is observed data
@@ -136,8 +144,16 @@ test_that("the neural estimator can be applied to real data", {
   p = 2
   expect_equal(nrow(thetahat), p)
   expect_equal(ncol(thetahat), 1)
+  
+  ## Non-parametric bootstrap estimates
   B = 400
-  bs <- bootstrap(estimator, Z, B = B)  # non-parametric bootstrap estimates
+  bs <- bootstrap(estimator, Z, B = B)  
+  expect_equal(nrow(bs), p)
+  expect_equal(ncol(bs), B)
+  
+  ## Parametric bootstrap 
+  Z = lapply(1:B, function(b) t(rnorm(m, mean = thetahat[1], sd = thetahat[2])))
+  bs <- bootstrap(estimator, Z = Z)
   expect_equal(nrow(bs), p)
   expect_equal(ncol(bs), B)
 })
