@@ -3,6 +3,7 @@
 export(assess)
 export(bootstrap)
 export(estimate)
+export(initialise_estimator)
 export(loadbestweights)
 export(loadweights)
 export(plotdistribution)

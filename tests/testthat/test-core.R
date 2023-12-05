@@ -27,7 +27,9 @@ test_that("Flux is available", {
   expect_equal(1, 1)
 })
 
-test_that("the neural estimator can be initialised", {
+test_that("a neural estimator can be initialised", {
+  
+  ## Using Flux code directly
   estimator <<- juliaEval('
   using NeuralEstimators
   using Flux
@@ -39,6 +41,15 @@ test_that("the neural estimator can be initialised", {
   phi = Chain(Dense(w, w, relu), Dense(w, p))
   estimator = DeepSet(psi, phi)
 ')
+  
+  ## Using the helper function
+  p = 2
+  initialise_estimator(p, architecture = "DNN")
+  initialise_estimator(p, architecture = "GNN")
+  initialise_estimator(p, architecture = "CNN", kernel_size = list(10, 5, 3))
+  initialise_estimator(p, architecture = "CNN", kernel_size = list(c(10, 10), c(5, 5), c(3, 3)))
+  expect_error(initialise_estimator(p, architecture = "CNN"))
+  
   expect_equal(1, 1)
 })
 

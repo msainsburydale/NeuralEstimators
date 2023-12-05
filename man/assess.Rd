@@ -47,5 +47,5 @@ data frame with columns:
 assess a neural estimator
 }
 \seealso{
-\code{\link[=plotdistribution]{plotdistribution()}} and \code{\link[=plotrisk]{plotrisk()}} for functions that visualise the results contained in the \code{estimates} data frame described above
+\code{\link[=risk]{risk()}} for computing the empirical Bayes risk from the returned object, and \code{\link[=plotdistribution]{plotdistribution()}} and \code{\link[=plotrisk]{plotrisk()}} for functions that visualise the results contained in the \code{estimates} data frame described above
 }

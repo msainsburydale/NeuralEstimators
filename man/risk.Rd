@@ -26,3 +26,6 @@ a dataframe giving the estimated risk and an estimate of its standard deviation
 \description{
 computes a Monte Carlo approximation of the Bayes risk
 }
+\seealso{
+\code{\link[=assess]{assess()}}
+}

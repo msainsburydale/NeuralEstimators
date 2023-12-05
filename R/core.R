@@ -1,3 +1,93 @@
+#' @title Initialise a neural estimator
+#' 
+#' @description Helper function for initialising a neural estimator. 
+#' 
+#' The estimator is couched in the DeepSets framework so that it can be applied to data with an arbitrary number of independent replicates (including the special case of a single replicate).
+#' 
+#' @param p number of unknown parameters in the statistical model
+#' @param architecture a string: for unstructured data, one may use a densely-connected neural network ("DNN"); for data collected over a grid, a convolutional neural network ("CNN"); and for graphical or irregular spatial data, a graphical neural network ("GNN").
+#' @param d dimension of the response variable (e.g., d = 1 for univariate processes).
+#' @param estimator_type the type of estimator; either "point" or "interval".
+#' @param depth the number of hidden layers. Either a single integer or an integer vector of length two specifying the depth of inner (summary) and outer (inference) network of the DeepSets framework. Since there is an input and an output layer, the total number of layers is \code{sum(depth) + 2}.
+#' @param width a single integer or an integer vector of length \code{sum(depth)} specifying the width (or number of convolutional filters/channels) in each layer.
+#' @param activation the (non-linear) activation function of each hidden layer. Accepts a string of Julia code (default \code{"relu"}).
+#' @param activation_output the activation function of the output layer layer. Accepts a string of Julia code (default \code{"identity"}).
+#' @param kernel_size  (applicable only to CNNs) a list of length \code{depth[1]} containing lists of integers of length D, where D is the dimension of the convolution (e.g., D = 2 for two-dimensional convolution).
+#' @param weight_by_distance (applicable only to GNNs) flag indicating whether the estimator will weight by spatial distance; if true, a \code{WeightedGraphConv} layer is used in the propagation module; otherwise, a regular \code{GraphConv} layer is used.
+#' @export 
+#' @examples
+#' \dontrun{
+#' library("NeuralEstimators")
+#' p = 2
+#' initialise_estimator(p, architecture = "DNN")
+#' initialise_estimator(p, architecture = "GNN")
+#' 
+#' ## 1D convolution              
+#' initialise_estimator(p, architecture = "CNN", kernel_size = list(10, 5, 3))
+#' 
+#' ## 2D convolution
+#' initialise_estimator(p, architecture = "CNN", 
+#'                      kernel_size = list(c(10, 10), c(5, 5), c(3, 3)))}
+initialise_estimator <- function(    
+  p,
+  architecture,
+  d = 1,
+  estimator_type = "point",
+  depth = 3,
+  width = 32,
+  activation = "relu", 
+  activation_output = "identity", 
+  kernel_size = NULL, 
+  weight_by_distance = FALSE
+) {
+  
+  # Convert numbers that should be integers (so that the user can write 32 rather than 32L)
+  p <- as.integer(p)
+  d <- as.integer(d)
+  depth <- as.integer(depth)
+  width <- as.integer(width)
+  
+  # Coerce kernel size to a list of 
+  if(!is.null(kernel_size)) {
+    if (!is.list(kernel_size)) stop("The argument `kernel_size` must be a list vectors")
+    kernel_size <- lapply(kernel_size, as.integer)
+  }
+  # browser()
+  # juliaLet("using NeuralEstimators: coercetotuple; println(typeof(coercetotuple(x)))", x = kernel_size)
+  
+  juliaEval("using NeuralEstimators; using Flux")
+  
+  # Allow the user to define the activation functions using a string of Julia code
+  # (conveniently, the default values translate directly into Julia code)
+  activation = juliaEval(activation)
+  activation_output = juliaEval(activation_output)
+
+  
+  estimator <- juliaLet(
+    "initialise_estimator(p;
+                        architecture = architecture,
+                        d = d,
+                        estimator_type = estimator_type,
+                        depth = depth,
+                        width = width,
+                        activation = activation, 
+                        activation_output = activation_output, 
+                        kernel_size = kernel_size, 
+                        weight_by_distance = weight_by_distance)", 
+    p = p,
+    architecture = architecture,
+    d = d,
+    estimator_type = estimator_type,
+    depth = depth,
+    width = width,
+    activation = activation, 
+    activation_output = activation_output, 
+    kernel_size = kernel_size, 
+    weight_by_distance = weight_by_distance)
+  
+  return(estimator)
+}
+
 #' @title Train a neural estimator
 #' 
 #' @description The function caters for different variants of "on-the-fly" simulation. 
