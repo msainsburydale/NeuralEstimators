@@ -143,7 +143,12 @@ test_that("the neural estimator can be assessed with assess()", {
   theta_test  <- sampler(100)
   Z_test      <- simulator(theta_test, m)
   assessment  <- assess(estimator, theta_test, Z_test)
-  risk <- risk(assessment$estimates)
+  risk(assessment)
+  risk(assessment$estimates)
+  bias(assessment)
+  bias(assessment$estimates)
+  rmse(assessment)
+  rmse(assessment$estimates)
   expect_equal(1, 1)
 })
 

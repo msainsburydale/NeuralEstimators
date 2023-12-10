@@ -1,7 +1,10 @@
 ---
 title: "NeuralEstimators"
 author: "Matthew Sainsbury-Dale, Andrew Zammit-Mangion, and Raphaël Huser"
-output: rmarkdown::html_vignette
+output: 
+  rmarkdown::html_vignette:
+    toc: true
+    number_sections: true
 vignette: >
   %\VignetteIndexEntry{NeuralEstimators}
   %\VignetteEngine{knitr::rmarkdown}
@@ -19,19 +22,16 @@ knitr::opts_chunk$set(
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
-Neural estimators are neural networks that transform data into parameter point estimates, and they are a promising recent approach to inference. They are likelihood free, substantially faster than classical methods, and can be designed to be approximate Bayes estimators.  Uncertainty quantification with neural estimators is also straightforward through the bootstrap distribution, which is essentially available "for free" with a neural estimator.
+Neural estimators are neural networks that transform data into parameter point estimates. They are likelihood free and, once constructed with simulated data, substantially faster than classical methods. They also approximate Bayes estimators and, therefore, are often referred to as *neural Bayes estimators*. Uncertainty quantification often proceeds through the bootstrap distribution, which is essentially available "for free" when bootstrap data sets can be quickly generated. Alternatively, one may approximate a set of low and high marginal posterior quantiles using a specially constructed neural Bayes estimator, which can then be used to construct credible intervals. 
 
-The package `NeuralEstimators` facilitates the development of neural estimators in a user-friendly manner. It caters for arbitrary models by having the user implicitly define their model via simulated data. This makes the development of neural estimators particularly straightforward for models with existing implementations. The documentation for the native `Julia` version of the package is available [here](https://msainsburydale.github.io/NeuralEstimators.jl/dev/). 
-
-Below, we outline the theoretical framework of neural estimation, and then provide an example of how a neural estimator may be easily constructed using the package `NeuralEstimators`.
+The package `NeuralEstimators` facilitates the development of neural Bayes estimators in a user-friendly manner. It caters for arbitrary statistical models by having the user implicitly define their model via simulated data, and this makes the development of neural Bayes estimators particularly straightforward for models with existing implementations in `R` or other programming languages. This vignette describes the `R` interface to the `Julia` version of the package, whose documentation is available [here](https://msainsburydale.github.io/NeuralEstimators.jl/dev/). 
 
 
-## Methodology
+# Methodology
 
-In this section, we provide an overview of point estimation using neural Bayes estimators. For a more detailed discussion on the framework and its implementation, see Sainsbury-Dale, Zammit-Mangion, and Huser (2023), "Likelihood-free parameter estimation with neural Bayes estimators", The American Statistician, DOI:
-10.1080/00031305.2023.2249522.
+We here provide an overview of point estimation using neural Bayes estimators. For a more detailed discussion on the framework and its implementation, see [Sainsbury-Dale, Zammit-Mangion, and Huser (2023)](https://www.tandfonline.com/doi/full/10.1080/00031305.2023.2249522).
 
-### Neural Bayes estimators
+## Neural Bayes estimators
 
 A parametric statistical model is a set of probability distributions on a sample space $\mathcal{S}$, where the probability distributions are parameterised via some $p$-dimensional parameter vector $\boldsymbol{\theta}$ on a parameter space $\Theta$. Suppose that we have data from one such distribution, which we denote as $\boldsymbol{Z}$. Then, the goal of parameter point estimation is to come up with an estimate of the unknown $\boldsymbol{\theta}$ from $\boldsymbol{Z}$ using an estimator,
  $$
@@ -39,98 +39,92 @@ A parametric statistical model is a set of probability distributions on a sample
 $$
 which is a mapping from the sample space to the parameter space.
 
-Estimators can be constructed within a decision-theoretic framework. Assume that the sample space is $\mathcal{S} = \mathbb{R}^n$, and consider a non-negative loss function, $L(\boldsymbol{\theta}, \hat{\boldsymbol{\theta}}(\boldsymbol{Z}))$, which assesses an estimator $\hat{\boldsymbol{\theta}}(\cdot)$ for a given $\boldsymbol{\theta}$ and data set $\boldsymbol{Z} \sim f(\boldsymbol{z} \mid \boldsymbol{\theta})$, where $f(\boldsymbol{z} \mid \boldsymbol{\theta})$ is the probability density function of the data conditional on $\boldsymbol{\theta}$. $\boldsymbol{\theta}$. An estimator's risk function is its loss averaged over all possible data realisations, 
- $$
- R(\boldsymbol{\theta}, \hat{\boldsymbol{\theta}}(\cdot)) \equiv \int_{\mathcal{S}}  L(\boldsymbol{\theta}, \hat{\boldsymbol{\theta}}(\boldsymbol{z}))f(\boldsymbol{z} \mid \boldsymbol{\theta}) \rm{d} \boldsymbol{z}.
- $$ 
-So-called Bayes estimators minimise the Bayes risk, 
+Estimators can be constructed intuitively within a decision-theoretic framework. Assume that the sample space is $\mathcal{S} = \mathbb{R}^n$, and consider a non-negative loss function, $L(\boldsymbol{\theta}, \hat{\boldsymbol{\theta}}(\boldsymbol{Z}))$, which assesses an estimator $\hat{\boldsymbol{\theta}}(\cdot)$ for a given $\boldsymbol{\theta}$ and data set $\boldsymbol{Z} \sim f(\boldsymbol{z} \mid \boldsymbol{\theta})$, where $f(\boldsymbol{z} \mid \boldsymbol{\theta})$ is the probability density function of the data conditional on $\boldsymbol{\theta}$. An estimator's Bayes risk is its loss averaged over all possible data realisations and parameter values, 
 $$
  r_{\Omega}(\hat{\boldsymbol{\theta}}(\cdot)) 
- \equiv \int_\Theta R(\boldsymbol{\theta}, \hat{\boldsymbol{\theta}}(\cdot)) \rm{d} \Omega(\boldsymbol{\theta}),  
+ \equiv \int_\Theta \int_{\mathcal{S}}  L(\boldsymbol{\theta}, \hat{\boldsymbol{\theta}}(\boldsymbol{z}))f(\boldsymbol{z} \mid \boldsymbol{\theta}) \rm{d} \boldsymbol{z}. \rm{d} \Omega(\boldsymbol{\theta}),  
  $$ 
-where $\Omega(\cdot)$ is a prior measure for $\boldsymbol{\theta}$. 
+where $\Omega(\cdot)$ is a prior measure for $\boldsymbol{\theta}$. Any minimiser of the Bayes risk is said to be a *Bayes estimator* with respect to $L(\cdot, \cdot)$ and $\Omega(\cdot)$. 
 
-Bayes estimators are theoretically attractive: for example, unique Bayes estimators are admissible and, under suitable regularity conditions and the squared-error loss, are consistent and asymptotically efficient. Further, for a large class of prior distributions, every set of conditions that imply consistency of the maximum likelihood (ML) estimator also imply consistency of Bayes estimators. Importantly, Bayes estimators are not motivated purely by asymptotics: by construction, they are Bayes irrespective of the sample size and model class. Unfortunately, however, Bayes estimators are typically unavailable in closed form for the complex models often encountered in practice. A way forward is to assume a flexible parametric model for $\hat{\boldsymbol{\theta}}(\cdot)$, and to optimise the parameters within that model in order to approximate the Bayes estimator. Neural networks are ideal candidates, since they are universal function approximators, and because they are also fast to evaluate, usually involving only simple matrix-vector operations.
+Bayes estimators are theoretically attractive. For example, unique Bayes estimators are admissible and, under suitable regularity conditions, they are consistent and asymptotically efficient. They are also highly interpretable: Bayes estimators are functionals of the posterior distribution, and the specific functional is determined by the choice of loss function; for instance, under quadratic loss, the Bayes Bayes estimator is the posterior mean. 
+
+Despite their attactive properties, Bayes estimators are typically unavailable in closed form. A way forward is to assume a flexible parametric model for the estimator, and to optimise the parameters within that model in order to approximate the Bayes estimator. Neural networks are ideal candidates, since they are universal function approximators, and because they are extremely fast to evaluate. 
  
-Let $\hat{\boldsymbol{\theta}}(\boldsymbol{Z}; \boldsymbol{\gamma})$ denote a *neural point estimator*, that is, a neural network that returns a point estimate from data $\boldsymbol{Z}$, where $\boldsymbol{\gamma}$ contains the neural-network parameters. Bayes estimators may be approximated with $\hat{\boldsymbol{\theta}}(\cdot; \boldsymbol{\gamma}^*)$ by solving the optimisation problem,  
+Let $\hat{\boldsymbol{\theta}}(\cdot; \boldsymbol{\gamma})$ denote a neural point estimator, where $\boldsymbol{\gamma}$ contains the neural-network parameters. Bayes estimators may be approximated with $\hat{\boldsymbol{\theta}}(\cdot; \boldsymbol{\gamma}^*)$, where $\boldsymbol{\gamma}^*$ solves the optimisation task,  
 $$
 \boldsymbol{\gamma}^*
 \equiv 
-\underset{\boldsymbol{\gamma}}{\mathrm{arg\,min}} \; r_{\Omega}(\hat{\boldsymbol{\theta}}(\cdot; \boldsymbol{\gamma})). 
+\underset{\boldsymbol{\gamma}}{\mathrm{arg\,min}} \; \frac{1}{K} \sum_{k=1}^K L(\boldsymbol{\theta}^{(k)}, \hat{\boldsymbol{\theta}}(\boldsymbol{Z}^{(k)}; \boldsymbol{\gamma})),
 $$ 
- Typically, $r_{\Omega}(\cdot)$ cannot be directly evaluated, but it can be approximated using Monte Carlo methods. Specifically, given a set of $K$ parameter vectors sampled from the prior $\Omega(\cdot)$ denoted by $\vartheta$ and, for each $\boldsymbol{\theta} \in \vartheta$, $J$ realisations from $f(\boldsymbol{z} \mid  \boldsymbol{\theta})$ collected in $\mathcal{Z}_{\boldsymbol{\theta}}$, 
- $$
- r_{\Omega}(\hat{\boldsymbol{\theta}}(\cdot; \boldsymbol{\gamma})) 
- \approx 
-\frac{1}{K} \sum_{\boldsymbol{\theta} \in \vartheta} \frac{1}{J} \sum_{\boldsymbol{z} \in \mathcal{Z}_{\boldsymbol{\theta}}} L(\boldsymbol{\theta}, \hat{\boldsymbol{\theta}}(\boldsymbol{z}; \boldsymbol{\gamma})).  
- $$ 
- Note that the above approximation does not involve evaluation, or knowledge, of the likelihood function. 
- 
- The Monte-Carlo-approximated Bayes risk can be straightforwardly minimised with respect to $\boldsymbol{\gamma}$ using back-propagation and stochastic gradient descent. For sufficiently flexible architectures, the point estimator targets a Bayes estimator with respect to $L(\cdot, \cdot)$ and $\Omega(\cdot)$. We therefore call the fitted neural point estimator a  *neural Bayes estimator*. Like Bayes estimators, neural Bayes estimators target a specific point summary of the posterior distribution. For instance, the absolute-error and squared-error loss functions lead to neural Bayes estimators that approximate the posterior median and mean, respectively.
+whose objective function is a Monte Carlo approximation of the Bayes risk made using a set $\{\boldsymbol{\theta}^{(k)} : k = 1, \dots, K\}$ of parameter vectors sampled from the prior and, for each $k$, simulated data $\boldsymbol{Z}^{(k)} \sim f(\boldsymbol{z} \mid  \boldsymbol{\theta}^{(k)})$. Note that this procedure does not involve evaluation, or knowledge, of the likelihood function, and that the optimisation task can be performed straightforwardly using back-propagation and stochastic gradient descent. 
 
-### Construction of neural Bayes estimators
 
-The neural Bayes estimators is conceptually simple and can be used in a wide range of problems where other approaches, such as maximum-likelihood estimation, are computationally infeasible. The estimator also has marked practical appeal, as the general workflow for its construction is only loosely connected to the statistical or physical model being considered. The workflow is as follows:
+## Neural Bayes estimators for replicated data
+
+Parameter estimation from replicated data is commonly required in statistical applications. A parsimonious architecture for such estimators is based on the so-called DeepSets representation. Suppressing dependence on neural-network parameters $\boldsymbol{\gamma}$ for notational convenience, a neural Bayes estimator couched in the DeepSets framework has the form,
+
+$$
+\hat{\boldsymbol{\theta}}(\boldsymbol{Z}_1, \dots, \boldsymbol{Z}_m) = \boldsymbol{\psi}\left(\boldsymbol{a}(\{\boldsymbol{\phi}(\boldsymbol{Z}_i ): i = 1, \dots, m\})\right),
+$$
+where each $\{\boldsymbol{Z}_i : i = 1, \dots, m\}$ are mutually independent replicates from the statistical model, $\boldsymbol{\psi}$ and $\boldsymbol{\phi}$ are neural networks, and $\boldsymbol{a}(\cdot)$ is a permutation-invariant aggregation function (typically the element-wise mean). The architecture of $\boldsymbol{\psi}$ depends on the structure of each $\boldsymbol{Z}_i$ with, for example, a CNN used for gridded data and a DNN used for unstructured multivariate data. 
+
+The DeepSets representation has several motivations. First, Bayes estimators are invariant to permutations of independent replicates, satisfying $\hat{\boldsymbol{\theta}}(\boldsymbol{Z}_1,\dots,\boldsymbol{Z}_m) = \hat{\boldsymbol{\theta}}(\boldsymbol{Z}_{\pi(1)},\dots,\boldsymbol{Z}_{\pi(m)})$ for any permutation $\pi(\cdot)$; 
+ estimators constructed in the DeepSets representation are guaranteed to exhibit this property. Second, various universal approximation theorems imply that any Bayes estimator that is a continuously differentiable function of the data can be approximated arbitrarily well by a DeepSets-based neural Bayes estimator. Finally, a  may be used with an arbitrary number $m$ of independent replicates, therefore amortising the cost of training with respect to this choice. See [Sainsbury-Dale, Zammit-Mangion, and Huser (2023)](https://www.tandfonline.com/doi/full/10.1080/00031305.2023.2249522) for further details on the use of DeepSets in the context of neural Bayes estimation, and for a discussion on the architecture's connection to conventional estimators. 
+
+## Construction of neural Bayes estimators
+
+Neural Bayes estimators are conceptually simple and can be used in a wide range of problems where other approaches, such as maximum-likelihood estimation, are computationally infeasible. The estimator also has marked practical appeal, as the general workflow for its construction is only loosely connected to the statistical model being considered. The workflow is as follows:
 
   1. Define the prior, $\Omega(\cdot)$. 
   1. Choose a loss function, $L(\cdot, \cdot)$, typically the absolute-error or squared-error loss. 
-  1. Design a suitable neural-network architecture for the neural point estimator $\hat{\boldsymbol{\theta}}(\cdot; \boldsymbol{\gamma})$. 
+  1. Design a suitable neural-network architecture for the neural point estimator $\hat{\boldsymbol{\theta}}(\cdot; \boldsymbol{\gamma})$.  
   1. Sample parameters from $\Omega(\cdot)$ to form training/validation/test parameter sets. 
   1. Given the above parameter sets, simulate data from the model, to form training/validation/test data sets. 
   1. Train the neural network (i.e., estimate $\boldsymbol{\gamma}$) by minimising the loss function averaged over the training sets. During training, monitor performance and convergence using the validation sets.
   1. Assess the fitted neural Bayes estimator, $\hat{\boldsymbol{\theta}}(\cdot; \boldsymbol{\gamma}^*)$, using the test set. 
+  
+The package `NeuralEstimators` is designed to implement this workflow in a user friendly manner, as will be illustrated in the following examples. 
 
+# Examples
 
-## Package overview
+We here consider several examples, where the data are either univariate, multivariate but unstructured, and multivariate and collected over a regular grid (of arbitrary dimension). As we will show, it is the structure of the data that dictates the class of neural-network architecture that one must employ, and these examples therefore serve to both illustrate the functionality of the package and to provide guidelines on the architecture to use for a given application.
 
-Some general points to keep in mind when working with the package.  
-
-- Parameters sampled from the prior distribution should be stored as $p\times K$ matrices, where $p$ is the number of parameters in the statistical model and $K$ is the number of sampled parameter vectors. 
-- The simulated data should be stored as a list, where each element of the list corresponds to a data set simulated conditional on one parameter vector. 
-- The format of the data (i.e., each element of the list described above) depends on the architecture of the neural estimator, which in turn is dictated by the structure of the response variable. For example, if the data are spatial and measured on a regular grid, the estimator will be based on a convolutional neural network (CNN), and each data set is stored as a four-dimensional array, with the first three dimensions corresponding to the width, height, and depth/channels dimensions, and the fourth dimension storing the independent replicates. For unstructured $d$-dimensional data, the estimator will be based on a dense neural network (DNN), and each data set is stored as a two-dimensional array (a matrix), with the second dimension storing the independent replicates. 
-
-The examples given below serve as a good introduction to the package and further illustrate the points above. 
-
-
-## Examples
-
-### Univariate data
-
-Here, we develop a neural Bayes estimator for $\boldsymbol{\theta} \equiv (\mu, \sigma)'$ from data $Z_1, \dots, Z_m$ that are independent and identically distributed according to a $\rm{N}(\mu, \sigma^2)$ distribution.
-
-Before proceeding, we load the required packages. The package `JuliaConnectoR` is used to call Julia from R. 
+Before proceeding, we first load the package. 
 
 ```{r}
 library("NeuralEstimators")
-library("JuliaConnectoR")
+```
+
+```{r someVar, echo=FALSE}
+# load secondary packages that I don't want to highlight in the vignette
+# Before proceeding, we first load the packages that will be used throughout these examples. 
 library("ggplot2")
 library("ggpubr")
 ```
 
+## Univariate data
 
-First, we sample parameters from the prior $\Omega(\cdot)$ to construct parameter sets used for training, validating, and testing the estimator. Here, we use the priors $\mu \sim \rm{N}(0, 1)$ and $\sigma \sim \rm{Gamma}(1, 1)$, and we assume that the parameters are independent a priori. The sampled parameters are stored as $p \times K$ matrices, with $p$ the number of parameters in the model and $K$ the number of sampled parameter vectors.
+We first develop a neural Bayes estimator for $\boldsymbol{\theta} \equiv (\mu, \sigma)'$ from data $Z_1, \dots, Z_m$ that are independent and identically distributed according to a $\rm{Gau}(\mu, \sigma^2)$ distribution.
+
+First, we sample parameters from the prior $\Omega(\cdot)$ to construct parameter sets used for training and validating the estimator. Here, we use the priors $\mu \sim \rm{Gau}(0, 1)$ and $\sigma \sim \rm{Gamma}(1, 1)$, and we assume that the parameters are independent a priori. In `NeuralEstimators`, the sampled parameters are stored as $p \times K$ matrices, with $p$ the number of parameters in the model and $K$ the number of sampled parameter vectors.
 
 ```{r}
 prior <- function(K) {
   mu    <- rnorm(K)
   sigma <- rgamma(K, 1)
-  theta <- matrix(c(mu, sigma), byrow = TRUE, ncol = K)
-  return(theta)
+  Theta <- matrix(c(mu, sigma), byrow = TRUE, ncol = K)
+  return(Theta)
 }
-set.seed(1)
-theta_train = prior(10000) 
-theta_val   = prior(1000)
+K <- 10000
+theta_train <- prior(K) 
+theta_val   <- prior(K/10)
 ```
 
-Next, we implicitly define the statistical model with simulated data. The data are stored as a `list`, where each element of the list is associated with one parameter vector. Since our data is replicated, we will use the Deep Sets framework and, since each replicate is univariate, we will use a dense neural network (DNN) for the inner network. Since the inner network is a DNN, each element of the list should be an `array`, with the independent replicates stored in the final dimension.
+Next, we implicitly define the statistical model with simulated data. In `NeuralEstimators`, the simulated data are stored as a `list`, where each element of the list corresponds to a data set simulated conditional on one parameter vector. Since each replicate of our model is univariate, the inner (summary) network of the DeepSets framework is a densely-connected neural network (DNN) with a single input neuron, and each simulated data set is stored as a matrix with the independent replicates in the columns (i.e, a $1 \times m$ matrix). 
 
 ```{r}
-simulate <- function(theta_set, m) {
-  apply(theta_set, 2, function(theta) {
-   Z <- rnorm(m, theta[1], theta[2])
-   dim(Z) <- c(1, m) 
-   Z
-  }, simplify = FALSE)
+simulate <- function(Theta, m) {
+  apply(Theta, 2, function(theta) t(rnorm(m, theta[1], theta[2])), simplify = FALSE)
 }
 
 m <- 15
@@ -139,24 +133,31 @@ Z_val   <- simulate(theta_val, m)
 ```
 
 
-We now design architectures for the inner and outer neural networks, $\mathbf{\psi}(\cdot)$ and $\mathbf{\phi}(\cdot)$ respectively, in the Deep Set framework, and initialise the neural estimator as a `DeepSet` object. Since we have univariate data, we use a dense neural network with one input neuron. This is the only stage of the workflow that requires the user to write Julia code, which is executed using the function `JuliaEval`.
-
+We now design architectures for the inner (summary) and outer (inference) networks of the DeepSets framework. This can be done with the helper function `initialise_estimator()`:
 
 ```{r, results='hide', message=FALSE}
+estimator <- initialise_estimator(p = 2, d = 1, architecture = "DNN")
+```
+
+The package is designed to allow neural Bayes estimators to be constructed and employed using R code only. However, there are some situations in which it is convenient or beneficial to write Julia code. For instance, while `initialise_estimator()` is a flexible helper function that will be sufficient for the vast majority of applications, one may wish to use a non-standard neural-network architecture, or to write their function for data simulation in Julia to improve computational performance. In these cases, one may employ the R package `JuliaConnectoR`, which allows Julia code to be written and executed directly in R. For example, the call to `initialise_estimator()` above may be replaced by the equivalent Julia code:
+
+```{r, results='hide', message=FALSE}
+library("JuliaConnectoR")
 estimator <- juliaEval('
   using NeuralEstimators
   using Flux
 
+  d = 1    # dimension of each replicate
   p = 2    # number of parameters in the statistical model
-  w = 32   # number of neurons in each layer
+  w = 32   # number of neurons in each hidden layer
 
-  psi = Chain(Dense(1, w, relu), Dense(w, w, relu), Dense(w, w, relu))
-  phi = Chain(Dense(w, w, relu), Dense(w, p))
-  estimator = DeepSet(psi, phi)
+  psi = Chain(Dense(d, w, relu), Dense(w, w, relu), Dense(w, w, relu))
+  phi = Chain(Dense(w, w, relu), Dense(w, w, relu), Dense(w, p))
+  DeepSet(psi, phi)
 ')
 ```
 
-Next, we train the neural estimator using `train()`, here using the default absolute-error loss function. 
+Once the estimator is initialised, it is fitted using `train()`, here using the default mean-absolute-error loss, so that the resulting neural Bayes estimator approximates the vector of marginal posterior medians. We use the sets of  parameters and simulated data constructed earlier: one may alternatively use the arguments `sampler` and `simulator` to pass functions for sampling from the prior and simulating from the model, respectively. These functions can be defined in R (as we have done in this example) or in Julia using the package `JuliaConnectoR`, and this approach facilitates the technique known as "on-the-fly" simulation. 
 
 ```{r}
 estimator <- train(
@@ -169,9 +170,10 @@ estimator <- train(
   )
 ```
 
-The function `train()` contains an argument `savepath`: if it is specified, the neural-network parameters (i.e., the weights and biases) will be saved during training as `bson` files; the risk function evaluated over the training and validation sets will also be saved, in the first and second columns of `loss_per_epoch.csv`, respectively. The best set of parameters (as measured by validation risk) will be saved as `best_network.bson`: to load these best weights into a neural estimator in a later `R` session, use the function `loadbestweights()`. 
+If the argument `savepath` in `train()` is specified, the neural-network parameters (i.e., the weights and biases) will be saved during training as `bson` files, and the best parameters (as measured by validation risk) will be saved as `best_network.bson`. To load these weights into a neural estimator in later `R` sessions, one may use the function `loadbestweights()`.  
 
-To assess the accuracy of the resulting neural Bayes estimator, we use the function `assess()`. 
+
+Once a neural Bayes estimator has been trained, its performance should be assessed. Simulation-based (empirical) methods for evaluating the performance of a neural Bayes estimator are ideal, since simulation is already required for constructing the estimator, and because the estimator can be applied to thousands of simulated data sets at almost no computational cost. To assess the accuracy of the resulting neural Bayes estimator, one may use the function `assess()`: 
 
 ```{r}
 theta_test <- prior(1000)
@@ -180,31 +182,40 @@ assessment <- assess(estimator, theta_test, Z_test)
 head(assessment$estimates)
 ```
 
-Given a dataframe of estimates and true value returned by a call to `assess()`, the function `risk()` can be used to compute a Monte Carlo approximation of the Bayes risk: 
+Given an object returned by a call to `assess()`, the function `risk()` can be used to compute a Monte Carlo approximation of the Bayes risk: 
 
 ```{r}
-risk(assessment$estimates, average_over_parameters = F)
+risk(assessment)
+bias(assessment)
+rmse(assessment)
 ```
 
 
-In addition to assessing the estimator with respect to many parameter configurations, it is often helpful to visualise the empirical sampling distribution of an estimator for a particular parameter configuration. This can be done by calling `assess()` with $J$ data sets simulated under a single parameter configuration, and providing the resulting estimates to `plotdistribution()`: 
+In addition to assessing the estimator over the entire parameter space, it is often helpful to visualise the empirical sampling distribution of an estimator for a particular parameter configuration. This can be done by calling `assess()` with $J > 1$ data sets simulated under a single parameter configuration, and providing the resulting estimates to `plotdistribution()`. This function can be used to plot the empirical joint and marginal sampling distribution of the neural Bayes estimator, with the true parameter values demarcated in red. 
 
-```{r, results='hide',fig.keep='all', fig.width=6, fig.height=3, fig.align='center'}
-J     <- 100
-theta <- as.matrix(c(0, 0.5))
-Z     <- lapply(1:J, function(i) simulate(theta, m))
-Z     <- do.call(c, Z)
+```{r, echo=T, results='hide', fig.keep = "none"}
+theta      <- as.matrix(c(0, 0.5))                             # true parameters
+J          <- 400                                              # number of data sets
+Z          <- lapply(1:J, function(i) simulate(theta, m)[[1]]) # simulate data 
 assessment <- assess(estimator, theta, Z)
+plotdistribution(assessment$estimates)
+```
+
+```{r, echo=F, results='hide',fig.keep='all', fig.width=6, fig.height=3, fig.align='center'}
 
 parameter_labels <- c("θ1" = expression(mu), "θ2" = expression(sigma))
-joint <- plotdistribution(assessment$estimates, type = "scatter", parameter_labels = parameter_labels)
-marginal <- plotdistribution(assessment$estimates, type = "box", parameter_labels = parameter_labels, return_list = TRUE)
-ggarrange(plotlist = c(joint, marginal), nrow = 1, common.legend = TRUE)
+estimator_labels <- c("estimator1" = expression(hat(theta)[NBE]))
+
+joint <- plotdistribution(assessment$estimates, type = "scatter", 
+                          parameter_labels = parameter_labels, estimator_labels = estimator_labels)
+marginal <- plotdistribution(assessment$estimates, type = "box", 
+                             parameter_labels = parameter_labels, estimator_labels = estimator_labels, 
+                             return_list = TRUE)
+ggpubr::ggarrange(plotlist = c(joint, marginal), nrow = 1, common.legend = TRUE)
 ```
 
 
-
-Once the neural Bayes estimator has been trained and assessed, it can be applied to observed data using the function `estimate()`, and compute non-parametric bootstrap estimates using the function `bootstrap()`. Below, we use simulated data as a surrogate for observed data:
+Once the neural Bayes estimator has been trained and assessed, it can be applied to observed data using the function `estimate()`, non-parametric bootstrap estimates can be computed using the function `bootstrap()`. Below, we use simulated data as a surrogate for observed data:
 
 ```{r}
 theta    <- as.matrix(c(0, 0.5))     # true parameters
@@ -215,12 +226,15 @@ bs[, 1:6]
 ```
 
 
+## Multivariate data
 
-### Multivariate data
+Suppose now that our data consists of $m$ replicates of a $d$-dimensional multivariate distribution. 
 
-Suppose now that our data consists of $m$ replicates of a $d$-dimensional multivariate distribution. Everything remains as given in the univariate example above, except that we now store the data as a list of $d \times m$ matrices (previously they were stored as $1\times m$ matrices), and the inner network of the DeepSets representation takes a $d$-dimensional input (previously it took a 1-dimensional input). 
+For unstructured $d$-dimensional data, the estimator is based on a densely-connected neural network (DNN), and each data set is stored as a two-dimensional array (a matrix), with the second dimension storing the independent replicates. That is, in this case, we store the data as a list of $d \times m$ matrices (previously they were stored as $1\times m$ matrices), and the inner network (the summary network) of the DeepSets representation has $d$ input neurons (in the previous example, it had 1 input neuron). 
 
-For example, to develop a neural Bayes estimator for $\boldsymbol{\theta} \equiv (\mu_1, \mu_2, \sigma, \rho)'$ from data $\mathbf{Z}_1, \dots, \mathbf{Z}_m$ that are independent and identically distributed according to a multivariate $\rm{N}(\boldsymbol{\mu}, \boldsymbol{\Sigma})$ distribution, one may use the following code for defining the prior distribution, the simulator, and the neural-estimator architecture:
+For example, consider the task of estimating $\boldsymbol{\theta} \equiv (\mu_1, \mu_2, \sigma, \rho)'$ from data $\mathbf{Z}_1, \dots, \mathbf{Z}_m$ that are independent and identically distributed according to the bivariate Gaussian distribution, 
+$$\rm{Gau}\left(\begin{bmatrix}\mu_1 \\ \mu_2\end{bmatrix}, \sigma^2\begin{bmatrix} 1 & \rho \\ \rho & 1\end{bmatrix}\right).$$ 
+Then, to construct a neural Bayes estimator for this simple model, one may use the following code for defining a prior, the data simulator, and the neural-network architecture:
 
 
 ```{r, eval = FALSE}
@@ -230,97 +244,81 @@ prior <- function(K) {
   sigma  <- rgamma(K, 1)
   rho    <- runif(K, -1, 1)
   theta  <- matrix(c(mu1, mu2, sigma, rho), byrow = TRUE, ncol = K)
-  return(theta)
+  return(Theta)
 }
 
-library("MASS")
-simulate <- function(theta_set, m) {
-  apply(theta_set, 2, function(theta) {
+simulate <- function(Theta, m) {
+  apply(Theta, 2, function(theta) {
     mu    <- c(theta[1], theta[2])
     sigma <- theta[3]
     rho   <- theta[4]
     Sigma <- sigma^2 * matrix(c(1, rho, rho, 1), 2, 2)
-    Z <- mvrnorm(m, mu, Sigma)
-    Z <- t(Z)      # convert to dxm matrix
+    Z <- MASS::mvrnorm(m, mu, Sigma)
+    Z <- t(Z)      
     Z
   }, simplify = FALSE)
 }
 
-estimator <- juliaEval('
-  using NeuralEstimators
-  using Flux
-
-  p = 2    # number of parameters in the statistical model
-  w = 32   # number of neurons in each layer
-  d = 2    # dimension of the response variable
-
-  psi = Chain(Dense(d, w, relu), Dense(w, w, relu), Dense(w, w, relu))
-  phi = Chain(Dense(w, w, relu), Dense(w, p))
-  estimator = DeepSet(psi, phi)
-')
+estimator <- initialise_estimator(p = 4, d = 2, architecture = "DNN")
 ```
 
-Note that, when estimating a covariance matrix, one may wish to constrain the neural estimator to only produce parameters that imply a valid (i.e., positive definite) covariance matrix. This can be achieved by appending a  [CovarianceMatrix](https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/architectures/#NeuralEstimators.CovarianceMatrix) layer to the end of the outer network `phi` above. However, this is often unnecessary as the estimator will typically learn to provide valid estimates, even if not constrained to do so. 
 
+## Gridded data
 
-### Gridded spatial data
+For data collected a regular grid, the neural Bayes estimator is based on a convolutional neural network (CNN). 
 
-For spatial data measured on a regular grid, the estimator is based on a convolutional neural network (CNN), and each data set is stored as a four-dimensional array, with the first three dimensions corresponding to width, height, and depth/channels dimensions, and the fourth dimension storing independent replicates. Note that, for univariate spatial processes, the channels dimension is simply equal to 1.
+In these settings, each data set must be stored as a ($D + 2$)-dimensional array, where $D$ is the dimension of the grid (e.g., $D = 1$ for time series, $D = 2$ for two-dimensional spatial grids, etc.). The first $D$ dimensions of the array correspond to the dimensions of the grid; the penultimate dimension stores the so-called "channels" (e.g., this dimension is singleton for univariate processes, two for bivariate processes, etc.); and the final dimension stores the independent replicates. For example, to store 50 independent replicates of a bivariate spatial process measured over a 10x15 grid, one would construct an array of dimension 10x15x2x50. 
 
-Below, we give example code for a $16\times 16$ spatial grid, and where the spatial model is Schlather's max-stable process with unknown range and smoothness parameters. 
+Below, we give example code where the data is collected over a 16x16 grid, and where the spatial model is Schlather's max-stable process with unknown range and smoothness parameters. Note that a detailed description of CNNs and their construction is beyond the scope of this article; for a useful introduction, see, for example, [Dumoulin and Visin (2016)](https://arxiv.org/abs/1603.07285). 
 
 
 ```{r, eval = FALSE}
-
 prior <- function(K) {
   range      <- runif(K, 1, 10)
   smoothness <- runif(K, 0.5, 3)
   theta      <- matrix(c(range, smoothness), byrow = TRUE, ncol = K)
-  return(theta)
+  return(Theta)
 }
 
-coord <- cbind(1:16, 1:16)
-simulate <- function(theta_set, m) {
-  apply(theta_set, 2, function(theta) {
+simulate <- function(Theta, m) {
+  
+  apply(Theta, 2, function(theta) {
     range  <- theta[1]
     smooth <- theta[2]
+    
+    # Spatial coordinates defining the grid
+    coord <- cbind(1:16, 1:16)
+    
+    # Simulate from the model (returns a 16x16xm array)
     Z <- SpatialExtremes::rmaxstab(
       m, coord, cov.mod = "whitmat", grid = TRUE, nugget = 0, 
       range = range, smooth = smooth
       )
+    
+    # Add singleton dimension to conform with the format required by NeuralEstimators
     dim(Z) <- c(dim(Z)[1], dim(Z)[2], 1, dim(Z)[3]) 
-    Z
+    
+    return(Z)
   }, simplify = FALSE)
 }
 
-
-estimator <- juliaEval('
-  using NeuralEstimators
-  using Flux
-
-  p = 2    # number of parameters in the statistical model
-  w = 32   # number of neurons in each layer
-  d = 2    # dimension of the response variable
-
-  psi = Chain(
-		Conv((10, 10), 1 => 64,  relu),
-		Conv((5, 5),  64 => 128,  relu),
-		Conv((3, 3),  128 => 256, relu),
-		Flux.flatten
-		)
-		
-  phi = Chain(
-		Dense(256, 500, relu),
-		Dense(500, p)
-	)
-	
-  estimator = DeepSet(psi, phi)
-')
+estimator <- initialise_estimator(p = 2, 
+                                  architecture = "CNN", 
+                                  kernel_size = list(c(10, 10), c(5, 5), c(3, 3)))
 ```
 
 
 
-### Irregular spatial data
+# Other topics
 
-Coming soon! (Using Graph Neural Networks.)
+Various other methods are implemented in the package, and will be documented in a second forthcoming vignette. These topics include constructing a neural Bayes estimator for **irregular spatial data** using graph neural networks [(Sainsbury-Dale et al., 2023)](https://arxiv.org/abs/2310.02600); dealing with settings in which some data are **censored** [(Richards et al., 2023)](https://arxiv.org/abs/2306.15642); performing neural Bayes estimation in the presence of **missing data** [(e.g., Wang et al., 2023)](https://www.biorxiv.org/content/10.1101/2023.01.09.523219v1); and approximating a set of low and high **marginal posterior quantiles** using a specially constructed neural Bayes estimator in order to construct credible intervals [(e.g., Sainsbury-Dale et al., 2023)](https://arxiv.org/abs/2310.02600). 
 
+If you'd like to implement these methods and the second vignette is still unavailable, please contact the package maintainer. 
+
+# References
+
+- Dumoulin, V. and Visin, F. (2016). A guide to convolution arithmetic for deep learning. *arXiv:1603.07285*.
+- Richards, J., Sainsbury-Dale, M., Huser, R., and Zammit-Mangion, A. (2023). Neural Bayes estimators for censored inference with peaks-over-threshold models. *arXiv:2306.15642*.
+- Sainsbury-Dale, M., Zammit-Mangion, A., and Huser, R. (2023). Likelihood-free parameter estimation with neural Bayes estimators. *The American Statistician*, doi: 10.1080/00031305.2023.2249522.
+- Sainsbury-Dale, M., Richards, J., Zammit-Mangion, A., and Huser, R. (2023). Neural Bayes estimators for irregular spatial data using graph neural networks. *arXiv:2310.02600*.
+- Wang, Z., Hasenauer, J., and Schälte, Y. (2023) Missing data in amortized simulation-based neural posterior estimation. *bioRxiv:2023.01.09.523219*.

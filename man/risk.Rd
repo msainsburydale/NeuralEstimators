@@ -2,17 +2,17 @@
 % Please edit documentation in R/core.R
 \name{risk}
 \alias{risk}
-\title{computes a Monte Carlo approximation of the Bayes risk}
+\title{computes a Monte Carlo approximation of an estimator's Bayes risk}
 \usage{
 risk(
-  df,
+  assessment,
   loss = function(x, y) abs(x - y),
   average_over_parameters = TRUE,
   average_over_sample_sizes = TRUE
 )
 }
 \arguments{
-\item{df}{the \code{estimates} dataframe returned by a call to \code{assess()}}
+\item{assessment}{an object returned by \code{assess()} (or the \code{estimates} data frame of this object)}
 
 \item{loss}{a binary operator defining the loss function (default absolute-error loss)}
 
@@ -21,11 +21,11 @@ risk(
 \item{average_over_sample_sizes}{if \code{TRUE} (default), the loss is averaged over all sample sizes (the column \code{m} in \code{df}); otherwise, the loss is averaged over each sample size separately}
 }
 \value{
-a dataframe giving the estimated risk and an estimate of its standard deviation
+a dataframe giving an estimate of the Bayes risk and its standard deviation
 }
 \description{
-computes a Monte Carlo approximation of the Bayes risk
+computes a Monte Carlo approximation of an estimator's Bayes risk
 }
 \seealso{
-\code{\link[=assess]{assess()}}
+\code{\link[=assess(), bias(), rmse]{assess(), bias(), rmse()}}
 }

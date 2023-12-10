@@ -60,7 +60,7 @@ train(
 
 \item{batchsize}{the batchsize to use when performing stochastic gradient descent}
 
-\item{savepath}{path to save the trained estimator and other information; if null (default), nothing is saved}
+\item{savepath}{path to save the trained estimator and other information; if null (default), nothing is saved. If not null, the neural-network parameters (i.e., the weights and biases) will be saved during training as \code{bson} files; the risk function evaluated over the training and validation sets will also be saved, in the first and second columns of \code{loss_per_epoch.csv}, respectively; the best parameters (as measured by validation risk) will be saved as \code{best_network.bson}.}
 
 \item{stopping_epochs}{cease training if the risk doesn't improve in this number of epochs (default 5)}
 

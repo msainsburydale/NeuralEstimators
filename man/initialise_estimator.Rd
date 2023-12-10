@@ -22,7 +22,7 @@ initialise_estimator(
 
 \item{architecture}{a string: for unstructured data, one may use a densely-connected neural network ("DNN"); for data collected over a grid, a convolutional neural network ("CNN"); and for graphical or irregular spatial data, a graphical neural network ("GNN").}
 
-\item{d}{dimension of the response variable (e.g., d = 1 for univariate processes).}
+\item{d}{for unstructured multivariate data (i.e., when \code{architecture = "DNN"}), the dimension of the data (e.g., \code{d = 3} for trivariate data); otherwise, if \code{architecture} is \code{"CNN"} or \code{"GNN"}, the argument \code{d} controls the number of input channels (e.g., \code{d = 1} for univariate spatial processes).}
 
 \item{estimator_type}{the type of estimator; either "point" or "interval".}
 

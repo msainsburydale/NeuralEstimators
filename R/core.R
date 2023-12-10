@@ -6,7 +6,7 @@
 #' 
 #' @param p number of unknown parameters in the statistical model
 #' @param architecture a string: for unstructured data, one may use a densely-connected neural network ("DNN"); for data collected over a grid, a convolutional neural network ("CNN"); and for graphical or irregular spatial data, a graphical neural network ("GNN").
-#' @param d dimension of the response variable (e.g., d = 1 for univariate processes).
+#' @param d for unstructured multivariate data (i.e., when `architecture = "DNN"`), the dimension of the data (e.g., `d = 3` for trivariate data); otherwise, if `architecture` is `"CNN"` or `"GNN"`, the argument \code{d} controls the number of input channels (e.g., \code{d = 1} for univariate spatial processes). 
 #' @param estimator_type the type of estimator; either "point" or "interval".
 #' @param depth the number of hidden layers. Either a single integer or an integer vector of length two specifying the depth of inner (summary) and outer (inference) network of the DeepSets framework. Since there is an input and an output layer, the total number of layers is \code{sum(depth) + 2}.
 #' @param width a single integer or an integer vector of length \code{sum(depth)} specifying the width (or number of convolutional filters/channels) in each layer.
@@ -116,7 +116,7 @@ initialise_estimator <- function(
 #' @param epochs the number of epochs
 #' @param stopping_epochs cease training if the risk doesn't improve in this number of epochs (default 5)
 #' @param batchsize the batchsize to use when performing stochastic gradient descent
-#' @param savepath path to save the trained estimator and other information; if null (default), nothing is saved
+#' @param savepath path to save the trained estimator and other information; if null (default), nothing is saved. If not null, the neural-network parameters (i.e., the weights and biases) will be saved during training as `bson` files; the risk function evaluated over the training and validation sets will also be saved, in the first and second columns of `loss_per_epoch.csv`, respectively; the best parameters (as measured by validation risk) will be saved as `best_network.bson`. 
 #' @param use_gpu a boolean indicating whether to use the GPU if it is available (default true)
 #' @param verbose a boolean indicating whether information should be printed to the console during training
 #' @param epochs_per_Z_refresh integer indicating how often to refresh the training data
@@ -388,23 +388,26 @@ loadbestweights <- function(estimator, path) {
     )
 }
 
-#' @title computes a Monte Carlo approximation of the Bayes risk
-#' @param df the \code{estimates} dataframe returned by a call to \code{assess()}
+#' @title computes a Monte Carlo approximation of an estimator's Bayes risk
+#' @param assessment an object returned by \code{assess()} (or the \code{estimates} data frame of this object)
 #' @param loss a binary operator defining the loss function (default absolute-error loss)
 #' @param average_over_parameters if \code{TRUE} (default), the loss is averaged over all parameters; otherwise, the loss is averaged over each parameter separately
 #' @param average_over_sample_sizes if \code{TRUE} (default), the loss is averaged over all sample sizes (the column \code{m} in \code{df}); otherwise, the loss is averaged over each sample size separately
-#' @return a dataframe giving the estimated risk and an estimate of its standard deviation
-#' @seealso [assess()]
+#' @return a dataframe giving an estimate of the Bayes risk and its standard deviation
+#' @seealso [assess()], [bias()], [rmse()]
 #' @export
-risk <- function(df, 
+risk <- function(assessment, 
                  loss = function(x, y) abs(x - y), 
                  average_over_parameters = TRUE, 
                  average_over_sample_sizes = TRUE) {
   
+  if (is.list(assessment)) df <- assessment$estimates
+  if (is.data.frame(assessment)) df <- assessment
+  
   # TODO add checks that df contains the correct columns
   
   truth <- NULL # Setting the variables to NULL first to appease CRAN checks (see https://stackoverflow.com/questions/9439256/how-can-i-handle-r-cmd-check-no-visible-binding-for-global-variable-notes-when)
-
+  
   # Determine which variables we are grouping by
   grouping_variables = "estimator"
   if (!average_over_parameters) grouping_variables <- c(grouping_variables, "parameter")
@@ -416,6 +419,30 @@ risk <- function(df,
     group_by(across(all_of(grouping_variables))) %>%
     summarise(risk = mean(loss), risk_sd = sd(loss)/sqrt(length(loss))) 
 }
+
+#' @title computes a Monte Carlo approximation of an estimator's bias
+#' @inheritParams risk 
+#' @param ... optional arguments inherited from `risk` (excluding the argument `loss`)
+#' @return a dataframe giving the estimated risk and an estimate of its standard deviation
+#' @seealso [assess()], [risk()], [rmse()]
+#' @export
+bias <- function(assessment, ...) {
+  risk(assessment, loss = function(x, y) x - y, ...)
+}
+
+#' @title computes a Monte Carlo approximation of an estimator's bias
+#' @inheritParams risk 
+#' @param ... optional arguments inherited from `risk` (excluding the argument `loss`)
+#' @return a dataframe giving the estimated risk and an estimate of its standard deviation
+#' @seealso [assess()], [bias()], [risk()]
+#' @export
+rmse <- function(assessment, ...) {
+  df <- risk(assessment, loss = function(x, y) (x - y)^2, ...)
+  df$risk <- sqrt(df$risk)
+  df$risk_sd <- NULL
+  return(df)
+}
+
 
 
 #' @title assess a neural estimator
@@ -462,7 +489,7 @@ assess <- function(
   if (length(estimator_names) == 1 & !is.list(estimator_names)) estimator_names <- list(estimator_names)
   if (length(parameter_names) == 1 & !is.list(parameter_names)) parameter_names <- list(parameter_names)
 
-  code <- paste0(
+  code <- paste(
   "
   using NeuralEstimators
   using Flux
