@@ -18,5 +18,5 @@ a dataframe giving the estimated risk and an estimate of its standard deviation
 computes a Monte Carlo approximation of an estimator's bias
 }
 \seealso{
-\code{\link[=assess(), risk(), bias]{assess(), risk(), bias()}}
+\code{\link[=assess]{assess()}}, \code{\link[=bias]{bias()}}, \code{\link[=risk]{risk()}}
 }

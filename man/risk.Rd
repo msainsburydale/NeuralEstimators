@@ -27,5 +27,5 @@ a dataframe giving an estimate of the Bayes risk and its standard deviation
 computes a Monte Carlo approximation of an estimator's Bayes risk
 }
 \seealso{
-\code{\link[=assess(), bias(), rmse]{assess(), bias(), rmse()}}
+\code{\link[=assess]{assess()}}, \code{\link[=bias]{bias()}}, \code{\link[=rmse]{rmse()}}
 }
