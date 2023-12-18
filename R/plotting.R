@@ -74,6 +74,7 @@ plotrisk <- function(df, parameter_labels = NULL, loss = function(x, y) abs(x - 
 #' @param upper_triangle_plots an optional list of plots to include in the uppertriangle of the pairs plot.
 #' @param legend Flag; should we include the legend (only applies when constructing a pairs plot)
 #' @param return_list Flag; should the parameters be split into a list?
+#' @param flip Flag; should the boxplots be "flipped" using `coord_flip()` (default `FALSE`)?
 #' @return a list of \code{'ggplot'} objects or, if \code{pairs = TRUE}, a single \code{'ggplot'}.
 #' @export
 #' @examples
@@ -146,11 +147,13 @@ plotdistribution <- function(
   pairs = FALSE,
   upper_triangle_plots = NULL,
   legend = TRUE,
-  return_list = FALSE
+  return_list = FALSE, 
+  flip = FALSE
   ) {
 
   type <- match.arg(type)
   if(!is.logical(pairs)) stop("pairs should be logical")
+  if(!is.logical(flip)) stop("flip should be logical")
   if (!all(c("estimator", "parameter", "estimate", "truth") %in% names(df))) stop("df must contain the fields estimator, parameter, estimate, and truth.")
   if ("k" %in% names(df) && length(unique(df$k)) > 1) stop("df contains a column 'k' which has more than one unique value; this means that you are trying to visualise the distribution for more than one parameter configuration. To do this, please split the data frame by k and then use lapply() to generate a list of plots grouped by k.")
   if ("m" %in% names(df) && length(unique(df$m)) > 1) stop("df contains a column 'm' which has more than one unique value; this means that you are trying to visualise the distribution for more than one sample size. To do this, please split the data frame by m and then use lapply() to generate a list of plots grouped by m.")
@@ -179,9 +182,9 @@ plotdistribution <- function(
 
   if (type == "box" | type == "density") {
     if (return_list) {
-      gg <- .marginalplotlist(df, parameter_labels = parameter_labels, estimator_labels = estimator_labels, truth_colour = truth_colour, type = type)
+      gg <- .marginalplotlist(df, parameter_labels = parameter_labels, estimator_labels = estimator_labels, truth_colour = truth_colour, type = type, flip = flip)
     } else {
-      gg <- .marginalplot(df, parameter_labels = parameter_labels, estimator_labels = estimator_labels, truth_colour = truth_colour, type = type)
+      gg <- .marginalplot(df, parameter_labels = parameter_labels, estimator_labels = estimator_labels, truth_colour = truth_colour, type = type, flip = flip)
     }
   } else if (type == "scatter") {
     gg <- .scatterplot(df, parameter_labels = parameter_labels, estimator_labels = estimator_labels, truth_colour = truth_colour, truth_size = truth_size, truth_line_size = truth_line_size)
@@ -241,7 +244,7 @@ aes_string_quiet <- function(...) suppressWarnings(aes_string(...))
   return(scatterplots)
 }
 
-.marginalplot <- function(df, parameter_labels, truth_colour, type, estimator_labels) {
+.marginalplot <- function(df, parameter_labels, truth_colour, type, estimator_labels, flip) {
   
   estimator <- truth <- NULL # Setting the variables to NULL first to appease CRAN checks
 
@@ -276,17 +279,28 @@ aes_string_quiet <- function(...) suppressWarnings(aes_string(...))
       )
 
   if (type == "box") {
-    gg <- gg + theme(
-      axis.text.x = element_blank(),
-      axis.ticks.x = element_blank(),
-      axis.title.x = element_blank()
-      )
+    if (flip) {
+      gg <- gg +
+        coord_flip() + 
+        theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) + 
+        scale_x_discrete(limits=rev) + 
+        theme(axis.title.y = element_blank())
+    } else {
+      gg <- gg + theme(
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.title.x = element_blank()
+      ) 
+    }
   }
 
   return(gg)
 }
 
-.marginalplotlist <- function(df, parameter_labels, truth_colour, type, estimator_labels) {
+# plotdistribution(df, parameter_labels = parameter_labels, return_list = TRUE)
+# plotdistribution(df, parameter_labels = parameter_labels, flip = TRUE)
+
+.marginalplotlist <- function(df, parameter_labels, truth_colour, type, estimator_labels, flip) {
   
   parameter <- estimator <- truth <- NULL # Setting the variables to NULL first to appease CRAN checks
 
@@ -318,10 +332,17 @@ aes_string_quiet <- function(...) suppressWarnings(aes_string(...))
       )
 
     if (type == "box") {
-      gg <- gg +
-        labs(x = parameter_labels[param]) +
-        theme(axis.text.x = element_blank(),
-              axis.ticks.x = element_blank())
+      gg <- gg + labs(x = parameter_labels[param])
+      if (flip) {
+        gg <- gg +
+          coord_flip() + 
+          theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) + 
+          scale_x_discrete(limits=rev)
+      } else {
+        gg <- gg +
+          theme(axis.text.x = element_blank(), axis.ticks.x = element_blank()) 
+      }
+
     } else if (type == "density") {
       gg <- gg +
         labs(title = parameter_labels[param]) +

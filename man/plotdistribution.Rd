@@ -15,7 +15,8 @@ plotdistribution(
   pairs = FALSE,
   upper_triangle_plots = NULL,
   legend = TRUE,
-  return_list = FALSE
+  return_list = FALSE,
+  flip = FALSE
 )
 }
 \arguments{
@@ -40,6 +41,8 @@ plotdistribution(
 \item{legend}{Flag; should we include the legend (only applies when constructing a pairs plot)}
 
 \item{return_list}{Flag; should the parameters be split into a list?}
+
+\item{flip}{Flag; should the boxplots be "flipped" using \code{coord_flip()} (default \code{FALSE})?}
 }
 \value{
 a list of \code{'ggplot'} objects or, if \code{pairs = TRUE}, a single \code{'ggplot'}.

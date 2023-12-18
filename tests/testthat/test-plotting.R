@@ -55,6 +55,8 @@ test_that("plotdistribution() is working", {
   parameter_labels <- c(parameter_labels, "sigma" = expression(sigma))
   plotdistribution(df, return_list = TRUE)
   plotdistribution(df, parameter_labels = parameter_labels)
+  plotdistribution(df, parameter_labels = parameter_labels, flip = TRUE)
+  plotdistribution(df, parameter_labels = parameter_labels, flip = TRUE, return_list = TRUE)
   plotdistribution(df, parameter_labels = parameter_labels, type = "density")
   plotdistribution(df, parameter_labels = parameter_labels, type = "scatter")
   
