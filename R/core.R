@@ -12,6 +12,7 @@
 #' @param width a single integer or an integer vector of length \code{sum(depth)} specifying the width (or number of convolutional filters/channels) in each layer.
 #' @param activation the (non-linear) activation function of each hidden layer. Accepts a string of Julia code (default \code{"relu"}).
 #' @param activation_output the activation function of the output layer layer. Accepts a string of Julia code (default \code{"identity"}).
+#' @param variance_stabiliser a function that will be applied directly to the input, usually to stabilise the variance.: a string ('log' for the natural logarithm, or 'cbrt' for the cube-root function), or a string of Julia code that will be converted to a Julia function using \code{juliaEval()}.
 #' @param kernel_size  (applicable only to CNNs) a list of length \code{depth[1]} containing lists of integers of length D, where D is the dimension of the convolution (e.g., D = 2 for two-dimensional convolution).
 #' @param weight_by_distance (applicable only to GNNs) flag indicating whether the estimator will weight by spatial distance; if true, a \code{WeightedGraphConv} layer is used in the propagation module; otherwise, a regular \code{GraphConv} layer is used.
 #' @export 
@@ -37,6 +38,7 @@ initialise_estimator <- function(
   width = 32,
   activation = "relu", 
   activation_output = "identity", 
+  variance_stabiliser = NULL, #TODO document
   kernel_size = NULL, 
   weight_by_distance = FALSE
 ) {
@@ -62,7 +64,17 @@ initialise_estimator <- function(
   activation = juliaEval(activation)
   activation_output = juliaEval(activation_output)
 
-  
+  # Variance stabiliser:
+  if (!is.null(variance_stabiliser)) {
+    if (variance_stabiliser == "log") {
+      variance_stabiliser = juliaEval('x -> log.(x)')
+    } else if(variance_stabiliser == "cbrt") {
+      variance_stabiliser = juliaEval('x -> cbrt.(x)')
+    } else {
+      variance_stabiliser = juliaEval(variance_stabiliser)
+    }
+  }
+
   estimator <- juliaLet(
     "initialise_estimator(p;
                         architecture = architecture,
@@ -72,6 +84,7 @@ initialise_estimator <- function(
                         width = width,
                         activation = activation, 
                         activation_output = activation_output, 
+                        variance_stabiliser = variance_stabiliser,
                         kernel_size = kernel_size, 
                         weight_by_distance = weight_by_distance)", 
     p = p,
@@ -83,7 +96,8 @@ initialise_estimator <- function(
     activation = activation, 
     activation_output = activation_output, 
     kernel_size = kernel_size, 
-    weight_by_distance = weight_by_distance)
+    weight_by_distance = weight_by_distance, 
+    variance_stabiliser = variance_stabiliser)
   
   return(estimator)
 }
@@ -111,7 +125,7 @@ initialise_estimator <- function(
 #' @param M deprecated; use \code{m}
 #' @param K the number of parameter vectors sampled in the training set at each epoch; the size of the validation set is set to \code{K}/5.
 #' @param xi a list of objects used for data simulation (e.g., distance matrices); if it is provided, the parameter sampler is called as \code{sampler(K, xi)}.
-#' @param loss the loss function. It can be a string 'absolute-error' or 'squared-error', in which case the loss function will be the mean-absolute-error or mean-squared-error loss. Otherwise, one may provide a custom loss function as a string of Julia code, which will be converted to a Julia function using \code{juliaEval()}
+#' @param loss the loss function: a string ('absolute-error' for mean-absolute-error loss or 'squared-error' for mean-squared-error loss), or a string of Julia code defining a custom loss function, which will be converted to a Julia function using \code{juliaEval()}
 #' @param learning_rate the learning rate for the optimiser ADAM (default 1e-4)
 #' @param epochs the number of epochs
 #' @param stopping_epochs cease training if the risk doesn't improve in this number of epochs (default 5)
@@ -391,14 +405,14 @@ loadbestweights <- function(estimator, path) {
 #' @title computes a Monte Carlo approximation of an estimator's Bayes risk
 #' @param assessment an object returned by \code{assess()} (or the \code{estimates} data frame of this object)
 #' @param loss a binary operator defining the loss function (default absolute-error loss)
-#' @param average_over_parameters if \code{TRUE} (default), the loss is averaged over all parameters; otherwise, the loss is averaged over each parameter separately
+#' @param average_over_parameters if \code{TRUE}, the loss is averaged over all parameters; otherwise (default), the loss is averaged over each parameter separately
 #' @param average_over_sample_sizes if \code{TRUE} (default), the loss is averaged over all sample sizes (the column \code{m} in \code{df}); otherwise, the loss is averaged over each sample size separately
 #' @return a dataframe giving an estimate of the Bayes risk and its standard deviation
 #' @seealso [assess()], [bias()], [rmse()]
 #' @export
 risk <- function(assessment, 
                  loss = function(x, y) abs(x - y), 
-                 average_over_parameters = TRUE, 
+                 average_over_parameters = FALSE, 
                  average_over_sample_sizes = TRUE) {
   
   if (is.list(assessment)) df <- assessment$estimates
@@ -423,23 +437,27 @@ risk <- function(assessment,
 #' @title computes a Monte Carlo approximation of an estimator's bias
 #' @inheritParams risk 
 #' @param ... optional arguments inherited from `risk` (excluding the argument `loss`)
-#' @return a dataframe giving the estimated risk and an estimate of its standard deviation
+#' @return a dataframe giving the estimated bias
 #' @seealso [assess()], [risk()], [rmse()]
 #' @export
 bias <- function(assessment, ...) {
-  risk(assessment, loss = function(x, y) x - y, ...)
+  df <- risk(assessment, loss = function(x, y) x - y, ...)
+  df <- rename(df, bias = risk)
+  df$risk_sd <- NULL
+  return(df)
 }
 
-#' @title computes a Monte Carlo approximation of an estimator's bias
+#' @title computes a Monte Carlo approximation of an estimator's root-mean-square error (RMSE)
 #' @inheritParams risk 
 #' @param ... optional arguments inherited from `risk` (excluding the argument `loss`)
-#' @return a dataframe giving the estimated risk and an estimate of its standard deviation
+#' @return a dataframe giving the estimated RMSE
 #' @seealso [assess()], [bias()], [risk()]
 #' @export
 rmse <- function(assessment, ...) {
   df <- risk(assessment, loss = function(x, y) (x - y)^2, ...)
   df$risk <- sqrt(df$risk)
   df$risk_sd <- NULL
+  df <- rename(df, rmse = risk)
   return(df)
 }
 

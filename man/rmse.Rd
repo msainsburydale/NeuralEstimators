@@ -2,7 +2,7 @@
 % Please edit documentation in R/core.R
 \name{rmse}
 \alias{rmse}
-\title{computes a Monte Carlo approximation of an estimator's bias}
+\title{computes a Monte Carlo approximation of an estimator's root-mean-square error (RMSE)}
 \usage{
 rmse(assessment, ...)
 }
@@ -12,10 +12,10 @@ rmse(assessment, ...)
 \item{...}{optional arguments inherited from \code{risk} (excluding the argument \code{loss})}
 }
 \value{
-a dataframe giving the estimated risk and an estimate of its standard deviation
+a dataframe giving the estimated RMSE
 }
 \description{
-computes a Monte Carlo approximation of an estimator's bias
+computes a Monte Carlo approximation of an estimator's root-mean-square error (RMSE)
 }
 \seealso{
 \code{\link[=assess]{assess()}}, \code{\link[=bias]{bias()}}, \code{\link[=risk]{risk()}}

@@ -52,7 +52,7 @@ train(
 
 \item{xi}{a list of objects used for data simulation (e.g., distance matrices); if it is provided, the parameter sampler is called as \code{sampler(K, xi)}.}
 
-\item{loss}{the loss function. It can be a string 'absolute-error' or 'squared-error', in which case the loss function will be the mean-absolute-error or mean-squared-error loss. Otherwise, one may provide a custom loss function as a string of Julia code, which will be converted to a Julia function using \code{juliaEval()}}
+\item{loss}{the loss function: a string ('absolute-error' for mean-absolute-error loss or 'squared-error' for mean-squared-error loss), or a string of Julia code defining a custom loss function, which will be converted to a Julia function using \code{juliaEval()}}
 
 \item{learning_rate}{the learning rate for the optimiser ADAM (default 1e-4)}
 

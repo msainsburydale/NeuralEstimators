@@ -1,3 +1,49 @@
+#' Plot estimates vs. true values. 
+#'
+#' @param df a long form data frame containing fields \code{estimator}, \code{parameter}, \code{estimate}, and \code{truth}.
+#' @param parameter_labels a named vector containing parameter labels.
+#' @param estimator_labels a named vector containing estimator labels.
+#' @return a \code{'ggplot'} of the estimates for each parameter against the true value.
+#' @export
+#' @examples
+#' \dontrun{
+#' K <- 50
+#' df <- data.frame(
+#'   estimator = c("Estimator 1", "Estimator 2"), 
+#'   parameter = rep(c("mu", "sigma"), each = K),
+#'   truth = 1:(2*K), 
+#'   estimate = 1:(2*K) + rnorm(4*K)
+#' )
+#' estimator_labels <- c("Estimator 1" = expression(hat(theta)[1]("·")),
+#'                       "Estimator 2" = expression(hat(theta)[2]("·")))
+#' parameter_labels <- c("mu" = expression(mu), "sigma" = expression(sigma))
+#' 
+#' plotestimates(df,  parameter_labels = parameter_labels, estimator_labels)}
+plotestimates <- function(df, estimator_labels = waiver(), parameter_labels = NULL) {
+  
+  truth <- estimator <- NULL # Setting the variables to NULL first to appease CRAN checks (see https://stackoverflow.com/questions/9439256/how-can-i-handle-r-cmd-check-no-visible-binding-for-global-variable-notes-when)
+  
+  if (!is.data.frame(df)) df <- df$estimates # cater for the case that the user has passed in an "Assessment" object
+  
+  if (is.null(parameter_labels)) {
+    param_labeller <- identity
+  } else {
+    param_labeller <- label_parsed
+    df <- mutate_at(df, .vars = "parameter", .funs = factor, levels = names(parameter_labels), labels = parameter_labels)
+  }
+  
+  ggplot(df) + 
+    geom_point(aes(x=truth, y = estimate, colour  = estimator, alpha = 0.75)) + 
+    geom_abline(colour = "red", linetype = "dashed") +
+    facet_wrap(~parameter, scales = "free", labeller = param_labeller, nrow = 1) +
+    scale_colour_viridis(discrete = TRUE, labels = estimator_labels) +
+    labs(colour = "") + 
+    theme_bw() +
+    theme(strip.background = element_blank())
+}
+
+
+
 # ---- plotrisk() ----
 
 #' Plot the risk function (with respect to a given loss function) versus the sample size, m.
@@ -59,9 +105,12 @@ plotrisk <- function(df, parameter_labels = NULL, loss = function(x, y) abs(x - 
   return(gg)
 }
 
+
+
+
 # ---- plotdistribution() ----
 
-#' Plot the empirical distribution of several estimators.
+#' Plot the empirical sampling distribution of an estimator.
 #'
 #' @param df a long form data frame containing fields \code{estimator}, \code{parameter}, \code{estimate}, \code{truth}, and a column (e.g., \code{replicate}) to uniquely identify each observation.
 #' @param type string indicating whether to plot kernel density estimates for each individual parameter (\code{type = "density"}) or scatter plots for all parameter pairs (\code{type = "scatter"}).
@@ -150,13 +199,15 @@ plotdistribution <- function(
   return_list = FALSE, 
   flip = FALSE
   ) {
+  
+  if (!is.data.frame(df)) df <- df$estimates # cater for the case that the user has passed in an "Assessment" object
 
   type <- match.arg(type)
   if(!is.logical(pairs)) stop("pairs should be logical")
   if(!is.logical(flip)) stop("flip should be logical")
   if (!all(c("estimator", "parameter", "estimate", "truth") %in% names(df))) stop("df must contain the fields estimator, parameter, estimate, and truth.")
   if ("k" %in% names(df) && length(unique(df$k)) > 1) stop("df contains a column 'k' which has more than one unique value; this means that you are trying to visualise the distribution for more than one parameter configuration. To do this, please split the data frame by k and then use lapply() to generate a list of plots grouped by k.")
-  if ("m" %in% names(df) && length(unique(df$m)) > 1) stop("df contains a column 'm' which has more than one unique value; this means that you are trying to visualise the distribution for more than one sample size. To do this, please split the data frame by m and then use lapply() to generate a list of plots grouped by m.")
+  if ("m" %in% names(df) && length(unique(df$m)) > 1) stop("df contains a column 'm' which has more than one unique value; this means that you are trying to visualise the distribution for more than one sample size. To do this, please split the data frame by m and then use lapply() to generate a list of plots grouped by m.") #TODO just average over m? 
   if (!is.null(upper_triangle_plots) && !pairs) warning("The argument upper_triangle_plots is ignored when pairs == FALSE")
 
   if(is.null(parameter_labels)) {

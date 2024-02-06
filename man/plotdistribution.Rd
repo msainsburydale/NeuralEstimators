@@ -2,7 +2,7 @@
 % Please edit documentation in R/plotting.R
 \name{plotdistribution}
 \alias{plotdistribution}
-\title{Plot the empirical distribution of several estimators.}
+\title{Plot the empirical sampling distribution of an estimator.}
 \usage{
 plotdistribution(
   df,
@@ -48,7 +48,7 @@ plotdistribution(
 a list of \code{'ggplot'} objects or, if \code{pairs = TRUE}, a single \code{'ggplot'}.
 }
 \description{
-Plot the empirical distribution of several estimators.
+Plot the empirical sampling distribution of an estimator.
 }
 \examples{
 \dontrun{

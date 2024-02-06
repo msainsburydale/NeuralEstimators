@@ -13,6 +13,7 @@ initialise_estimator(
   width = 32,
   activation = "relu",
   activation_output = "identity",
+  variance_stabiliser = NULL,
   kernel_size = NULL,
   weight_by_distance = FALSE
 )
@@ -33,6 +34,8 @@ initialise_estimator(
 \item{activation}{the (non-linear) activation function of each hidden layer. Accepts a string of Julia code (default \code{"relu"}).}
 
 \item{activation_output}{the activation function of the output layer layer. Accepts a string of Julia code (default \code{"identity"}).}
+
+\item{variance_stabiliser}{a function that will be applied directly to the input, usually to stabilise the variance.: a string ('log' for the natural logarithm, or 'cbrt' for the cube-root function), or a string of Julia code that will be converted to a Julia function using \code{juliaEval()}.}
 
 \item{kernel_size}{(applicable only to CNNs) a list of length \code{depth[1]} containing lists of integers of length D, where D is the dimension of the convolution (e.g., D = 2 for two-dimensional convolution).}
 

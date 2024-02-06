@@ -12,7 +12,7 @@ bias(assessment, ...)
 \item{...}{optional arguments inherited from \code{risk} (excluding the argument \code{loss})}
 }
 \value{
-a dataframe giving the estimated risk and an estimate of its standard deviation
+a dataframe giving the estimated bias
 }
 \description{
 computes a Monte Carlo approximation of an estimator's bias

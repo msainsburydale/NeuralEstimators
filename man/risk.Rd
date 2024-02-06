@@ -7,7 +7,7 @@
 risk(
   assessment,
   loss = function(x, y) abs(x - y),
-  average_over_parameters = TRUE,
+  average_over_parameters = FALSE,
   average_over_sample_sizes = TRUE
 )
 }
@@ -16,7 +16,7 @@ risk(
 
 \item{loss}{a binary operator defining the loss function (default absolute-error loss)}
 
-\item{average_over_parameters}{if \code{TRUE} (default), the loss is averaged over all parameters; otherwise, the loss is averaged over each parameter separately}
+\item{average_over_parameters}{if \code{TRUE}, the loss is averaged over all parameters; otherwise (default), the loss is averaged over each parameter separately}
 
 \item{average_over_sample_sizes}{if \code{TRUE} (default), the loss is averaged over all sample sizes (the column \code{m} in \code{df}); otherwise, the loss is averaged over each sample size separately}
 }
