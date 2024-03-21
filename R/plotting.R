@@ -33,7 +33,7 @@ plotestimates <- function(df, estimator_labels = waiver(), parameter_labels = NU
   }
   
   ggplot(df) + 
-    geom_point(aes(x=truth, y = estimate, colour  = estimator, alpha = 0.75)) + 
+    geom_point(aes(x=truth, y = estimate, colour  = estimator), alpha = 0.75) + 
     geom_abline(colour = "red", linetype = "dashed") +
     facet_wrap(~parameter, scales = "free", labeller = param_labeller, nrow = 1) +
     scale_colour_viridis(discrete = TRUE, labels = estimator_labels) +
