@@ -39,7 +39,7 @@ jobs:
         run: |
             julia -e '
               using Pkg
-              Pkg.add(url="https://github.com/msainsburydale/NeuralEstimators.jl")
+              Pkg.add(url="https://github.com/msainsburydale/NeuralEstimators.jl/tree/FluxExplicitTraining")
               Pkg.add("Flux")'
 
       - uses: r-lib/actions/setup-r-dependencies@v2
