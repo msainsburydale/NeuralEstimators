@@ -39,8 +39,7 @@ Z = t(rnorm(m))
 
 ## Construct the estimator
 estimator <- juliaEval('
-  using NeuralEstimators
-  using Flux
+  using NeuralEstimators, Flux
 
   p = 2    # number of parameters in the statistical model
   w = 32   # number of neurons in each layer

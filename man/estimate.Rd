@@ -4,12 +4,14 @@
 \alias{estimate}
 \title{estimate}
 \usage{
-estimate(estimator, Z, use_gpu = TRUE)
+estimate(estimator, Z, theta = NULL, use_gpu = TRUE)
 }
 \arguments{
 \item{estimator}{a neural estimator}
 
-\item{Z}{data to apply the estimator to; it's format should be amenable to the architecture of \code{estimator}}
+\item{Z}{data; format should be amenable to the architecture of \code{estimator}}
+
+\item{theta}{parameter vectors (only for neural estimators that take both the data and parameters as input)}
 
 \item{use_gpu}{a boolean indicating whether to use the GPU if it is available (default true)}
 }
@@ -27,17 +29,17 @@ library("JuliaConnectoR")
 ## Observed data: 100 replicates of a univariate random variable
 Z = matrix(rnorm(100), nrow = 1)
 
-## Construct the estimator
+## Construct an (un-trained) point estimator
 estimator <- juliaEval('
-  using NeuralEstimators
-  using Flux
+  using NeuralEstimators, Flux
 
   p = 2    # number of parameters in the statistical model
   w = 32   # number of neurons in each layer
 
   psi = Chain(Dense(1, w, relu), Dense(w, w, relu))
   phi = Chain(Dense(w, w, relu), Dense(w, p))
-  estimator = DeepSet(psi, phi)
+  deepset = DeepSet(psi, phi)
+  estimator = PointEstimator
 ')
 
 ## Apply the estimator

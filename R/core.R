@@ -57,7 +57,7 @@ initialise_estimator <- function(
   # browser()
   # juliaLet("using NeuralEstimators: coercetotuple; println(typeof(coercetotuple(x)))", x = kernel_size)
   
-  juliaEval("using NeuralEstimators; using Flux")
+  juliaEval("using NeuralEstimators, Flux")
   
   # Allow the user to define the activation functions using a string of Julia code
   # (conveniently, the default values translate directly into Julia code)
@@ -126,7 +126,7 @@ initialise_estimator <- function(
 #' @param K the number of parameter vectors sampled in the training set at each epoch; the size of the validation set is set to \code{K}/5.
 #' @param xi a list of objects used for data simulation (e.g., distance matrices); if it is provided, the parameter sampler is called as \code{sampler(K, xi)}.
 #' @param loss the loss function: a string ('absolute-error' for mean-absolute-error loss or 'squared-error' for mean-squared-error loss), or a string of Julia code defining a custom loss function, which will be converted to a Julia function using \code{juliaEval()}
-#' @param learning_rate the learning rate for the optimiser ADAM (default 1e-4)
+#' @param learning_rate the learning rate for the optimiser ADAM (default 1e-3)
 #' @param epochs the number of epochs
 #' @param stopping_epochs cease training if the risk doesn't improve in this number of epochs (default 5)
 #' @param batchsize the batchsize to use when performing stochastic gradient descent
@@ -147,7 +147,7 @@ initialise_estimator <- function(
 #' # Load R and Julia packages
 #' library("NeuralEstimators")
 #' library("JuliaConnectoR")
-#' juliaEval("using NeuralEstimators; using Flux; using Distributions")
+#' juliaEval("using NeuralEstimators, Flux, Distributions")
 #' 
 #' # Define the neural-network architecture
 #' estimator <- juliaEval('
@@ -174,11 +174,7 @@ initialise_estimator <- function(
 #'   }, simplify = FALSE)
 #' }
 #' 
-#' # Train the estimator using simulation on-the-fly
-#' m <- 30 # number of iid replicates
-#' estimator <- train(estimator, sampler = sampler, simulator = simulator, m = m)
-#' 
-#' # Train the estimator using fixed parameter and data sets 
+#' # Train using fixed parameter and data sets 
 #' theta_train <- sampler(10000)
 #' theta_val   <- sampler(2000)
 #' Z_train <- simulator(theta_train, m)
@@ -188,6 +184,10 @@ initialise_estimator <- function(
 #'                    theta_val = theta_val, 
 #'                    Z_train = Z_train, 
 #'                    Z_val = Z_val)
+#'                    
+#' # Train using simulation on-the-fly (requires Julia package RCall)
+#' m <- 30 # number of iid replicates
+#' estimator <- train(estimator, sampler = sampler, simulator = simulator, m = m)
 #' 
 #' ##### Simulation on-the-fly using Julia functions ####
 #' 
@@ -236,7 +236,7 @@ train <- function(estimator,
                   use_gpu = TRUE,
                   verbose = TRUE
                   ) {
-  
+
   # Deprecation coercion 
   if (!is.null(M)) {
     warning("The argument `M` in `train()` is deprecated; please use `m`")
@@ -319,18 +319,20 @@ train <- function(estimator,
   } else {
     loss = juliaEval(loss)
   }
+  
+  # Omit the loss function for certain classes of neural estimators
+  omit_loss <- juliaLet('typeof(estimator) <: Union{RatioEstimator, IntervalEstimator, QuantileEstimator, QuantileEstimatorDiscrete}', estimator = estimator)
+  loss_code <- if (omit_loss) "" else "loss = loss,"
 
   # Metaprogramming: load Julia packages and add keyword arguments that are applicable to all methods of train()
   code <- paste(
   "
-  using NeuralEstimators
-  using Flux
+  using NeuralEstimators, Flux
   
   estimator = ",
-     train_code,
+     train_code, loss_code,
     "
-    loss = loss,
-    optimiser = ADAM(learning_rate),
+    #optimiser = Flux.setup(OptimiserChain(WeightDecay(1e-4), Adam(learning_rate)), estimator), #TODO figure out why this gives an error, then uncomment
     epochs = epochs,
     batchsize = batchsize,
     savepath = savepath,
@@ -377,8 +379,7 @@ train <- function(estimator,
 loadweights <- function(estimator, filename) {
   juliaLet(
     '
-    using NeuralEstimators
-    using Flux
+    using NeuralEstimators, Flux
     Flux.loadparams!(estimator, NeuralEstimators.loadweights(filename))
     estimator
     ',
@@ -393,8 +394,7 @@ loadweights <- function(estimator, filename) {
 loadbestweights <- function(estimator, path) {
   juliaLet(
     '
-    using NeuralEstimators
-    using Flux
+    using NeuralEstimators, Flux
     Flux.loadparams!(estimator, NeuralEstimators.loadbestweights(path))
     estimator
     ',
@@ -461,8 +461,6 @@ rmse <- function(assessment, ...) {
   return(df)
 }
 
-
-
 #' @title assess a neural estimator
 #' @param estimators a list of (neural) estimators
 #' @param parameters true parameters, stored as a pxK matrix, where p is the number of parameters in the statistical model and K is the number of sampled parameter vectors
@@ -509,8 +507,7 @@ assess <- function(
 
   code <- paste(
   "
-  using NeuralEstimators
-  using Flux
+  using NeuralEstimators, Flux
 
   # Convert parameters and data to Float32 for computational efficiency
   Z = broadcast.(z -> Float32.(z), Z)
@@ -544,7 +541,8 @@ assess <- function(
 #' @description estimate parameters from observed data using a neural estimator
 #'
 #' @param estimator a neural estimator
-#' @param Z data to apply the estimator to; it's format should be amenable to the architecture of \code{estimator}
+#' @param Z data; format should be amenable to the architecture of \code{estimator}
+#' @param theta parameter vectors (only for neural estimators that take both the data and parameters as input)
 #' @param use_gpu a boolean indicating whether to use the GPU if it is available (default true)
 #' @return a matrix of parameter estimates (i.e., \code{estimator} applied to \code{Z})
 #' @export
@@ -556,43 +554,37 @@ assess <- function(
 #' ## Observed data: 100 replicates of a univariate random variable
 #' Z = matrix(rnorm(100), nrow = 1)
 #'
-#' ## Construct the estimator
+#' ## Construct an (un-trained) point estimator
 #' estimator <- juliaEval('
-#'   using NeuralEstimators
-#'   using Flux
+#'   using NeuralEstimators, Flux
 #'
 #'   p = 2    # number of parameters in the statistical model
 #'   w = 32   # number of neurons in each layer
 #'
 #'   psi = Chain(Dense(1, w, relu), Dense(w, w, relu))
 #'   phi = Chain(Dense(w, w, relu), Dense(w, p))
-#'   estimator = DeepSet(psi, phi)
+#'   deepset = DeepSet(psi, phi)
+#'   estimator = PointEstimator
 #' ')
 #'
 #' ## Apply the estimator
 #' estimate(estimator, Z)}
-estimate <- function(estimator, Z, use_gpu = TRUE) {
+estimate <- function(estimator, Z, theta = NULL, use_gpu = TRUE) {
 
   if (!is.list(Z)) Z <- list(Z)
 
   thetahat <- juliaLet('
-  using NeuralEstimators
-  using Flux
-
-  # Estimate the parameters
-  # TODO should change to estimate_in_batches() at some point
-  theta_hat = NeuralEstimators._runondevice(estimator, Z, use_gpu)
-  # if use_gpu
-  #   Z = Z |> gpu
-  #   estimator = estimator |> gpu
-  # end
-  # theta_hat = estimator(Z)
-
+  using NeuralEstimators, Flux
+  
+  Z = broadcast.(Float32, Z)
+  
+  output = estimateinbatches(estimator, Z, theta; use_gpu = use_gpu)
+  
   # Move back to the cpu and convert to a regular matrix
-  theta_hat = theta_hat |> cpu
-  theta_hat = Float64.(theta_hat)
-  theta_hat
-  ', estimator = estimator, Z = Z, use_gpu=use_gpu)
+  output = output |> cpu
+  output = Float64.(output)
+  output
+  ', estimator = estimator, Z = Z, theta = theta, use_gpu=use_gpu)
   return(thetahat)
 }
 
@@ -623,8 +615,7 @@ estimate <- function(estimator, Z, use_gpu = TRUE) {
 #'
 #' ## Construct the estimator
 #' estimator <- juliaEval('
-#'   using NeuralEstimators
-#'   using Flux
+#'   using NeuralEstimators, Flux
 #'
 #'   p = 2    # number of parameters in the statistical model
 #'   w = 32   # number of neurons in each layer
@@ -671,4 +662,48 @@ bootstrap <- function(estimator,
   }
 
   return(thetahat)
+}
+
+
+#TODO will need to think about how to deal with the prior; probably it will be the same as how I dealt with the simulator function in train().
+#TODO add example
+#' @title sampleposterior
+#' 
+#' @description Sample from the approximate posterior distribution
+#'
+#' @param estimator a neural likelihood, posterior, or likelihood-to-evidence-ratio estimator
+#' @param Z data; it's format should be amenable to the architecture of \code{estimator}
+#' @param N number of samples (default 1000)
+#' @param prior the prior (default uniform), specified as a Julia or R function
+#' @param theta_grid a (fine) gridding of the parameter space, given as a matrix with p rows, where p is the number of parameters in the model
+#' @param use_gpu a boolean indicating whether to use the GPU if it is available (default true)
+#' @return a p × `N` matrix of posterior samples, where p is the number of parameters in the model. If multiple data sets are given in `Z`, a list of posterior samples will be returned
+#' @export
+sampleposterior <- function(
+    estimator, Z, N = 1000, prior = NULL, theta_grid = NULL, use_gpu = TRUE
+    ) {
+  
+  N <- as.integer(N)
+  juliaLet('
+      using NeuralEstimators
+      sample(estimator, Z, N; theta_grid = theta_grid, use_gpu = use_gpu)
+  ', estimator=estimator, Z=Z, N = N, theta_grid = theta_grid, use_gpu = use_gpu)
+}
+
+#TODO add example
+#' @title mle
+#' 
+#' @description Maximum likelihood estimation
+#'
+#' @param estimator a neural likelihood or likelihood-to-evidence-ratio estimator
+#' @param Z data; it's format should be amenable to the architecture of \code{estimator}
+#' @param theta_grid a (fine) gridding of the parameter space, given as a matrix with p rows, where p is the number of parameters in the model
+#' @param use_gpu a boolean indicating whether to use the GPU if it is available (default true)
+#' @return a p × K matrix of maximum-likelihood estimates, where p is the number of parameters in the statistical model and K is the number of data sets provided in `Z`
+#' @export
+mle <- function(estimator, Z, theta_grid = NULL, use_gpu = TRUE) {
+  juliaLet('
+      using NeuralEstimators
+      mle(estimator, Z; theta_grid = theta_grid, use_gpu = use_gpu)
+  ', estimator=estimator, Z=Z, theta_grid = theta_grid, use_gpu = use_gpu)
 }

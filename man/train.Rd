@@ -54,7 +54,7 @@ train(
 
 \item{loss}{the loss function: a string ('absolute-error' for mean-absolute-error loss or 'squared-error' for mean-squared-error loss), or a string of Julia code defining a custom loss function, which will be converted to a Julia function using \code{juliaEval()}}
 
-\item{learning_rate}{the learning rate for the optimiser ADAM (default 1e-4)}
+\item{learning_rate}{the learning rate for the optimiser ADAM (default 1e-3)}
 
 \item{epochs}{the number of epochs}
 
@@ -96,7 +96,7 @@ Note that using \code{R} functions to perform "on-the-fly" simulation requires t
 # Load R and Julia packages
 library("NeuralEstimators")
 library("JuliaConnectoR")
-juliaEval("using NeuralEstimators; using Flux; using Distributions")
+juliaEval("using NeuralEstimators, Flux, Distributions")
 
 # Define the neural-network architecture
 estimator <- juliaEval('
@@ -123,11 +123,7 @@ simulator <- function(theta_set, m) {
   }, simplify = FALSE)
 }
 
-# Train the estimator using simulation on-the-fly
-m <- 30 # number of iid replicates
-estimator <- train(estimator, sampler = sampler, simulator = simulator, m = m)
-
-# Train the estimator using fixed parameter and data sets 
+# Train using fixed parameter and data sets 
 theta_train <- sampler(10000)
 theta_val   <- sampler(2000)
 Z_train <- simulator(theta_train, m)
@@ -137,6 +133,10 @@ estimator <- train(estimator,
                    theta_val = theta_val, 
                    Z_train = Z_train, 
                    Z_val = Z_val)
+                   
+# Train using simulation on-the-fly (requires Julia package RCall)
+m <- 30 # number of iid replicates
+estimator <- train(estimator, sampler = sampler, simulator = simulator, m = m)
 
 ##### Simulation on-the-fly using Julia functions ####
 
