@@ -38,7 +38,7 @@ jobs:
         run: |
             julia -e '
               using Pkg
-              Pkg.add(url="https://github.com/msainsburydale/NeuralEstimators.jl/tree/FluxExplicitTraining")
+              Pkg.add(url="https://github.com/msainsburydale/NeuralEstimators.jl")
               Pkg.add("Flux")'
 
       - name: Test coverage

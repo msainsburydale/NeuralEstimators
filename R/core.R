@@ -177,6 +177,7 @@ initialise_estimator <- function(
 #' # Train using fixed parameter and data sets 
 #' theta_train <- sampler(10000)
 #' theta_val   <- sampler(2000)
+#' m <- 30 # number of iid replicates
 #' Z_train <- simulator(theta_train, m)
 #' Z_val   <- simulator(theta_val, m)
 #' estimator <- train(estimator, 
@@ -186,7 +187,6 @@ initialise_estimator <- function(
 #'                    Z_val = Z_val)
 #'                    
 #' # Train using simulation on-the-fly (requires Julia package RCall)
-#' m <- 30 # number of iid replicates
 #' estimator <- train(estimator, sampler = sampler, simulator = simulator, m = m)
 #' 
 #' ##### Simulation on-the-fly using Julia functions ####
@@ -251,6 +251,11 @@ train <- function(estimator,
   epochs_per_Z_refresh <- as.integer(epochs_per_Z_refresh)
   epochs_per_theta_refresh <- as.integer(epochs_per_theta_refresh)
   
+  # Coerce theta_train and theta_val to 1xK matrices if given as K-vectors (which will often be the case in single-parameter settings)
+  if (is.vector(theta_train)) theta_train <- t(theta_train)
+  if (is.vector(theta_val)) theta_val <- t(theta_val)
+  
+  # logic check
   if (!is.null(sampler) && (!is.null(Z_train) || !is.null(Z_val))) stop("One cannot combine continuous resampling of the parameters through `sampler` with fixed simulated data sets, `Z_train` and `Z_val`")
   
   # Metaprogramming: Define the Julia code based on the given arguments
@@ -321,7 +326,7 @@ train <- function(estimator,
   }
   
   # Omit the loss function for certain classes of neural estimators
-  omit_loss <- juliaLet('typeof(estimator) <: Union{RatioEstimator, IntervalEstimator, QuantileEstimator, QuantileEstimatorDiscrete}', estimator = estimator)
+  omit_loss <- juliaLet('typeof(estimator) <: Union{RatioEstimator, IntervalEstimator, QuantileEstimatorDiscrete, QuantileEstimatorContinuous}', estimator = estimator)
   loss_code <- if (omit_loss) "" else "loss = loss,"
 
   # Metaprogramming: load Julia packages and add keyword arguments that are applicable to all methods of train()
@@ -665,7 +670,8 @@ bootstrap <- function(estimator,
 }
 
 
-#TODO will need to think about how to deal with the prior; probably it will be the same as how I dealt with the simulator function in train().
+#TODO will need to think about how to deal with the prior; probably it will be 
+# the same as how I dealt with the simulator function in train().
 #TODO add example
 #' @title sampleposterior
 #' 
@@ -682,28 +688,35 @@ bootstrap <- function(estimator,
 sampleposterior <- function(
     estimator, Z, N = 1000, prior = NULL, theta_grid = NULL, use_gpu = TRUE
     ) {
-  
   N <- as.integer(N)
   juliaLet('
       using NeuralEstimators
-      sample(estimator, Z, N; theta_grid = theta_grid, use_gpu = use_gpu)
+      sampleposterior(estimator, Z, N; theta_grid = theta_grid, use_gpu = use_gpu)
   ', estimator=estimator, Z=Z, N = N, theta_grid = theta_grid, use_gpu = use_gpu)
 }
 
+#TODO will need to think about how to deal with the prior; probably it will be 
+# the same as how I dealt with the simulator function in train().
+# #' @param penalty the penalty (default no penalty), specified as a Julia or R function. 
 #TODO add example
-#' @title mle
+#' @title Maximum likelihood estimation
 #' 
-#' @description Maximum likelihood estimation
+#' @description Given data `Z` and a neural likelihood or likelihood-to-evidence-ratio `estimator`, computes the approximate (penalised) maximum likeihood estimate
+#' 
+#' If a vector `theta_init` of initial parameter estimates is given, the approximate likelihood is maximised by gradient descent. Otherwise, if a matrix of parameters `theta_grid` is given, the approximate likelihood is maximised by grid search.
 #'
 #' @param estimator a neural likelihood or likelihood-to-evidence-ratio estimator
 #' @param Z data; it's format should be amenable to the architecture of \code{estimator}
+#' @param theta_init a vector of initial parameter estimates
 #' @param theta_grid a (fine) gridding of the parameter space, given as a matrix with p rows, where p is the number of parameters in the model
 #' @param use_gpu a boolean indicating whether to use the GPU if it is available (default true)
 #' @return a p × K matrix of maximum-likelihood estimates, where p is the number of parameters in the statistical model and K is the number of data sets provided in `Z`
 #' @export
-mle <- function(estimator, Z, theta_grid = NULL, use_gpu = TRUE) {
+mlestimate <- function(estimator, Z, theta_grid = NULL, theta_init = NULL,  use_gpu = TRUE) {
   juliaLet('
       using NeuralEstimators
-      mle(estimator, Z; theta_grid = theta_grid, use_gpu = use_gpu)
-  ', estimator=estimator, Z=Z, theta_grid = theta_grid, use_gpu = use_gpu)
+      mle(estimator, Z; theta_init = theta_init, theta_grid = theta_grid, use_gpu = use_gpu)
+  ', estimator=estimator, Z=Z, theta_init = theta_init, theta_grid = theta_grid, use_gpu = use_gpu)
 }
+
+#TODO mapestimate, which will essentially be a wrapper around mlestimate (can use @inheritParams)

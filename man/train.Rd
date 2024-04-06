@@ -126,6 +126,7 @@ simulator <- function(theta_set, m) {
 # Train using fixed parameter and data sets 
 theta_train <- sampler(10000)
 theta_val   <- sampler(2000)
+m <- 30 # number of iid replicates
 Z_train <- simulator(theta_train, m)
 Z_val   <- simulator(theta_val, m)
 estimator <- train(estimator, 
@@ -135,7 +136,6 @@ estimator <- train(estimator,
                    Z_val = Z_val)
                    
 # Train using simulation on-the-fly (requires Julia package RCall)
-m <- 30 # number of iid replicates
 estimator <- train(estimator, sampler = sampler, simulator = simulator, m = m)
 
 ##### Simulation on-the-fly using Julia functions ####
