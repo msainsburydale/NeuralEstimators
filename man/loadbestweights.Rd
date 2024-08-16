@@ -7,7 +7,7 @@
 loadbestweights(estimator, path)
 }
 \arguments{
-\item{estimator}{the neural point estimator that we wish to load weights into}
+\item{estimator}{the neural estimator that we wish to load weights into}
 
 \item{path}{absolute path to the folder containing the saved neural-network weights, saved as \code{best_network.bson}}
 }

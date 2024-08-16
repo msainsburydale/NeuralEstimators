@@ -4,7 +4,11 @@
 \alias{plotestimates}
 \title{Plot estimates vs. true values.}
 \usage{
-plotestimates(df, estimator_labels = waiver(), parameter_labels = NULL)
+plotestimates(
+  df,
+  estimator_labels = ggplot2::waiver(),
+  parameter_labels = NULL
+)
 }
 \arguments{
 \item{df}{a long form data frame containing fields \code{estimator}, \code{parameter}, \code{estimate}, and \code{truth}.}

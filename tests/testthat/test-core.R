@@ -173,3 +173,4 @@ test_that("the neural estimator can be applied to real data using estimate() and
   expect_equal(nrow(bs), p)
   expect_equal(ncol(bs), B)
 })
+

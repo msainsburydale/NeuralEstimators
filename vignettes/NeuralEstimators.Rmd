@@ -33,16 +33,16 @@ We here provide an overview of point estimation using neural Bayes estimators. F
 
 ## Neural Bayes estimators
 
-A parametric statistical model is a set of probability distributions on a sample space $\mathcal{S}$, where the probability distributions are parameterised via some $p$-dimensional parameter vector $\boldsymbol{\theta}$ on a parameter space $\Theta$. Suppose that we have data from one such distribution, which we denote as $\boldsymbol{Z}$. Then, the goal of parameter point estimation is to come up with an estimate of the unknown $\boldsymbol{\theta}$ from $\boldsymbol{Z}$ using an estimator,
+A parametric statistical model is a set of probability distributions on a sample space $\mathcal{Z}$, where the probability distributions are parameterised via some $p$-dimensional parameter vector $\boldsymbol{\theta}$ on a parameter space $\Theta$. Suppose that we have data from one such distribution, which we denote as $\boldsymbol{Z}$. Then, the goal of parameter point estimation is to come up with an estimate of the unknown $\boldsymbol{\theta}$ from $\boldsymbol{Z}$ using an estimator,
  $$
- \hat{\boldsymbol{\theta}} : \mathcal{S} \to \Theta,
+ \hat{\boldsymbol{\theta}} : \mathcal{Z} \to \Theta,
 $$
 which is a mapping from the sample space to the parameter space.
 
-Estimators can be constructed intuitively within a decision-theoretic framework. Assume that the sample space is $\mathcal{S} = \mathbb{R}^n$, and consider a non-negative loss function, $L(\boldsymbol{\theta}, \hat{\boldsymbol{\theta}}(\boldsymbol{Z}))$, which assesses an estimator $\hat{\boldsymbol{\theta}}(\cdot)$ for a given $\boldsymbol{\theta}$ and data set $\boldsymbol{Z} \sim f(\boldsymbol{z} \mid \boldsymbol{\theta})$, where $f(\boldsymbol{z} \mid \boldsymbol{\theta})$ is the probability density function of the data conditional on $\boldsymbol{\theta}$. An estimator's Bayes risk is its loss averaged over all possible data realisations and parameter values,
+Estimators can be constructed intuitively within a decision-theoretic framework. Assume that the sample space is $\mathcal{Z} = \mathbb{R}^n$, and consider a non-negative loss function, $L(\boldsymbol{\theta}, \hat{\boldsymbol{\theta}}(\boldsymbol{Z}))$, which assesses an estimator $\hat{\boldsymbol{\theta}}(\cdot)$ for a given $\boldsymbol{\theta}$ and data set $\boldsymbol{Z} \sim f(\boldsymbol{z} \mid \boldsymbol{\theta})$, where $f(\boldsymbol{z} \mid \boldsymbol{\theta})$ is the probability density function of the data conditional on $\boldsymbol{\theta}$. An estimator's Bayes risk is its loss averaged over all possible data realisations and parameter values,
 $$
  r_{\Omega}(\hat{\boldsymbol{\theta}}(\cdot))
- \equiv \int_\Theta \int_{\mathcal{S}}  L(\boldsymbol{\theta}, \hat{\boldsymbol{\theta}}(\boldsymbol{z}))f(\boldsymbol{z} \mid \boldsymbol{\theta}) \rm{d} \boldsymbol{z}. \rm{d} \Omega(\boldsymbol{\theta}),  
+ \equiv \int_\Theta \int_{\mathcal{Z}}  L(\boldsymbol{\theta}, \hat{\boldsymbol{\theta}}(\boldsymbol{z}))f(\boldsymbol{z} \mid \boldsymbol{\theta}) \rm{d} \boldsymbol{z} \rm{d} \Omega(\boldsymbol{\theta}),  
  $$
 where $\Omega(\cdot)$ is a prior measure for $\boldsymbol{\theta}$. Any minimiser of the Bayes risk is said to be a *Bayes estimator* with respect to $L(\cdot, \cdot)$ and $\Omega(\cdot)$.
 
@@ -98,8 +98,10 @@ library("NeuralEstimators")
 ```{r someVar, echo=FALSE}
 # load secondary packages that I don't want to highlight in the vignette
 # Before proceeding, we first load the packages that will be used throughout these examples.
+suppressWarnings({
 library("ggplot2")
-library("ggpubr")
+library("ggpubr")  
+})
 ```
 
 ## Univariate data
@@ -243,7 +245,7 @@ prior <- function(K) {
   mu2    <- rnorm(K)
   sigma  <- rgamma(K, 1)
   rho    <- runif(K, -1, 1)
-  theta  <- matrix(c(mu1, mu2, sigma, rho), byrow = TRUE, ncol = K)
+  Theta  <- matrix(c(mu1, mu2, sigma, rho), byrow = TRUE, ncol = K)
   return(Theta)
 }
 
@@ -276,7 +278,7 @@ Below, we give example code where the data is collected over a 16x16 grid, and w
 prior <- function(K) {
   range      <- runif(K, 1, 10)
   smoothness <- runif(K, 0.5, 3)
-  theta      <- matrix(c(range, smoothness), byrow = TRUE, ncol = K)
+  Theta      <- matrix(c(range, smoothness), byrow = TRUE, ncol = K)
   return(Theta)
 }
 

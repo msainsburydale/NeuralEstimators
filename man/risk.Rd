@@ -21,7 +21,7 @@ risk(
 \item{average_over_sample_sizes}{if \code{TRUE} (default), the loss is averaged over all sample sizes (the column \code{m} in \code{df}); otherwise, the loss is averaged over each sample size separately}
 }
 \value{
-a dataframe giving an estimate of the Bayes risk and its standard deviation
+a dataframe giving an estimate of the Bayes risk
 }
 \description{
 computes a Monte Carlo approximation of an estimator's Bayes risk

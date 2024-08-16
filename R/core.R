@@ -337,7 +337,8 @@ train <- function(estimator,
   estimator = ",
      train_code, loss_code,
     "
-    #optimiser = Flux.setup(OptimiserChain(WeightDecay(1e-4), Adam(learning_rate)), estimator), #TODO figure out why this gives an error, then uncomment
+    #optimiser = Flux.setup(OptimiserChain(WeightDecay(1e-4), Adam(learning_rate)), estimator), #NB this didn't work for some reason... come back to it if we end up needing to change to the `explicit` formulation for training flux models
+    optimiser = Adam(learning_rate),
     epochs = epochs,
     batchsize = batchsize,
     savepath = savepath,
@@ -375,7 +376,7 @@ train <- function(estimator,
 }
 
 # TODO should clean these functions up... bit untidy with how it is
-# TODO need to add testing of these functions
+# TODO need to add unit testing of these functions
 
 #' @title load the weights of a neural estimator
 #' @param estimator the neural estimator that we wish to load weights into
@@ -393,7 +394,7 @@ loadweights <- function(estimator, filename) {
 }
 
 #' @title load the weights of the best neural estimator
-#' @param estimator the neural point estimator that we wish to load weights into
+#' @param estimator the neural estimator that we wish to load weights into
 #' @param path absolute path to the folder containing the saved neural-network weights, saved as \code{best_network.bson}
 #' @export
 loadbestweights <- function(estimator, path) {
@@ -412,19 +413,19 @@ loadbestweights <- function(estimator, path) {
 #' @param loss a binary operator defining the loss function (default absolute-error loss)
 #' @param average_over_parameters if \code{TRUE}, the loss is averaged over all parameters; otherwise (default), the loss is averaged over each parameter separately
 #' @param average_over_sample_sizes if \code{TRUE} (default), the loss is averaged over all sample sizes (the column \code{m} in \code{df}); otherwise, the loss is averaged over each sample size separately
-#' @return a dataframe giving an estimate of the Bayes risk and its standard deviation
+#' @return a dataframe giving an estimate of the Bayes risk
 #' @seealso [assess()], [bias()], [rmse()]
 #' @export
 risk <- function(assessment, 
                  loss = function(x, y) abs(x - y), 
                  average_over_parameters = FALSE, 
-                 average_over_sample_sizes = TRUE) {
+                 average_over_sample_sizes = TRUE
+                 ) {
   
   if (is.list(assessment)) df <- assessment$estimates
   if (is.data.frame(assessment)) df <- assessment
   
   # TODO add checks that df contains the correct columns
-  
   truth <- NULL # Setting the variables to NULL first to appease CRAN checks (see https://stackoverflow.com/questions/9439256/how-can-i-handle-r-cmd-check-no-visible-binding-for-global-variable-notes-when)
   
   # Determine which variables we are grouping by
@@ -432,11 +433,10 @@ risk <- function(assessment,
   if (!average_over_parameters) grouping_variables <- c(grouping_variables, "parameter")
   if (!average_over_sample_sizes) grouping_variables <- c(grouping_variables, "m")
   
-  # Compute the risk and its standard deviation
-  df %>%
-    mutate(loss = loss(estimate, truth)) %>%
-    group_by(across(all_of(grouping_variables))) %>%
-    summarise(risk = mean(loss), risk_sd = sd(loss)/sqrt(length(loss))) 
+  # Compute the risk 
+  dplyr::mutate(df, loss = loss(estimate, truth)) %>%
+    dplyr::group_by(dplyr::across(dplyr::all_of(grouping_variables))) %>%
+    dplyr::summarise(risk = mean(loss))
 }
 
 #' @title computes a Monte Carlo approximation of an estimator's bias
@@ -447,8 +447,7 @@ risk <- function(assessment,
 #' @export
 bias <- function(assessment, ...) {
   df <- risk(assessment, loss = function(x, y) x - y, ...)
-  df <- rename(df, bias = risk)
-  df$risk_sd <- NULL
+  names(df)[names(df) == "risk"] <- "bias"
   return(df)
 }
 
@@ -461,8 +460,7 @@ bias <- function(assessment, ...) {
 rmse <- function(assessment, ...) {
   df <- risk(assessment, loss = function(x, y) (x - y)^2, ...)
   df$risk <- sqrt(df$risk)
-  df$risk_sd <- NULL
-  df <- rename(df, rmse = risk)
+  names(df)[names(df) == "risk"] <- "rmse"
   return(df)
 }
 
@@ -699,6 +697,7 @@ sampleposterior <- function(
 # the same as how I dealt with the simulator function in train().
 # #' @param penalty the penalty (default no penalty), specified as a Julia or R function. 
 #TODO add example
+#TODO change theta_init to theta0 (for consistency with Julia version of the package)?
 #' @title Maximum likelihood estimation
 #' 
 #' @description Given data `Z` and a neural likelihood or likelihood-to-evidence-ratio `estimator`, computes the approximate (penalised) maximum likeihood estimate
@@ -715,7 +714,7 @@ sampleposterior <- function(
 mlestimate <- function(estimator, Z, theta_grid = NULL, theta_init = NULL,  use_gpu = TRUE) {
   juliaLet('
       using NeuralEstimators
-      mle(estimator, Z; theta_init = theta_init, theta_grid = theta_grid, use_gpu = use_gpu)
+      mlestimate(estimator, Z; theta0 = theta_init, theta_grid = theta_grid, use_gpu = use_gpu)
   ', estimator=estimator, Z=Z, theta_init = theta_init, theta_grid = theta_grid, use_gpu = use_gpu)
 }
 

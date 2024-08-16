@@ -80,10 +80,10 @@ test_that("plotdistribution() is working", {
     x = rnorm(10)
     y = rnorm(10)
     shape = sample(c("Class 1", "Class 2"), 10, replace = TRUE)
-    ggplot() +
-      geom_point(aes(x = x, y = y, shape = shape)) + 
-      labs(shape = "") +
-      theme_bw()
+    ggplot2::ggplot() +
+      ggplot2::geom_point(ggplot2::aes(x = x, y = y, shape = shape)) + 
+      ggplot2::labs(shape = "") +
+      ggplot2::theme_bw()
   })
   plotdistribution(df, parameter_labels = parameter_labels, type = "scatter", pairs = TRUE, upper_triangle_plots = upper_triangle_plots)
   

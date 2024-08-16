@@ -8,8 +8,8 @@ plotdistribution(
   df,
   type = c("box", "density", "scatter"),
   parameter_labels = NULL,
-  estimator_labels = waiver(),
-  truth_colour = "red",
+  estimator_labels = ggplot2::waiver(),
+  truth_colour = "black",
   truth_size = 8,
   truth_line_size = NULL,
   pairs = FALSE,
@@ -81,18 +81,17 @@ plotdistribution(df, parameter_labels = parameter_labels)
 plotdistribution(df, parameter_labels = parameter_labels, type = "density")
 plotdistribution(df, parameter_labels = parameter_labels, type = "scatter")
 
-
 # Three parameters:
 df <- rbind(df, data.frame(
   estimator = estimators, truth = 0.25, parameter = "alpha",
   estimate  = 0.5 * runif(2*50),
   replicate = rep(1:50, each = 2)
 ))
+parameter_labels <- c(parameter_labels, "alpha" = expression(alpha))
 plotdistribution(df, parameter_labels = parameter_labels)
 plotdistribution(df, parameter_labels = parameter_labels, type = "density")
 plotdistribution(df, parameter_labels = parameter_labels, type = "scatter")
 plotdistribution(df, parameter_labels = parameter_labels, type = "scatter", pairs = TRUE)
-
 
 # Pairs plot with user-specified plots in the upper triangle:
 upper_triangle_plots <- lapply(1:3, function(i) {

@@ -13,17 +13,14 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.2
 Imports: 
- combinat,
- dplyr,
- ggplot2,
- ggplotify,
- ggpubr,
- gridExtra,
- JuliaConnectoR,
- reshape2,
- tidyr,
- viridis
+    JuliaConnectoR,
+    magrittr
 Suggests: 
+    dplyr,
+    ggplot2,
+    ggplotify,
+    ggpubr,
+    gridExtra,
     knitr,
     rmarkdown,
     markdown,
