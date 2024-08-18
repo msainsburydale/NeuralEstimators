@@ -3,6 +3,7 @@
 export(assess)
 export(bias)
 export(bootstrap)
+export(encodedata)
 export(estimate)
 export(initialise_estimator)
 export(loadbestweights)

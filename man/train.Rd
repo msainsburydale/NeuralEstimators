@@ -75,7 +75,7 @@ train(
 \item{verbose}{a boolean indicating whether information should be printed to the console during training}
 }
 \value{
-a trained neural estimator or, if \code{m} is provided a vector, a list of trained neural estimators
+a trained neural estimator or, if \code{m} is a vector, a list of trained neural estimators
 }
 \description{
 The function caters for different variants of "on-the-fly" simulation.

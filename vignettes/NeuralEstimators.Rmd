@@ -89,19 +89,13 @@ The package `NeuralEstimators` is designed to implement this workflow in a user 
 
 We here consider several examples, where the data are either univariate, multivariate but unstructured, and multivariate and collected over a regular grid (of arbitrary dimension). As we will show, it is the structure of the data that dictates the class of neural-network architecture that one must employ, and these examples therefore serve to both illustrate the functionality of the package and to provide guidelines on the architecture to use for a given application.
 
-Before proceeding, we first load the package.
+Before proceeding, we load the required packages.
 
 ```{r}
 library("NeuralEstimators")
-```
-
-```{r someVar, echo=FALSE}
-# load secondary packages that I don't want to highlight in the vignette
-# Before proceeding, we first load the packages that will be used throughout these examples.
-suppressWarnings({
+library("JuliaConnectoR")
 library("ggplot2")
 library("ggpubr")  
-})
 ```
 
 ## Univariate data
@@ -144,7 +138,6 @@ estimator <- initialise_estimator(p = 2, d = 1, architecture = "DNN")
 The package is designed to allow neural Bayes estimators to be constructed and employed using R code only. However, there are some situations in which it is convenient or beneficial to write Julia code. For instance, while `initialise_estimator()` is a flexible helper function that will be sufficient for the vast majority of applications, one may wish to use a non-standard neural-network architecture, or to write their function for data simulation in Julia to improve computational performance. In these cases, one may employ the R package `JuliaConnectoR`, which allows Julia code to be written and executed directly in R. For example, the call to `initialise_estimator()` above may be replaced by the equivalent Julia code:
 
 ```{r, results='hide', message=FALSE}
-library("JuliaConnectoR")
 estimator <- juliaEval('
   using NeuralEstimators
   using Flux
@@ -217,7 +210,7 @@ ggpubr::ggarrange(plotlist = c(joint, marginal), nrow = 1, common.legend = TRUE)
 ```
 
 
-Once the neural Bayes estimator has been trained and assessed, it can be applied to observed data using the function `estimate()`, non-parametric bootstrap estimates can be computed using the function `bootstrap()`. Below, we use simulated data as a surrogate for observed data:
+Once the neural Bayes estimator has been trained and assessed, it can be applied to observed data using the function `estimate()`, and non-parametric bootstrap estimates can be computed using the function `bootstrap()`. Below, we use simulated data as a surrogate for observed data:
 
 ```{r}
 theta    <- as.matrix(c(0, 0.5))     # true parameters
@@ -269,7 +262,7 @@ estimator <- initialise_estimator(p = 4, d = 2, architecture = "DNN")
 
 For data collected over a regular grid, the neural Bayes estimator is based on a convolutional neural network (CNN).
 
-In these settings, each data set must be stored as a ($D + 2$)-dimensional array, where $D$ is the dimension of the grid (e.g., $D = 1$ for time series, $D = 2$ for two-dimensional spatial grids, etc.). The first $D$ dimensions of the array correspond to the dimensions of the grid; the penultimate dimension stores the so-called "channels" (this dimension is singleton for univariate processes, two for bivariate processes, etc.); and the final dimension stores the independent replicates. For example, to store 50 independent replicates of a bivariate spatial process measured over a 10x15 grid, one would construct an array of dimension 10x15x2x50.
+In these settings, each data set must be stored as an ($N + 2$)-dimensional array, where $N$ is the dimension of the grid (e.g., $N = 1$ for time series, $N = 2$ for images, etc.). The penultimate dimension of the array stores the so-called "channels" (this dimension is singleton for univariate processes, two for bivariate processes, etc.), while the final dimension stores independent replicates. For example, to store $50$ independent replicates of a bivariate spatial process measured over a $10\times15$ grid, one would construct an array of dimension $10\times15\times2\times50$.
 
 Below, we give example code where the data is collected over a 16x16 grid, and where the spatial model is Schlather's max-stable process with unknown range and smoothness parameters. Note that a detailed description of CNNs and their construction is beyond the scope of this article; for a useful introduction, see, for example, [Dumoulin and Visin (2016)](https://arxiv.org/abs/1603.07285).
 

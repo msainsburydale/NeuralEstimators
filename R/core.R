@@ -136,7 +136,7 @@ initialise_estimator <- function(
 #' @param epochs_per_Z_refresh integer indicating how often to refresh the training data
 #' @param epochs_per_theta_refresh integer indicating how often to refresh the training parameters; must be a multiple of \code{epochs_per_Z_refresh}
 #' @param simulate_just_in_time  flag indicating whether we should simulate "just-in-time", in the sense that only a \code{batchsize} number of parameter vectors and corresponding data are in memory at a given time
-#' @return a trained neural estimator or, if \code{m} is provided a vector, a list of trained neural estimators
+#' @return a trained neural estimator or, if \code{m} is a vector, a list of trained neural estimators
 #' @export
 #' @seealso [assess()] for assessing an estimator post training, and [estimate()] for applying an estimator to observed data
 #' @examples
