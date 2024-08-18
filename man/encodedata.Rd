@@ -9,7 +9,7 @@ encodedata(Z, c = 0)
 \arguments{
 \item{Z}{data containing \code{NA} entries}
 
-\item{c}{fixed constant with which to replace \code{NA} entries (default \code{c=0})}
+\item{c}{fixed constant with which to replace \code{NA} entries}
 }
 \value{
 Augmented data set (U, W). If \code{Z} is provided as a list, the return type will be a \code{JuliaProxy} object; these objects can be indexed in the usual manner (e.g., using \code{[[}), or converted to an R object using \code{juliaGet()} (note however that \code{juliaGet()} can be slow for large data sets).

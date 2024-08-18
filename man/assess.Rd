@@ -34,13 +34,13 @@ a list of two data frames: \code{runtimes}, contains the
 total time taken for each estimator, while \code{estimates} is a long-form
 data frame with columns:
 \itemize{
-\item{"estimator"}{ the name of the estimator}
-\item{"parameter"}{ the name of the parameter}
-\item{"truth"}{ the true value of the parameter}
-\item{"estimate"}{ the estimated value of the parameter}
-\item{"m"}{ the sample size (number of iid replicates)}
-\item{"k"}{ the index of the parameter vector in the test set}
-\item{"j"}{ the index of the data set}
+\item{"estimator"; the name of the estimator}
+\item{"parameter"; the name of the parameter}
+\item{"truth"; the true value of the parameter}
+\item{"estimate"; the estimated value of the parameter}
+\item{"m"; the sample size (number of iid replicates)}
+\item{"k"; the index of the parameter vector in the test set}
+\item{"j"; the index of the data set}
 }
 }
 \description{
