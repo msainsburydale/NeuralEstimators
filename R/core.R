@@ -38,7 +38,7 @@ initialise_estimator <- function(
   width = 32,
   activation = "relu", 
   activation_output = "identity", 
-  variance_stabiliser = NULL, #TODO document
+  variance_stabiliser = NULL, 
   kernel_size = NULL, 
   weight_by_distance = FALSE
 ) {
@@ -125,7 +125,7 @@ initialise_estimator <- function(
 #' @param M deprecated; use \code{m}
 #' @param K the number of parameter vectors sampled in the training set at each epoch; the size of the validation set is set to \code{K}/5.
 #' @param xi a list of objects used for data simulation (e.g., distance matrices); if it is provided, the parameter sampler is called as \code{sampler(K, xi)}.
-#' @param loss the loss function: a string ('absolute-error' for mean-absolute-error loss or 'squared-error' for mean-squared-error loss), or a string of Julia code defining a custom loss function, which will be converted to a Julia function using \code{juliaEval()}
+#' @param loss the loss function: a string ('absolute-error' for mean-absolute-error loss or 'squared-error' for mean-squared-error loss), or a string of Julia code defining the loss function.
 #' @param learning_rate the learning rate for the optimiser ADAM (default 1e-3)
 #' @param epochs the number of epochs
 #' @param stopping_epochs cease training if the risk doesn't improve in this number of epochs (default 5)
@@ -199,16 +199,16 @@ initialise_estimator <- function(
 #' # Parameter sampler
 #' sampler <- juliaEval("
 #'       function sampler(K)
-#'       	μ = rand(Normal(0, 1), K)
-#'       	σ = rand(Gamma(1), K)
-#'       	θ = hcat(μ, σ)'
-#'       	return θ
+#'       	mu = rand(Normal(0, 1), K)
+#'       	sigma = rand(Gamma(1), K)
+#'       	theta = hcat(mu, sigma)'
+#'       	return theta
 #'       end")
 #' 
 #' # Data simulator
 #' simulator <- juliaEval("
-#'       function simulator(θ_matrix, m)
-#'       	Z = [rand(Normal(θ[1], θ[2]), 1, m) for θ ∈ eachcol(θ_matrix)]
+#'       function simulator(theta_matrix, m)
+#'       	Z = [rand(Normal(theta[1], theta[2]), 1, m) for theta in eachcol(theta_matrix)]
 #'       	return Z
 #'       end")
 #' 
@@ -335,7 +335,8 @@ train <- function(estimator,
   using NeuralEstimators, Flux
   
   estimator = ",
-     train_code, loss_code,
+     train_code, 
+     loss_code,
     "
     #optimiser = Flux.setup(OptimiserChain(WeightDecay(1e-4), Adam(learning_rate)), estimator), #NB this didn't work for some reason... come back to it if we end up needing to change to the `explicit` formulation for training flux models
     optimiser = Adam(learning_rate),
@@ -374,6 +375,18 @@ train <- function(estimator,
 
   return(estimator)
 }
+
+#' @title tanhloss
+#' @description For \code{k} > 0, defines Julia code that defines the loss function,
+#' \deqn{L(\hat{\theta}, \theta) = \tanh\left(\frac{|\hat{\theta} - \theta|}{k}\right),}
+#' which approximates the 0-1 loss as \code{k} tends to zero. 
+#' 
+#' The resulting string is intended to be used in the function \code{\link{train}}, but can also be converted to a callable function using \code{juliaEval}. 
+#' @param k Positive numeric value that controls the smoothness of the approximation.
+#' @return String defining the tanh loss function in Julia code.
+#' @export 
+tanhloss <- function(k) paste0("(x, y) -> tanhloss(x, y, ", k, ")")
+
 
 # TODO should clean these functions up... bit untidy with how it is
 # TODO need to add unit testing of these functions
@@ -668,8 +681,7 @@ bootstrap <- function(estimator,
 }
 
 
-#TODO will need to think about how to deal with the prior; probably it will be 
-# the same as how I dealt with the simulator function in train().
+#TODO will need to think about how to deal with the prior; probably it will be  the same as how I dealt with the simulator function in train().
 #TODO add example
 #' @title sampleposterior
 #' 

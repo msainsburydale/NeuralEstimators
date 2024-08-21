@@ -52,7 +52,7 @@ train(
 
 \item{xi}{a list of objects used for data simulation (e.g., distance matrices); if it is provided, the parameter sampler is called as \code{sampler(K, xi)}.}
 
-\item{loss}{the loss function: a string ('absolute-error' for mean-absolute-error loss or 'squared-error' for mean-squared-error loss), or a string of Julia code defining a custom loss function, which will be converted to a Julia function using \code{juliaEval()}}
+\item{loss}{the loss function: a string ('absolute-error' for mean-absolute-error loss or 'squared-error' for mean-squared-error loss), or a string of Julia code defining the loss function.}
 
 \item{learning_rate}{the learning rate for the optimiser ADAM (default 1e-3)}
 
@@ -148,16 +148,16 @@ estimator <- train(estimator, sampler = sampler, simulator = simulator, m = m)
 # Parameter sampler
 sampler <- juliaEval("
       function sampler(K)
-      	μ = rand(Normal(0, 1), K)
-      	σ = rand(Gamma(1), K)
-      	θ = hcat(μ, σ)'
-      	return θ
+      	mu = rand(Normal(0, 1), K)
+      	sigma = rand(Gamma(1), K)
+      	theta = hcat(mu, sigma)'
+      	return theta
       end")
 
 # Data simulator
 simulator <- juliaEval("
-      function simulator(θ_matrix, m)
-      	Z = [rand(Normal(θ[1], θ[2]), 1, m) for θ ∈ eachcol(θ_matrix)]
+      function simulator(theta_matrix, m)
+      	Z = [rand(Normal(theta[1], theta[2]), 1, m) for theta in eachcol(theta_matrix)]
       	return Z
       end")
 

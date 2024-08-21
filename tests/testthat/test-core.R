@@ -112,15 +112,15 @@ test_that("the neural estimator can be trained with simulation on-the-fly (using
   # Parameter sampler
   sampler <- juliaEval("
       function sampler(K)
-      	μ = randn(K)
-      	σ = rand(K)
-      	θ = hcat(μ, σ)'
-      	return θ
+      	mu = randn(K)
+      	sigma = rand(K)
+      	theta = hcat(mu, sigma)'
+      	return theta
       end")
   
   # Data simulator
   simulator <- juliaEval("
-      simulator(θ_matrix, m) = [θ[1] .+ θ[2] * randn(1, m) for θ ∈ eachcol(θ_matrix)]
+      simulator(theta_matrix, m) = [theta[1] .+ theta[2] * randn(1, m) for theta in eachcol(theta_matrix)]
       ")
   
   

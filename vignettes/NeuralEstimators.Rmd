@@ -29,7 +29,7 @@ The package `NeuralEstimators` facilitates the development of neural Bayes estim
 
 # Methodology
 
-We here provide an overview of point estimation using neural Bayes estimators. For a more detailed discussion on the framework and its implementation, see [Sainsbury-Dale, Zammit-Mangion, and Huser (2023)](https://www.tandfonline.com/doi/full/10.1080/00031305.2023.2249522).
+We here provide an overview of point estimation using neural Bayes estimators. For a more detailed discussion on the framework and its implementation, see [Sainsbury-Dale, Zammit-Mangion, and Huser (2024)](https://www.tandfonline.com/doi/full/10.1080/00031305.2023.2249522).
 
 ## Neural Bayes estimators
 
@@ -69,7 +69,7 @@ $$
 where each $\{\boldsymbol{Z}_i : i = 1, \dots, m\}$ are mutually independent replicates from the statistical model, $\boldsymbol{\psi}$ and $\boldsymbol{\phi}$ are neural networks, and $\boldsymbol{a}(\cdot)$ is a permutation-invariant aggregation function (typically the element-wise mean). The architecture of $\boldsymbol{\psi}$ depends on the structure of each $\boldsymbol{Z}_i$ with, for example, a CNN used for gridded data and a DNN used for unstructured multivariate data.
 
 The DeepSets representation has several motivations. First, Bayes estimators are invariant to permutations of independent replicates, satisfying $\hat{\boldsymbol{\theta}}(\boldsymbol{Z}_1,\dots,\boldsymbol{Z}_m) = \hat{\boldsymbol{\theta}}(\boldsymbol{Z}_{\pi(1)},\dots,\boldsymbol{Z}_{\pi(m)})$ for any permutation $\pi(\cdot)$;
- estimators constructed in the DeepSets representation are guaranteed to exhibit this property. Second, various universal approximation theorems imply that any Bayes estimator that is a continuously differentiable function of the data can be approximated arbitrarily well by a DeepSets-based neural Bayes estimator. Finally, a  may be used with an arbitrary number $m$ of independent replicates, therefore amortising the cost of training with respect to this choice. See [Sainsbury-Dale, Zammit-Mangion, and Huser (2023)](https://www.tandfonline.com/doi/full/10.1080/00031305.2023.2249522) for further details on the use of DeepSets in the context of neural Bayes estimation, and for a discussion on the architecture's connection to conventional estimators.
+ estimators constructed in the DeepSets representation are guaranteed to exhibit this property. Second, various universal approximation theorems imply that any Bayes estimator that is a continuously differentiable function of the data can be approximated arbitrarily well by a DeepSets-based neural Bayes estimator. Finally, a  may be used with an arbitrary number $m$ of independent replicates, therefore amortising the cost of training with respect to this choice. See [Sainsbury-Dale, Zammit-Mangion, and Huser (2024)](https://www.tandfonline.com/doi/full/10.1080/00031305.2023.2249522) for further details on the use of DeepSets in the context of neural Bayes estimation, and for a discussion on the architecture's connection to conventional estimators.
 
 ## Construction of neural Bayes estimators
 
@@ -306,7 +306,7 @@ estimator <- initialise_estimator(p = 2,
 
 # Other topics
 
-Various other methods are implemented in the package, and will be documented in a second forthcoming vignette. These topics include constructing a neural Bayes estimator for **irregular spatial data** using graph neural networks [(Sainsbury-Dale et al., 2023)](https://arxiv.org/abs/2310.02600); dealing with settings in which some data are **censored** [(Richards et al., 2023)](https://arxiv.org/abs/2306.15642); performing neural Bayes estimation in the presence of **missing data** [(e.g., Wang et al., 2023)](https://www.biorxiv.org/content/10.1101/2023.01.09.523219v1); and approximating a set of low and high **marginal posterior quantiles** using a specially constructed neural Bayes estimator in order to construct credible intervals [(e.g., Sainsbury-Dale et al., 2023)](https://arxiv.org/abs/2310.02600).
+Various other methods are implemented in the package, and will be documented in a second forthcoming vignette. These topics include constructing a neural Bayes estimator for **irregular spatial data** using graph neural networks [(Sainsbury-Dale et al., 2023)](https://arxiv.org/abs/2310.02600); dealing with settings in which some data are **censored** [(Richards et al., 2023)](https://arxiv.org/abs/2306.15642); performing neural Bayes estimation in the presence of **missing data** [(e.g., Wang et al., 2024)](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1012184); and approximating a set of low and high **marginal posterior quantiles** using a specially constructed neural Bayes estimator in order to construct credible intervals [(e.g., Sainsbury-Dale et al., 2023)](https://arxiv.org/abs/2310.02600).
 
 If you'd like to implement these methods and the second vignette is still unavailable, please contact the package maintainer.
 
@@ -314,6 +314,7 @@ If you'd like to implement these methods and the second vignette is still unavai
 
 - Dumoulin, V. and Visin, F. (2016). A guide to convolution arithmetic for deep learning. *arXiv:1603.07285*.
 - Richards, J., Sainsbury-Dale, M., Huser, R., and Zammit-Mangion, A. (2023). Neural Bayes estimators for censored inference with peaks-over-threshold models. *arXiv:2306.15642*.
-- Sainsbury-Dale, M., Zammit-Mangion, A., and Huser, R. (2023). Likelihood-free parameter estimation with neural Bayes estimators. *The American Statistician*, doi: 10.1080/00031305.2023.2249522.
+- Sainsbury-Dale, M., Zammit-Mangion, A., and Huser, R. (2023). Likelihood-free parameter estimation with neural Bayes estimators. *The American Statistician*, 78:1--14.
 - Sainsbury-Dale, M., Richards, J., Zammit-Mangion, A., and Huser, R. (2023). Neural Bayes estimators for irregular spatial data using graph neural networks. *arXiv:2310.02600*.
-- Wang, Z., Hasenauer, J., and Schälte, Y. (2023) Missing data in amortized simulation-based neural posterior estimation. *bioRxiv:2023.01.09.523219*.
+- Wang, Z., Hasenauer, J., and Schälte, Y. (2024) Missing data in amortized simulation-based neural
+posterior estimation. *PLOS Computational Biology*, 20(6):e1012184.

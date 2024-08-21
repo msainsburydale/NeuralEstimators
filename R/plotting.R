@@ -84,6 +84,7 @@ plotrisk <- function(df, parameter_labels = NULL, loss = function(x, y) abs(x - 
   } else {
     param_labeller <- ggplot2::label_parsed
     df <- dplyr::mutate_at(df, .vars = "parameter", .funs = factor, levels = names(parameter_labels), labels = parameter_labels)
+    # df$parameter <- factor(df$parameter, levels = names(parameter_labels), labels = parameter_labels) # NB think above line is equivalent to this
   }
 
   # Compute global risk for each combination of estimator and sample size m
