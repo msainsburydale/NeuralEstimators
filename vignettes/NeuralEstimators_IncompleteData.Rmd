@@ -1,0 +1,736 @@
+---
+title: "NeuralEstimators: Incomplete gridded data"
+author: "Matthew Sainsbury-Dale, Andrew Zammit-Mangion, and Raphaël Huser"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    number_sections: true
+vignette: >
+  %\VignetteEncoding{UTF-8}
+  %\VignetteIndexEntry{NeuralEstimators: Incomplete gridded data}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+In this vignette, we demonstrate neural Bayes estimation with gridded
+data using convolutional neural networks (CNNs). These architectures
+require completely-observed gridded data; in this vignette, we also show how one can use CNNs with incomplete data using two techniques.
+
+Before proceeding, we load the required packages (see [here](https://github.com/msainsburydale/NeuralEstimators?tab=readme-ov-file#installation-tips) for instructions on installing Julia and the Julia packages `NeuralEstimators` and `Flux`):
+
+```{r}
+library("NeuralEstimators")
+library("JuliaConnectoR")
+library("ggplot2")
+juliaEval('using NeuralEstimators, Flux')
+```
+
+
+
+```{r, echo=FALSE}
+# Define a couple of helper functions; only used in hidden plotting code 
+
+# Base R equivalent of reshape2::melt
+melt_base <- function(z) {
+  df <- as.data.frame(z)
+  reshape(
+    df, 
+    direction = "long", 
+    varying = list(names(df)), 
+    v.names = "value", 
+    timevar = "Var2", 
+    idvar = "Var1"
+  )
+} 
+
+# Base R implementation of abind::abind
+abind_base <- function(...) {
+  
+  # Get the list of arrays
+  arrays <- list(...)
+  
+  # Check that all arrays have the same dimensions except for the last one
+  dims_list <- lapply(arrays, dim)
+  first_dims <- dims_list[[1]]
+  
+  if (any(!sapply(dims_list, function(d) identical(d[1:(length(d) - 1)], first_dims[1:(length(d) - 1)])))) {
+    stop("All arrays must have the same dimensions except for the last dimension")
+  }
+  
+  # Concatenate arrays along the last dimension
+  combined_array <- array(unlist(arrays), dim = c(first_dims[1:(length(first_dims) - 1)], sum(sapply(arrays, function(a) dim(a)[length(dim(a))]))))
+  
+  return(combined_array)
+}
+```
+
+# Complete data
+
+We first consider the case that the data are collected completely over a
+regular grid. 
+
+We develop a neural Bayes estimator for a spatial
+Gaussian process model, where $\boldsymbol{Z} \equiv (Z_{1}, \dots, Z_{n})'$ are data collected at
+locations $\{\boldsymbol{s}_{1}, \dots, \boldsymbol{s}_{n}\}$ in
+a spatial domain  that is a subset of $\mathbb{R}^2$. The data are assumed to be
+spatially-correlated mean-zero Gaussian random variables with
+exponential covariance function, 
+$$
+\textrm{cov}(Z_i, Z_j) = \textrm{exp}(-\|\boldsymbol{s}_i - \boldsymbol{s}_j\|/\theta),
+$$
+with unknown range parameter $\theta > 0$. Here, we take the spatial domain be the unit square, we simulate data on a grid with $16^2 = 256$ possible observation locations, and we adopt a uniform prior, $\theta \sim \rm{Unif}(0, 0.4)$. 
+
+To begin, we define a function for sampling from the prior distribution and a function for marginal simulation from the statistical model. Note that our simulation code can be made faster (e.g., using parallel versions of `lapply`, utilising GPUs, etc.), but we provide a relatively simple implementation for pedagogical purposes: 
+
+```{r}
+# Sampling from the prior distribution
+# K: number of samples to draw from the prior
+prior <- function(K) { 
+  theta <- 0.4 * runif(K) # draw from the prior distribution
+  theta <- t(theta)       # reshape to matrix
+  return(theta)
+}
+
+# Marginal simulation from the statistical model
+# theta: a matrix of parameters drawn from the prior
+# m: number of conditionally independent replicates for each parameter vector
+simulate <- function(theta, m = 1) { 
+  
+  # Spatial locations, a grid over the unit square, and spatial distance matrix
+  N <- 16 # number of locations along each dimension of the grid
+  S <- expand.grid(seq(1, 0, len = N), seq(0, 1, len = N))
+  D <- as.matrix(dist(S))         
+  
+  # Simulate conditionally independent replicates for each parameter vector
+  Z <- lapply(1:ncol(theta), function(k) {
+    Sigma <- exp(-D/theta[k])  # covariance matrix
+    L <- t(chol(Sigma))        # lower Cholesky factor of Sigma
+    n <- nrow(L)               # number of observation locations
+    mm <- if (length(m) == 1) m else sample(m, 1) # allow for variable sample sizes
+    z <- matrix(rnorm(n*mm), nrow = n, ncol = mm) # standard normal variates
+    Z <- L %*% z               # conditionally independent replicates from the model
+    Z <- array(Z, dim = c(N, N, 1, mm)) # reshape to multidimensional array
+    Z
+  })
+  
+  return(Z)
+}
+```
+
+**A note on data format:** When working with the package `NeuralEstimators`, the following general rules regarding assumed data format apply: 
+
+- sets of parameter vectors are always stored as matrices, where each column corresponds to one parameter vector $\boldsymbol{\theta}$;  
+- simulated data are stored as a list, where each element of the list corresponds to a data set $\boldsymbol{Z}$ (possibly containing independent replicates) simulated conditional on a parameter vector $\boldsymbol{\theta}$. 
+
+When using CNNs, each data set must be stored as a multi-dimensional array. The penultimate dimension stores the so-called channels (this dimension is singleton for univariate processes, two for bivariate
+processes, etc.), while the final dimension stores conditionally independent replicates. For example, to store $50$ conditionally independent replicates of a bivariate spatial process measured over a $10\times15$ grid, one would construct an array of dimension $10\times15\times2\times50$.
+
+Now, let's visualise a few realisations from our spatial Gaussian process model:
+
+```{r, echo=FALSE, fig.width=8, fig.height=3, out.width='100%', fig.align='center'}
+# Visualise realisations
+theta <- matrix(c(0.05, 0.1, 0.2, 0.4), nrow = 1)
+Z <- simulate(theta)
+Z <- lapply(Z, function(z) { 
+  # Convert to matrix
+  z <- drop(z)
+  # Normalize to the range [-3, 3] for plotting purposes
+  z <- -3 + (z - min(z)) * (6 / (max(z) - min(z))) 
+  # Convert to long form dataframe
+  melt_base(z) # equivalent to reshape2::melt(z)
+})
+for (k in 1:length(Z)) Z[[k]]$theta <- theta[k] 
+df <- do.call(rbind, Z)
+ggplot(df, aes(x = Var2, y = Var1, fill = value)) + 
+  geom_tile() + 
+  facet_wrap(~theta, nrow = 1, labeller = label_bquote(theta == .(theta))) + 
+  scale_fill_viridis_c(option = "magma") + 
+  labs(fill = "", x = expression(s[1]), y = expression(s[2])) +
+  theme_bw() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) + 
+  coord_fixed()
+```
+
+Next, we design our neural-network architecture.
+
+The package `NeuralEstimators` is centred on the DeepSets framework
+[(Zaheer et al., 2017)](https://arxiv.org/abs/1703.06114), which
+allows for making inference with an arbitrary
+number of independent replicates and for incorporating both neural
+(learned) and user-defined summary statistics. Specifically, the neural
+Bayes estimator is taken to be of the form, 
+$$
+\hat{\boldsymbol{\theta}}(\boldsymbol{Z}_1,\dots,\boldsymbol{Z}_m) = \boldsymbol{\phi}\bigg\{\frac{1}{m} \sum_{i=1}^m\boldsymbol{\psi}(\boldsymbol{Z}_i)\bigg\},
+$$ 
+where $\boldsymbol{Z}_1,\dots,\boldsymbol{Z}_m$ are replicates of
+$\boldsymbol{Z}$, $\boldsymbol{\psi}(\cdot)$ is a conventional neural
+network whose architecture depends on the multivariate structure of the
+data (e.g., a CNN for gridded data), and $\boldsymbol{\phi}(\cdot)$ is
+(always) a multilayer perceptron (MLP). See [Sainsbury-Dale et al.
+(2024)](https://www.tandfonline.com/doi/full/10.1080/00031305.2023.2249522)
+for further details on the use of DeepSets in the context of neural
+Bayes estimation and a discussion on the framework's connection to
+conventional estimators. See also [Dumoulin and Visin (2016)](https://arxiv.org/abs/1603.07285)  for a detailed description of CNNs and their construction, which is beyond the scope of this vignette: 
+
+
+```{r}
+estimator <- juliaEval('
+  # Summary network
+  psi = Chain(
+      Conv((3, 3), 1 => 32, relu),   # 3x3 convolutional filter, 1 input channel to 32 output channels, ReLU activation
+      MaxPool((2, 2)),               # 2x2 max pooling layer for dimension reduction
+      Conv((3, 3), 32 => 64, relu),  # 3x3 convolutional filter, 32 input channels to 64 output channels, ReLU activation
+      MaxPool((2, 2)),               # 2x2 max pooling layer for dimension reduction
+      Flux.flatten                   # flatten the output to feed into a fully connected layer
+  )
+  
+  # Inference network
+  phi = Chain(
+      Dense(256, 64, relu),          # fully connected layer, 256 input neurons to 64 output neurons, ReLU activation
+      Dense(64, 1)                   # fully connected layer, 64 input neurons to 1 output neuron
+  )
+  
+  # Construct DeepSet object and initialise a point estimator
+  deepset = DeepSet(psi, phi)
+  estimator = PointEstimator(deepset)
+')
+```
+
+Next, we train the estimator using parameter vectors sampled from the prior distribution, and data simulated from the statistical model conditional on these parameter vectors:
+
+```{r}
+# Construct training and validation sets 
+K <- 25000                       # size of the training set 
+theta_train <- prior(K)          # parameter vectors used in stochastic-gradient descent during training
+theta_val   <- prior(K/10)       # parameter vectors used to monitor performance during training
+Z_train <- simulate(theta_train) # data used in stochastic-gradient descent during training
+Z_val   <- simulate(theta_val)   # data used to monitor performance during training
+
+# Train the estimator 
+estimator <- train(
+  estimator,
+  theta_train = theta_train,
+  theta_val   = theta_val,
+  Z_train = Z_train,
+  Z_val   = Z_val
+)
+```
+
+It is good practice to assess the performance of a trained estimator
+using out-of-sample test data:
+
+```{r, fig.width=4.5, fig.height=3, out.width='50%', fig.align='center'}
+# Test the estimator using out-of-sample data
+theta <- prior(1000)
+Z <- simulate(theta)
+assessment <- assess(estimator, theta, Z, estimator_names = "NBE")
+plotestimates(assessment)
+```
+
+Once the neural Bayes estimator has been trained and assessed, it can be
+applied to observed data collected completely over a $16\times 16$ grid
+using `estimate()`. Below, we use simulated data as a surrogate for observed data:
+
+```{r}
+theta    <- matrix(0.1)         # true parameter
+Z        <- simulate(theta)     # pretend that this is observed data
+estimate(estimator, Z)          # point estimates from the "observed" data
+```
+
+In practice, data are often incomplete and, in the next section, we
+describe methods that facilitate neural Bayes estimation in these
+settings.
+
+# Incomplete data
+
+We now consider the case where the data are collected over a regular
+grid, but where some elements of the grid are unobserved. This situation
+often arises in, for example, remote-sensing applications, where the
+presence of cloud cover prevents measurement in some places. 
+
+For instance, our data may look like:
+
+```{r, echo=FALSE, fig.width=8, fig.height=3, out.width='100%', fig.align='center'}
+# Replaces a proportion of elements with NA
+removedata <- function(Z, proportion = runif(1, 0.2, 0.8)) {
+  
+  # Ensure proportion is between 0 and 1
+  if (proportion < 0 || proportion > 1) stop("Proportion must be between 0 and 1")
+  
+  # Randomly sample indices to replace
+  n <- length(Z)
+  n_na <- round(proportion * n)
+  na_indices <- sample(1:n, n_na)
+  
+  # Replace selected elements with NA
+  Z[na_indices] <- NA
+  
+  return(Z)
+}
+# Visualise realisations
+theta <- matrix(c(0.05, 0.1, 0.2, 0.4), nrow = 1)
+Z <- simulate(theta)
+Z <- lapply(Z, function(z) { 
+  # Convert to matrix  
+  z <- drop(z)
+  # Normalize to the range [-3, 3]
+  z <- -3 + (z - min(z)) * (6 / (max(z) - min(z))) 
+  # Generate missingness
+  z <- removedata(z, 0.25)
+  # Convert to long form dataframe
+  melt_base(z) # equivalent to reshape2::melt(z)
+})
+for (k in 1:length(Z)) Z[[k]]$theta <- theta[k] 
+df <- do.call(rbind, Z)
+ggplot(df, aes(x = Var2, y = Var1, fill = value)) + 
+  geom_tile() + 
+  facet_wrap(~theta, nrow = 1, labeller = label_bquote(theta == .(theta))) + 
+  scale_fill_viridis_c(option = "magma", na.value = "transparent") + 
+  labs(fill = "", x = expression(s[1]), y = expression(s[2])) +
+  theme_bw() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) + 
+  coord_fixed() + 
+  theme(    
+    panel.grid.major = element_blank(),  # Remove major grid lines
+    panel.grid.minor = element_blank()  # Remove minor grid lines
+    )
+```
+
+We here consider two techniques that facilitate neural Bayes estimation with
+incomplete data: the "masking approach" of [Wang et al.
+(2024)](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1012184)
+and the "neural EM algorithm".
+
+## The masking approach
+
+The first technique that we consider is the so-called
+masking approach of [Wang et al.
+(2024)](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1012184).
+The strategy involves completing the data by replacing missing values
+with zeros, and using auxiliary variables to encode the missingness
+pattern, which are also passed into the network.
+
+Let $\boldsymbol{Z}$ denote the complete-data vector. Then, the masking
+approach considers inference based on $\boldsymbol{W}$, a vector of
+indicator variables that encode the missingness pattern (with elements
+equal to one or zero if the corresponding element of $\boldsymbol{Z}$ is
+observed or missing, respectively), and
+$$
+\boldsymbol{U} \equiv \boldsymbol{Z} \odot \boldsymbol{W},
+$$
+where $\odot$ denotes elementwise multiplication and the product of a missing element and zero is defined to be zero. Irrespective of the
+missingness pattern, $\boldsymbol{U}$ and $\boldsymbol{W}$ have the same
+fixed dimensions and hence may be processed easily using a single neural
+network. A neural point estimator is then trained on realisations of
+$\{\boldsymbol{U}, \boldsymbol{W}\}$ which, by construction, do not
+contain any missing elements.
+
+Since the missingness pattern $\boldsymbol{W}$ is now an input to the
+neural network, it must be incorporated during the training phase. When
+interest lies only in making inference from a single already-observed
+data set, $\boldsymbol{W}$ is fixed and known. However, amortised inference, whereby one trains a single neural network that will be used to make inference with many data sets, requires a model for the missingness pattern $\boldsymbol{W}$.
+
+Below, we define a helper function that removes a specified proportion
+of the data completely at random, and which serves to define our
+missingness model when using the masking approach in this example:
+
+```{r}
+# Replaces a proportion of elements with NA
+removedata <- function(Z, proportion = runif(1, 0.2, 0.8)) {
+  
+  # Ensure proportion is between 0 and 1
+  if (proportion < 0 || proportion > 1) stop("Proportion must be between 0 and 1")
+  
+  # Randomly sample indices to replace
+  n <- length(Z)
+  n_na <- round(proportion * n)
+  na_indices <- sample(1:n, n_na)
+  
+  # Replace selected elements with NA
+  Z[na_indices] <- NA
+  
+  return(Z)
+}
+```
+
+To make the general strategy concrete, consider the encoded data set $\{\boldsymbol{U}, \boldsymbol{W}\}$ constructed from the following incomplete data $\boldsymbol{Z}_1$:
+
+```{r, echo=FALSE, fig.width=8, fig.height=3, out.width='80%', fig.align='center'}
+theta <- matrix(0.2)
+Z <- simulate(theta)[[1]]
+Z <- removedata(Z, 0.25)
+Z <- drop(Z)
+Z <- (Z - min(Z, na.rm = TRUE)) / (max(Z, na.rm = TRUE) - min(Z, na.rm = TRUE))
+UW <- encodedata(Z)
+U <- UW[, , 1, ]
+W <- UW[, , 2, ]
+
+df_Z <- melt_base(Z); df_Z$facet_var <- "Z_1"
+df_U <- melt_base(U); df_U$facet_var <- "U"
+df_W <- melt_base(W); df_W$facet_var <- "W"
+df <- rbind(df_Z, df_U, df_W)
+facet_labels = c(
+  "Z_1" = expression(bold(Z)[1]), 
+  "U" = expression(bold(U)),
+  "W" = expression(bold(W))
+)
+df$facet_var <- factor(df$facet_var, levels = names(facet_labels), labels = facet_labels)
+
+ggplot(df, aes(x = Var2, y = Var1, fill = value)) + 
+  geom_tile() + 
+  facet_wrap(~facet_var, nrow = 1, labeller = label_parsed) + 
+  scale_fill_viridis_c(option = "magma", na.value = "transparent") + 
+  labs(fill = "", x = expression(s[1]), y = expression(s[2])) +
+  theme_bw() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) + 
+  coord_fixed() + 
+  theme(    
+    panel.grid.major = element_blank(),  
+    panel.grid.minor = element_blank()  
+  )
+```
+
+Next, we construct and train a masked neural Bayes estimator. Here, the
+first convolutional layer takes two input channels, since we store the
+encoded data $\boldsymbol{U}$ in the first channel and the missingness
+pattern $\boldsymbol{W}$ in the second. Otherwise, the architecture
+remains as given above:
+
+```{r}
+masked_estimator <- juliaEval('
+  # Summary network
+  psi = Chain(
+  	Conv((3, 3), 2 => 32, relu),
+  	MaxPool((2, 2)),
+  	Conv((3, 3),  32 => 64, relu),
+  	MaxPool((2, 2)),
+  	Flux.flatten
+	)
+	
+	# Inference network
+  phi = Chain(Dense(256, 64, relu), Dense(64, 1))
+
+  deepset = DeepSet(psi, phi)
+')
+```
+
+Next, we generate incomplete data for training and validation using `removedata()`, and construct the corresponding encoded data sets $\{\boldsymbol{U}, \boldsymbol{W}\}$ using `encodedata()`:
+
+```{r}
+UW_train <- encodedata(lapply(Z_train, removedata))
+UW_val   <- encodedata(lapply(Z_val, removedata))
+```
+
+Training and assessment of the neural Bayes estimator then proceeds as
+usual:
+
+```{r, fig.width=5, fig.height=3, out.width='50%', fig.align='center'}
+# Train the estimator 
+masked_estimator <- train(
+  masked_estimator,
+  theta_train = theta_train,
+  theta_val   = theta_val,
+  Z_train = UW_train,
+  Z_val   = UW_val
+)
+
+# Test the estimator with many data sets, each with a missingness proportion of 25%
+theta <- prior(1000)
+Z <- simulate(theta)
+Z1 <- lapply(Z, removedata, 0.25)
+UW <- lapply(Z1, encodedata)
+assessment <- assess(masked_estimator, theta, UW, estimator_names = "Masked NBE")
+plotestimates(assessment)
+```
+
+Note that the variance of the estimates is larger when compared to the estimates obtained from complete data; this is to be expected, since missingness reduces the available information for making inference on $\boldsymbol{\theta}$. 
+
+Once trained and assessed, we can apply our masked neural Bayes estimator to (incomplete) observed data. The data must be encoded in the same manner that was done during training. Below, we use simulated data as a surrogate for real data, with a missingness proportion of 0.25: 
+
+```{r}
+theta <- matrix(0.2)
+Z <- simulate(theta)[[1]] 
+Z1 <- removedata(Z, 0.25)
+UW <- encodedata(Z1)
+c(estimate(masked_estimator, UW))
+```
+
+## The neural EM algorithm
+
+Let $\boldsymbol{Z}_1$ and $\boldsymbol{Z}_2$ denote the observed and unobserved (i.e., missing) data, respectively, and let $\boldsymbol{Z} \equiv (\boldsymbol{Z}_1', \boldsymbol{Z}_2')'$ denote the complete data. A classical approach to facilitating inference when data are missing is the expectation-maximisation (EM) algorithm [(Dempster et al., 1977)](https://rss.onlinelibrary.wiley.com/doi/10.1111/j.2517-6161.1977.tb01600.x). 
+
+The *neural EM algorithm* is an approximate version of the conventional (Bayesian) Monte Carlo EM algorithm [(Wei and Tanner, 1990)](https://www.tandfonline.com/doi/abs/10.1080/01621459.1990.10474930) which, at the $l$th iteration, updates the parameter vector through
+$$
+\boldsymbol{\theta}^{(l)} = \textrm{argmax}_{\boldsymbol{\theta}} \sum_{h = 1}^H \ell(\boldsymbol{\theta};  \boldsymbol{Z}_1,  \boldsymbol{Z}_2^{(lh)}) + \log \pi_H(\boldsymbol{\theta}),
+$$
+where realisations of the missing-data component, $\{\boldsymbol{Z}_2^{(lh)} : h = 1, \dots, H\}$, are sampled from the probability distribution of $\boldsymbol{Z}_2$ given $\boldsymbol{Z}_1$ and $\boldsymbol{\theta}^{(l-1)}$, and where $\pi_H(\boldsymbol{\theta}) \propto \{\pi(\boldsymbol{\theta})\}^H$ is a concentrated version of the chosen prior. Note that when $\pi(\boldsymbol{\theta})$ is uniform, as is the case in our working example, the distribution implied by $\pi_H(\cdot)$ is the same as that implied by $\pi(\cdot)$. 
+
+Given the conditionally simulated data, the neural EM algorithm performs the above EM update using a neural network that returns the MAP estimate from the conditionally simulated data. Such a neural network, which we refer to as a neural MAP estimator, can be obtained by training a neural Bayes estimator under a continuous relaxation of the 0--1 loss function, for example, the loss function,
+$$
+ L_{\kappa}(\boldsymbol{\theta}, \hat{\boldsymbol{\theta}}) 
+ = \rm{tanh}(\|\hat{\boldsymbol{\theta}} - \boldsymbol{\theta}\|/\kappa),
+   \quad \kappa > 0,
+$$
+which yields the 0--1 loss function in the limit as $\kappa \to 0$. 
+
+An advantage of using the neural EM algorithm is that the neural-network architecture does not need to be altered compared with that used in the complete-data case, and we can therefore use our complete-data estimator trained earlier as the starting point of our neural MAP estimator; this is known as pretraining, and it can substantially reduce the computational cost of training. 
+
+<!-- Note that above EM update requires a MAP estimate from (conditionally-simulated) replicates. If we wish to allow for $H$ to be variable (e.g., chosen adaptively across iterations), then one should train the estimator to account for data sets with variable sample sizes. See [Sainsbury-Dale et al. (2024, Sec. 2.2.2)](https://www.tandfonline.com/doi/full/10.1080/00031305.2023.2249522) for further discussion. -->
+<!-- # Simulate data sets with variable sample sizes, allowing H to be chosen at inference time -->
+<!-- Z_train <- simulate(theta_train, 1:100) -->
+<!-- Z_val   <- simulate(theta_val, 1:100) -->
+
+Below, we train a neural MAP estimator, employing the 0--1 surrogate loss function given above with $\kappa = 0.1$: 
+
+```{r}
+# Train the estimator under the tanh loss, a surrogate for the 0-1 loss 
+estimator <- train(
+  estimator,
+  theta_train = theta_train,
+  theta_val   = theta_val,
+  Z_train = Z_train,
+  Z_val   = Z_val, 
+  loss = tanhloss(0.1)
+)
+```
+
+An advantage of the neural EM algorithm is that the training of the neural network is exactly the same as the complete-data case, so the methods for assessing the estimator that we describe in Section 1 can be applied directly here.
+
+Next, we define a function for conditional simulation. For the current model, this simply involves sampling from a conditional multivariate Gaussian distribution (see, e.g., [here](https://en.wikipedia.org/wiki/Multivariate_normal_distribution#Conditional_distributions)):
+
+```{r}
+simulateconditional <- function(Z, theta, nsims = 1){
+  
+  # Coerce theta to scalar if given as a matrix
+  theta <- theta[1] 
+  
+  # Save the original dimensions
+  dims <- dim(Z) 
+  N <- nrow(Z)
+  
+  # Convert to vector 
+  Z <- c(Z) 
+  
+  # Indices of observed and missing elements 
+  I_1 <- which(!is.na(Z)) 
+  I_2 <- which(is.na(Z))  
+  n_1 <- length(I_1)
+  n_2 <- length(I_2)
+  
+  # Extract the observed data 
+  Z_1 <- Z[I_1] 
+  
+  # Spatial locations and distance matrices
+  S <- expand.grid(seq(1, 0, len = N), seq(0, 1, len = N))
+  D <- as.matrix(dist(S))  
+  D_22 <- D[I_2, I_2]
+  D_11 <- D[I_1, I_1]
+  D_12 <- D[I_1, I_2]
+  
+  # Marginal covariance matrices
+  Sigma_22 <- exp(-D_22 / theta)
+  Sigma_11 <- exp(-D_11 / theta)
+  Sigma_12 <- exp(-D_12 / theta)
+  
+  # Conditional covariance matrix, cov(Z_2 | Z_1, theta), its Cholesky factor, 
+  # and the conditional mean, E(Z_2 | Z_1, theta)
+  L_11 <- t(chol(Sigma_11))
+  x <- solve(L_11, Sigma_12)
+  y <- solve(L_11, Z_1)
+  Sigma <- Sigma_22 - crossprod(x)
+  L <- t(chol(Sigma))
+  mu <- c(crossprod(x, y))
+  
+  # Simulate from the conditional distribution Z_2 | Z_1, theta ~ Gau(mu, Sigma)
+  z <- matrix(rnorm(n_2 * nsims), nrow = n_2, ncol = nsims)
+  Z_2 <- mu + L %*% z
+  
+  # Combine Z_1 with conditionally-simulated replicates of Z_2
+  Z <- sapply(1:nsims,function(l){
+    z <-rep(NA, n_1 + n_2)
+    z[I_1]<- Z_1
+    z[I_2]<- Z_2[, l]
+    z
+  })
+  
+  # Convert Z to an array with appropriate dimensions
+  Z <- array(Z, dim=c(dims,1, nsims))
+  
+  return(Z)
+}
+```
+
+Let's visualise a few conditional simulations given incomplete data $\boldsymbol{Z}_1$. Below, the left panel shows the incomplete data $\boldsymbol{Z}_1$, and the remaining panels show conditional simulations given $\boldsymbol{Z}_1$ and the true parameter $\theta = 0.2$: 
+
+```{r, echo=FALSE, fig.width=8, fig.height=3, out.width='100%', fig.align='center'}
+# Visualise conditional simulations using Z1 defined above
+Z_complete <- simulateconditional(drop(Z1), theta, nsims = 3)
+Z_combined <- abind_base(Z1, Z_complete)
+Z_combined <- drop(Z_combined)
+dfs <- apply(Z_combined, 3, function(z) {
+  # Convert to matrix  
+  z <- drop(z)
+  # Normalize to the range [-3, 3]
+  z <- -3 + (z - min(z, na.rm = TRUE)) * (6 / (max(z, na.rm = TRUE) - min(z, na.rm = TRUE))) 
+  # Convert to long form dataframe 
+  melt_base(z) # equivalent to reshape2::melt(z)
+})
+for (i in 1:length(dfs)) {
+  if (i == 1) {
+    dfs[[i]]$dataset <- "Z_1"
+  } else {
+    dfs[[i]]$dataset <- paste0("Z", i-1)
+  }
+}
+df <- do.call(rbind, dfs)
+Z_labels = c(
+  "Z_1" = expression(bold(Z)[1]), 
+  "Z1" = expression(bold(Z)^(1)),
+  "Z2" = expression(bold(Z)^(2)),
+  "Z3" = expression(bold(Z)^(3))
+)
+df$dataset <- factor(df$dataset, levels = names(Z_labels), labels = Z_labels)
+ggplot(df, aes(x = Var2, y = Var1, fill = value)) + 
+  geom_tile() + 
+  facet_wrap(~dataset, nrow = 1, labeller = label_parsed) + 
+  scale_fill_viridis_c(option = "magma", na.value = "transparent") + 
+  labs(fill = "", x = expression(s[1]), y = expression(s[2])) +
+  theme_bw() +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) + 
+  coord_fixed() + 
+  theme(    
+    panel.grid.major = element_blank(),  
+    panel.grid.minor = element_blank()  
+  )
+```
+
+The final step is to define a function that implements the Monte Carlo EM algorithm. This involves the specification of an initial estimate $\boldsymbol{\theta}^{(0)}$, the maximum number of iterations, and a convergence criterion:
+
+```{r}
+# Monte Carlo EM algorithm 
+EM <- function(Z1,                # incomplete data
+               estimator,         # (neural) MAP estimator
+               theta_0,           # initial estimate
+               niterations = 100, # maximum number of iterations
+               tolerance = 0.01,  # convergence tolerance
+               nconsecutive = 3,  # number of consecutive iterations for which the convergence criterion must be met
+               nsims = 1,         # Monte Carlo sample size
+               verbose = TRUE,    # print current estimate to console if TRUE
+               return_iterates = FALSE  # return all iterates if TRUE
+               ) {
+  
+  if(verbose) print(paste("Initial estimate:", theta_0))
+  theta_l <- theta_0          # initial estimate
+  convergence_counter <- 0    # initialise counter for consecutive convergence
+  
+  # Initialize a matrix to store all iterates as columns
+  p <- length(theta_0)
+  theta_all <- matrix(NA, nrow = p, ncol = niterations + 1)
+  theta_all[, 1] <- theta_0
+
+  for (l in 1:niterations) {
+    # complete the data by conditional simulation
+    Z <- simulateconditional(drop(Z1), theta_l, nsims = nsims)
+    # compute the MAP estimate from the conditionally sampled replicates
+    if ("JuliaProxy" %in% class(estimator)) {
+      theta_l_plus_1 <- c(estimate(estimator, Z)) # neural MAP estimator
+    } else {
+      theta_l_plus_1 <- estimator(Z, theta_l)     # analytic MAP estimator
+    }
+    # check convergence criterion
+    if (max(abs(theta_l_plus_1 - theta_l) / abs(theta_l)) < tolerance) {
+      # increment counter if condition is met
+      convergence_counter <- convergence_counter + 1  
+      # check if convergence criterion has been met for required number of iterations
+      if (convergence_counter == nconsecutive) {        
+        if(verbose) message("The EM algorithm has converged")
+        theta_all[, l + 1] <- theta_l_plus_1  # store the final iterate
+        break
+      }
+    } else {
+      # reset counter if condition is not met
+      convergence_counter <- 0  
+    }
+    theta_l <- theta_l_plus_1  
+    theta_all[, l + 1] <- theta_l  # store the iterate
+    if(verbose) print(paste0("Iteration ", l, ": ", theta_l))
+  }
+  
+  # Remove unused columns if convergence occurred before max iterations
+  theta_all <- theta_all[, 1:(l + 1), drop = FALSE]
+
+  # Return all iterates if return_iterates is TRUE, otherwise return the last iterate
+  if (return_iterates) {
+    return(theta_all)
+  } else {
+    return(theta_all[, ncol(theta_all)])
+  }
+}
+```
+
+We are now ready to apply the neural EM algorithm with incomplete data. Here, we use the same incomplete data $\boldsymbol{Z}_1$ simulated conditionally on $\theta = 0.2$ at the end of the preceding subsection:
+
+```{r}
+theta_0 <- 0.1
+EM(Z1, estimator, theta_0, nsims = 100)
+```
+
+Visualise the Monte Carlo variability with different Monte Carlo sample sizes: 
+
+```{r, fig.width=7, fig.height=3, out.width='80%', fig.align='center'}
+all_H <- c(1, 10, 100)
+dfs <- list()
+for (H in all_H) {
+    estimates <- c(EM(Z1, estimator, theta_0, nsims = H, return_iterates = TRUE, verbose = FALSE, tolerance = 0.0001))
+    df <- data.frame(
+      iteration = 1:length(estimates),
+      estimate = estimates, 
+      H = H
+      )
+    dfs <- c(dfs, list(df))
+}
+df <- do.call(rbind, dfs)
+ggplot(df) + 
+  geom_line(aes(x = iteration, y = estimate)) + 
+  facet_wrap(~ H, labeller = labeller(H = function(labels) paste0("H = ", labels)), nrow = 1) + 
+  theme_bw()
+```
+
+
+## Summary
+
+We have considered two approaches that facilitate neural Bayes estimation with
+incomplete data. 
+
+1.  The **masking approach**, where the input to the neural network is the
+    complete-data vector with missing entries replaced by a constant
+    (typically zero), along with a vector of indicator variables that
+    encode the missingness pattern.
+    <p style="margin-left: 30px;"><strong>+</strong> Does not require conditional simulation, and is therefore broadly applicable.</p>
+    <p style="margin-left: 30px;"><strong>+</strong> Can be used with all loss functions that are amenable to gradient-based training.</p>
+    <p style="margin-left: 30px;"><strong>-</strong> Needs the neural network to take an additional input (the missingness pattern).</p>
+    <p style="margin-left: 30px;"><strong>-</strong> More complicated learning task.</p>
+    <p style="margin-left: 30px;"><strong>-</strong> Requires a model for the missingness mechanism.</p>
+2.  The **neural EM algorithm**, a Monte Carlo EM algorithm where the incomplete data are completed using conditional simulation. 
+    <p style="margin-left: 30px;"><strong>+</strong> Neural-network architecture is the same as that used in the complete-data case.</p>
+    <p style="margin-left: 30px;"><strong>+</strong> Simpler learning task (mapping from the complete data to the parameter space).</p>
+    <p style="margin-left: 30px;"><strong>+</strong> Does not require a model for the missingness mechanism.</p>
+    <p style="margin-left: 30px;"><strong>-</strong> Requires conditional simulation, which places restrictions on the applicable class of models.</p>
+    <p style="margin-left: 30px;"><strong>-</strong> Limited to providing MAP estimates.</p>

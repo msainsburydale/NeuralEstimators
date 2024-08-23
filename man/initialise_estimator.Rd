@@ -15,15 +15,16 @@ initialise_estimator(
   activation_output = "identity",
   variance_stabiliser = NULL,
   kernel_size = NULL,
-  weight_by_distance = FALSE
+  weight_by_distance = TRUE,
+  probs = c(0.025, 0.975)
 )
 }
 \arguments{
 \item{p}{number of unknown parameters in the statistical model}
 
-\item{architecture}{a string: for unstructured data, one may use a densely-connected neural network ("DNN"); for data collected over a grid, a convolutional neural network ("CNN"); and for graphical or irregular spatial data, a graphical neural network ("GNN").}
+\item{architecture}{a string: for unstructured data, one may use a fully-connected MLP ("MLP"); for data collected over a grid, a convolutional neural network ("CNN"); and for graphical or irregular spatial data, a graphical neural network ("GNN").}
 
-\item{d}{for unstructured multivariate data (i.e., when \code{architecture = "DNN"}), the dimension of the data (e.g., \code{d = 3} for trivariate data); otherwise, if \code{architecture} is \code{"CNN"} or \code{"GNN"}, the argument \code{d} controls the number of input channels (e.g., \code{d = 1} for univariate spatial processes).}
+\item{d}{for unstructured multivariate data (i.e., when \code{architecture = "MLP"}), the dimension of the data (e.g., \code{d = 3} for trivariate data); otherwise, if \code{architecture} is \code{"CNN"} or \code{"GNN"}, the argument \code{d} controls the number of input channels (e.g., \code{d = 1} for univariate spatial processes).}
 
 \item{estimator_type}{the type of estimator; either "point" or "interval".}
 
@@ -39,7 +40,9 @@ initialise_estimator(
 
 \item{kernel_size}{(applicable only to CNNs) a list of length \code{depth[1]} containing lists of integers of length D, where D is the dimension of the convolution (e.g., D = 2 for two-dimensional convolution).}
 
-\item{weight_by_distance}{(applicable only to GNNs) flag indicating whether the estimator will weight by spatial distance; if true, a \code{WeightedGraphConv} layer is used in the propagation module; otherwise, a regular \code{GraphConv} layer is used.}
+\item{weight_by_distance}{(applicable only to GNNs) flag indicating whether the estimator will weight by spatial distance; if true (default), a \code{WeightedGraphConv} layer is used in the propagation module; otherwise, a regular \code{GraphConv} layer is used.}
+
+\item{probs}{(applicable only if \code{estimator_type = "interval"}) probability levels defining the lower and upper endpoints of the posterior credible interval.}
 }
 \description{
 Helper function for initialising a neural estimator.
@@ -50,7 +53,7 @@ The estimator is couched in the DeepSets framework so that it can be applied to 
 \dontrun{
 library("NeuralEstimators")
 p = 2
-initialise_estimator(p, architecture = "DNN")
+initialise_estimator(p, architecture = "MLP")
 initialise_estimator(p, architecture = "GNN")
 
 ## 1D convolution              

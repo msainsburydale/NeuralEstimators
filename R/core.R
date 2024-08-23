@@ -5,8 +5,8 @@
 #' The estimator is couched in the DeepSets framework so that it can be applied to data with an arbitrary number of independent replicates (including the special case of a single replicate).
 #' 
 #' @param p number of unknown parameters in the statistical model
-#' @param architecture a string: for unstructured data, one may use a densely-connected neural network ("DNN"); for data collected over a grid, a convolutional neural network ("CNN"); and for graphical or irregular spatial data, a graphical neural network ("GNN").
-#' @param d for unstructured multivariate data (i.e., when `architecture = "DNN"`), the dimension of the data (e.g., `d = 3` for trivariate data); otherwise, if `architecture` is `"CNN"` or `"GNN"`, the argument \code{d} controls the number of input channels (e.g., \code{d = 1} for univariate spatial processes). 
+#' @param architecture a string: for unstructured data, one may use a fully-connected MLP ("MLP"); for data collected over a grid, a convolutional neural network ("CNN"); and for graphical or irregular spatial data, a graphical neural network ("GNN").
+#' @param d for unstructured multivariate data (i.e., when `architecture = "MLP"`), the dimension of the data (e.g., `d = 3` for trivariate data); otherwise, if `architecture` is `"CNN"` or `"GNN"`, the argument \code{d} controls the number of input channels (e.g., \code{d = 1} for univariate spatial processes). 
 #' @param estimator_type the type of estimator; either "point" or "interval".
 #' @param depth the number of hidden layers. Either a single integer or an integer vector of length two specifying the depth of inner (summary) and outer (inference) network of the DeepSets framework. Since there is an input and an output layer, the total number of layers is \code{sum(depth) + 2}.
 #' @param width a single integer or an integer vector of length \code{sum(depth)} specifying the width (or number of convolutional filters/channels) in each layer.
@@ -14,13 +14,14 @@
 #' @param activation_output the activation function of the output layer layer. Accepts a string of Julia code (default \code{"identity"}).
 #' @param variance_stabiliser a function that will be applied directly to the input, usually to stabilise the variance.: a string ('log' for the natural logarithm, or 'cbrt' for the cube-root function), or a string of Julia code that will be converted to a Julia function using \code{juliaEval()}.
 #' @param kernel_size  (applicable only to CNNs) a list of length \code{depth[1]} containing lists of integers of length D, where D is the dimension of the convolution (e.g., D = 2 for two-dimensional convolution).
-#' @param weight_by_distance (applicable only to GNNs) flag indicating whether the estimator will weight by spatial distance; if true, a \code{WeightedGraphConv} layer is used in the propagation module; otherwise, a regular \code{GraphConv} layer is used.
+#' @param weight_by_distance (applicable only to GNNs) flag indicating whether the estimator will weight by spatial distance; if true (default), a \code{WeightedGraphConv} layer is used in the propagation module; otherwise, a regular \code{GraphConv} layer is used.
+#' @param probs (applicable only if `estimator_type = "interval"`) probability levels defining the lower and upper endpoints of the posterior credible interval.
 #' @export 
 #' @examples
 #' \dontrun{
 #' library("NeuralEstimators")
 #' p = 2
-#' initialise_estimator(p, architecture = "DNN")
+#' initialise_estimator(p, architecture = "MLP")
 #' initialise_estimator(p, architecture = "GNN")
 #' 
 #' ## 1D convolution              
@@ -40,7 +41,8 @@ initialise_estimator <- function(
   activation_output = "identity", 
   variance_stabiliser = NULL, 
   kernel_size = NULL, 
-  weight_by_distance = FALSE
+  weight_by_distance = TRUE,
+  probs = c(0.025, 0.975)   
 ) {
   
   # Convert numbers that should be integers (so that the user can write 32 rather than 32L)
@@ -54,9 +56,7 @@ initialise_estimator <- function(
     if (!is.list(kernel_size)) stop("The argument `kernel_size` must be a list vectors")
     kernel_size <- lapply(kernel_size, as.integer)
   }
-  # browser()
-  # juliaLet("using NeuralEstimators: coercetotuple; println(typeof(coercetotuple(x)))", x = kernel_size)
-  
+
   juliaEval("using NeuralEstimators, Flux")
   
   # Allow the user to define the activation functions using a string of Julia code
@@ -86,7 +86,9 @@ initialise_estimator <- function(
                         activation_output = activation_output, 
                         variance_stabiliser = variance_stabiliser,
                         kernel_size = kernel_size, 
-                        weight_by_distance = weight_by_distance)", 
+                        weight_by_distance = weight_by_distance, 
+                        probs = probs
+    )", 
     p = p,
     architecture = architecture,
     d = d,
@@ -97,7 +99,8 @@ initialise_estimator <- function(
     activation_output = activation_output, 
     kernel_size = kernel_size, 
     weight_by_distance = weight_by_distance, 
-    variance_stabiliser = variance_stabiliser)
+    variance_stabiliser = variance_stabiliser, 
+    probs = probs)
   
   return(estimator)
 }
@@ -551,7 +554,7 @@ assess <- function(
   list(estimates = estimates, runtimes = runtimes)
 }
 
-
+#TODO why with only one data set do we get a Julia object return type?
 #' @title estimate
 #'
 #' @description estimate parameters from observed data using a neural estimator
