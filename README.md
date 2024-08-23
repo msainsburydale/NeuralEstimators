@@ -5,7 +5,7 @@
 [![codecov](https://codecov.io/gh/msainsburydale/NeuralEstimators/branch/main/graph/badge.svg?token=6cXItEsKs5)](https://codecov.io/gh/msainsburydale/NeuralEstimators)
 
 [docs-dev-img]: https://img.shields.io/badge/vignette-blue.svg
-[docs-dev-url]: https://raw.githack.com/msainsburydale/NeuralEstimators/main/NeuralEstimators.html
+[docs-dev-url]: https://raw.githack.com/msainsburydale/NeuralEstimators/main/inst/doc/NeuralEstimators.html
 
 [julia-repo-img]: https://img.shields.io/badge/Julia_repo-purple.svg
 [julia-repo-url]: https://github.com/msainsburydale/NeuralEstimators.jl
@@ -13,7 +13,7 @@
 [julia-docs-img]: https://img.shields.io/badge/Julia_docs-purple.svg
 [julia-docs-url]: https://msainsburydale.github.io/NeuralEstimators.jl/dev/
 
-This repository contains the `R` interface to the `Julia` package `NeuralEstimators` (see [here](https://github.com/msainsburydale/NeuralEstimators.jl)). The package facilitates the user-friendly development of neural point estimators, which are neural networks that transform data into parameter point estimates. They are likelihood free, substantially faster than classical methods, and can be designed to be approximate Bayes estimators. The package caters for any model for which simulation is feasible.  See the [vignette](https://raw.githack.com/msainsburydale/NeuralEstimators/main/NeuralEstimators.html) to get started!
+This repository contains the `R` interface to the `Julia` package `NeuralEstimators` (see [here](https://github.com/msainsburydale/NeuralEstimators.jl)). The package facilitates the user-friendly development of neural point estimators, which are neural networks that transform data into parameter point estimates. They are likelihood free, substantially faster than classical methods, and can be designed to be approximate Bayes estimators. The package caters for any model for which simulation is feasible.  See the [vignette](https://raw.githack.com/msainsburydale/NeuralEstimators/main/inst/doc/NeuralEstimators.html) to get started!
 
 ### Installation tips
 
@@ -25,7 +25,7 @@ To install the package, please:
 1. Install the `R` interface to `NeuralEstimators`.
  	- Install and load `devtools` in R and then run `devtools::install_github("msainsburydale/NeuralEstimators")`.
 
-Note that if you wish to simulate training data "on-the-fly" using `R` functions, you will also need to install the Julia package `RCall`. Note also that one may compile the vignette during installation (which takes roughly 5 minutes) by adding the argument `build_vignettes = TRUE` in the final command above.   
+Note that if you wish to simulate training data "on-the-fly" using `R` functions, you will also need to install the Julia package `RCall`. Note also that one may compile the vignettes during installation (which takes roughly 10 minutes) by adding the argument `build_vignettes = TRUE` in the final command above.   
 
 ### Supporting and citing
 
@@ -69,4 +69,4 @@ Several other software packages have been developed to facilitate neural likelih
 
 A summary of the functionality in these packages is given in [Zammit-Mangion et al. (2024, Section 6.1)](https://arxiv.org/abs/2404.12484). Note that this list of related packages was created in July 2024; if you have software to add to this list, please contact the package maintainer. 
 
-<!-- This package cannot go on CRAN as is, because of the dependence on Julia. The vignette might need to be pre-compiled. I do this in one of my packages, EFDR, where essentially the "vignette" is a link to an HTML file included elsewhere in the package (inst/doc I believe). In your case you may even point it towards the output of the Github Actions CI once you get that working, that would be better. -->
+<!-- TODO This package cannot go on CRAN as is, because of the dependence on Julia. The vignette might need to be pre-compiled. I do this in one of my packages, EFDR, where essentially the "vignette" is a link to an HTML file included elsewhere in the package (inst/doc I believe). In your case you may even point it towards the output of the Github Actions CI once you get that working, that would be better. -->
