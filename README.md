@@ -13,7 +13,7 @@
 [julia-docs-img]: https://img.shields.io/badge/Julia_docs-purple.svg
 [julia-docs-url]: https://msainsburydale.github.io/NeuralEstimators.jl/dev/
 
-This repository contains the `R` interface to the `Julia` package `NeuralEstimators` (see [here](https://github.com/msainsburydale/NeuralEstimators.jl)). The package facilitates the user-friendly development of neural point estimators, which are neural networks that transform data into parameter point estimates. They are likelihood free, substantially faster than classical methods, and can be designed to be approximate Bayes estimators. The package caters for any model for which simulation is feasible.  See the [vignette](https://raw.githack.com/msainsburydale/NeuralEstimators/main/inst/doc/NeuralEstimators.html) to get started!
+This repository contains the `R` interface to the `Julia` package `NeuralEstimators` (see [here](https://github.com/msainsburydale/NeuralEstimators.jl)). The package facilitates the user-friendly development of neural point estimators, which are neural networks that transform data into parameter point estimates. They are likelihood free, substantially faster than classical methods, and can be designed to be approximate Bayes estimators. The package caters for any model for which simulation is feasible. See the [vignette](https://raw.githack.com/msainsburydale/NeuralEstimators/main/inst/doc/NeuralEstimators.html) to get started!
 
 ### Installation tips
 

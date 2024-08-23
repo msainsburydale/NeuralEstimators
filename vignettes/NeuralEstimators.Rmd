@@ -247,7 +247,7 @@ The training, assessment, and application of the neural Bayes estimator then rem
 
 ## Gridded data
 
-For data collected over a regular grid, the neural Bayes estimator is based on a convolutional neural network (CNN). We give specific attention to this case in a separate vignette; there, we also outline two techinques for performing neural Bayes estimation with **incomplete/missing data** [(Wang et al., 2024)](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1012184). 
+For data collected over a regular grid, the neural Bayes estimator is based on a convolutional neural network (CNN). We give specific attention to this case in a separate vignette, available [here](https://raw.githack.com/msainsburydale/NeuralEstimators/main/inst/doc/NeuralEstimators_IncompleteData.html). There, we also outline two techinques for performing neural Bayes estimation with **incomplete/missing data** [(Wang et al., 2024)](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1012184). 
 
 # Other topics
 

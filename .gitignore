@@ -8,3 +8,4 @@ Meta
 doc/
 # Do not ignore 'inst/doc' directory
 !inst/doc/
+/doc/
