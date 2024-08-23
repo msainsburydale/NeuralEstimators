@@ -2,10 +2,9 @@
 .Rhistory
 .Rproj.user
 .DS_Store
-Github_example.R
-to-do
-glm_example.R
-doc
 Meta
-/doc/
 /Meta/
+# Ignore the 'doc' directory
+doc/
+# Do not ignore 'inst/doc' directory
+!inst/doc/
