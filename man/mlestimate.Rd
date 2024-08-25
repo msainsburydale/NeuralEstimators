@@ -4,16 +4,16 @@
 \alias{mlestimate}
 \title{Maximum likelihood estimation}
 \usage{
-mlestimate(estimator, Z, theta_grid = NULL, theta_init = NULL, use_gpu = TRUE)
+mlestimate(estimator, Z, theta_grid = NULL, theta0 = NULL, use_gpu = TRUE)
 }
 \arguments{
-\item{estimator}{a neural likelihood or likelihood-to-evidence-ratio estimator}
+\item{estimator}{a neural likelihood-to-evidence-ratio estimator}
 
 \item{Z}{data; it's format should be amenable to the architecture of \code{estimator}}
 
 \item{theta_grid}{a (fine) gridding of the parameter space, given as a matrix with p rows, where p is the number of parameters in the model}
 
-\item{theta_init}{a vector of initial parameter estimates}
+\item{theta0}{a vector of initial parameter estimates}
 
 \item{use_gpu}{a boolean indicating whether to use the GPU if it is available (default true)}
 }
@@ -21,7 +21,10 @@ mlestimate(estimator, Z, theta_grid = NULL, theta_init = NULL, use_gpu = TRUE)
 a p × K matrix of maximum-likelihood estimates, where p is the number of parameters in the statistical model and K is the number of data sets provided in \code{Z}
 }
 \description{
-Given data \code{Z} and a neural likelihood or likelihood-to-evidence-ratio \code{estimator}, computes the approximate (penalised) maximum likeihood estimate
+Given data \code{Z} and a neural likelihood-to-evidence-ratio \code{estimator}, computes the implied approximate maximum-likelihood estimate
 
-If a vector \code{theta_init} of initial parameter estimates is given, the approximate likelihood is maximised by gradient descent. Otherwise, if a matrix of parameters \code{theta_grid} is given, the approximate likelihood is maximised by grid search.
+If a vector \code{theta0} of initial parameter estimates is given, the approximate likelihood is maximised by gradient descent. Otherwise, if a matrix of parameters \code{theta_grid} is given, the approximate likelihood is maximised by grid search.
+}
+\seealso{
+\code{\link[=sampleposterior]{sampleposterior()}}, \code{\link[=mapestimate]{mapestimate()}}
 }

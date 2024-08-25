@@ -30,17 +30,7 @@ library("JuliaConnectoR")
 Z = matrix(rnorm(100), nrow = 1)
 
 ## Construct an (un-trained) point estimator
-estimator <- juliaEval('
-  using NeuralEstimators, Flux
-
-  p = 2    # number of parameters in the statistical model
-  w = 32   # number of neurons in each layer
-
-  psi = Chain(Dense(1, w, relu), Dense(w, w, relu))
-  phi = Chain(Dense(w, w, relu), Dense(w, p))
-  deepset = DeepSet(psi, phi)
-  estimator = PointEstimator
-')
+estimator <- initialise_estimator(1, architecture = "MLP")
 
 ## Apply the estimator
 estimate(estimator, Z)}

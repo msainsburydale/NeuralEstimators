@@ -1,3 +1,5 @@
+testthat::skip_on_cran()
+
 set.seed(1)
 
 test_that("packages can be loaded properly", {
@@ -13,16 +15,28 @@ test_that("julia can be called", {
   expect_equal(x, 2)
 })
 
-test_that("the Julia version of NeuralEstimators is available", {
+test_that("Flux is available", {
   juliaEval('
-  using NeuralEstimators
+  # Install the package if not already installed
+  using Pkg
+  installed = "Flux" ∈ keys(Pkg.project().dependencies)
+  if !installed
+    Pkg.add("Flux")  
+  end
+  using Flux
 ')
   expect_equal(1, 1)
 })
 
-test_that("Flux is available", {
+test_that("the Julia version of NeuralEstimators is available", {
   juliaEval('
-  using Flux
+  # Install the package if not already installed
+  using Pkg
+  installed = "NeuralEstimators" ∈ keys(Pkg.project().dependencies)
+  if !installed
+    Pkg.add(url = "https://github.com/msainsburydale/NeuralEstimators.jl") 
+  end
+  using NeuralEstimators
 ')
   expect_equal(1, 1)
 })
@@ -31,20 +45,19 @@ test_that("a neural estimator can be initialised", {
   
   ## Using Flux code directly
   estimator <<- juliaEval('
-  using NeuralEstimators
-  using Flux
+  using NeuralEstimators, Flux
 
   p = 2    # number of parameters in the statistical model
   w = 32   # number of neurons in each layer
 
   psi = Chain(Dense(1, w, relu), Dense(w, w, relu), Dense(w, w, relu))
   phi = Chain(Dense(w, w, relu), Dense(w, p))
-  estimator = DeepSet(psi, phi)
+  estimator = PointEstimator(DeepSet(psi, phi))
 ')
   
   ## Using the helper function
   p = 2
-  initialise_estimator(p, architecture = "DNN")
+  initialise_estimator(p, architecture = "MLP")
   initialise_estimator(p, architecture = "GNN")
   initialise_estimator(p, architecture = "CNN", kernel_size = list(10, 5, 3))
   initialise_estimator(p, architecture = "CNN", kernel_size = list(c(10, 10), c(5, 5), c(3, 3)))
@@ -174,3 +187,37 @@ test_that("the neural estimator can be applied to real data using estimate() and
   expect_equal(ncol(bs), B)
 })
 
+test_that("neural ratio estimator can be constructed and used to make inference", {
+  
+  estimator <- juliaEval('
+    using NeuralEstimators, Flux
+    p = 2    # number of parameters in the statistical model
+    w = 32   # number of neurons in each layer
+    psi = Chain(Dense(1, w, relu), Dense(w, w, relu), Dense(w, w, relu))
+    phi = Chain(Dense(w+p, w, relu), Dense(w, 1))
+    deepset = DeepSet(psi, phi)
+    estimator = RatioEstimator(deepset)
+')
+  
+  theta <- as.matrix(c(0, 0.5))         # true parameters
+  Z     <- simulator(theta, m)          # "observed" data
+  ratio <- estimate(estimator, Z, theta)   # ratio estimate
+  expect_equal(nrow(ratio), 1)
+  expect_equal(ncol(ratio), 1)
+  ratio <- estimate(estimator, Z, cbind(theta, theta))   # ratio estimates 
+  expect_equal(nrow(ratio), 1)
+  expect_equal(ncol(ratio), 2)
+  expect_error(estimate(estimator, list(Z, Z), theta))
+  
+  theta_0 <- c(0.2, 0.4)
+  theta_grid <- t(expand.grid(seq(0, 1, len = 50), seq(0, 1, len = 50)))
+  mlestimate(estimator, Z, theta0 = theta_0) 
+  mlestimate(estimator, Z, theta_grid = theta_grid)
+  mapestimate(estimator, Z, theta0 = theta_0) 
+  mapestimate(estimator, Z, theta_grid = theta_grid)
+  # mapestimate(estimator, Z, theta_grid = theta_grid, prior = function(x) 1) # NB This requires the user to have installed the Julia package RCall
+  sampleposterior(estimator, Z[[1]], theta_grid = theta_grid) 
+  sampleposterior(estimator, Z, theta_grid = theta_grid)
+  expect_error(sampleposterior(estimator, c(Z, Z), theta_grid = theta_grid))
+  # sampleposterior(estimator, Z, theta_grid = theta_grid, prior = function(x) 1) # NB This requires the user to have installed the Julia package RCall
+})

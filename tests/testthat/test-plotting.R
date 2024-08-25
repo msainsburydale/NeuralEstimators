@@ -1,34 +1,64 @@
+testthat::skip_on_cran()
+
 set.seed(1)
 
 test_that("packages can be loaded properly", {
   library("NeuralEstimators")
+  library("JuliaConnectoR")
   expect_equal(1, 1)
 })
 
-test_that("plotrisk() is working", {
-  # Generate toy data. Two estimators for a single parameter model,
-  # sample sizes m = 1, 5, 10, 15, 25, and 30, and
-  # 50 estimates for each combination of estimator and sample size:
-  m         <- rep(rep(c(1, 5, 10, 15, 20, 25, 30), each = 50), times = 2)
-  Z         <- lapply(m, rnorm)
-  estimate  <- sapply(Z, mean)
+test_that("julia can be called", {
+  x <- juliaEval('
+  1 + 1
+')
+  expect_equal(x, 2)
+})
+
+test_that("Flux is available", {
+  juliaEval('
+  # Install the package if not already installed
+  using Pkg
+  installed = "Flux" ∈ keys(Pkg.project().dependencies)
+  if !installed
+    Pkg.add("Flux")  
+  end
+  using Flux
+')
+  expect_equal(1, 1)
+})
+
+test_that("the Julia version of NeuralEstimators is available", {
+  juliaEval('
+  # Install the package if not already installed
+  using Pkg
+  installed = "NeuralEstimators" ∈ keys(Pkg.project().dependencies)
+  if !installed
+    Pkg.add(url = "https://github.com/msainsburydale/NeuralEstimators.jl") 
+  end
+  using NeuralEstimators
+')
+  expect_equal(1, 1)
+})
+
+
+test_that("plotestimates() is working", {
+  K <- 50
   df <- data.frame(
-    estimator = c("Estimator 1", "Estimator 2"),
-    parameter = "mu", m = m, estimate = estimate, truth = 0
+    estimator = c("Estimator 1", "Estimator 2"), 
+    parameter = rep(c("mu", "sigma"), each = K),
+    truth = 1:(2*K), 
+    estimate = 1:(2*K) + rnorm(4*K)
   )
-  
-  # Plot the risk function
-  plotrisk(df)
-  plotrisk(df, loss = function(x, y) (x-y)^2)
-  plotrisk(df, parameter_labels = c("mu" = expression(mu)))
+  estimator_labels <- c("Estimator 1" = expression(hat(theta)[1]("·")),
+                        "Estimator 2" = expression(hat(theta)[2]("·")))
+  parameter_labels <- c("mu" = expression(mu), "sigma" = expression(sigma))
+  plotestimates(df,  parameter_labels = parameter_labels, estimator_labels)
   
   expect_equal(1, 1)
 })
 
 test_that("plotdistribution() is working", {
-  
-  # In the following, we have two estimators and, for each parameter, 50 estimates
-  # from each estimator.
   
   # Single parameter:
   estimators <- c("Estimator 1", "Estimator 2")
@@ -45,7 +75,6 @@ test_that("plotdistribution() is working", {
   plotdistribution(df, parameter_labels = parameter_labels, estimator_labels = estimator_labels)
   plotdistribution(df, parameter_labels = parameter_labels, type = "density")
   
-  
   # Two parameters:
   df <- rbind(df, data.frame(
     estimator = estimators, truth = 1, parameter = "sigma",
@@ -60,7 +89,6 @@ test_that("plotdistribution() is working", {
   plotdistribution(df, parameter_labels = parameter_labels, type = "density")
   plotdistribution(df, parameter_labels = parameter_labels, type = "scatter")
   
-  
   # Three parameters:
   df <- rbind(df, data.frame(
     estimator = estimators, truth = 0.25, parameter = "alpha",
@@ -73,7 +101,6 @@ test_that("plotdistribution() is working", {
   plotdistribution(df, parameter_labels = parameter_labels, type = "scatter")
   plotdistribution(df, parameter_labels = parameter_labels, type = "scatter", pairs = TRUE)
   plotdistribution(df, parameter_labels = parameter_labels, type = "scatter", pairs = TRUE, legend = FALSE)
-  
   
   # Pairs plot with user-specified plots in the upper triangle:
   upper_triangle_plots <- lapply(1:3, function(i) {
@@ -90,6 +117,3 @@ test_that("plotdistribution() is working", {
   
   expect_equal(1, 1)
 })
-
-
-

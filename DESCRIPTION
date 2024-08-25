@@ -1,12 +1,12 @@
 Package: NeuralEstimators
 Title: NeuralEstimators: Likelihood-Free Parameter Estimation using Neural Networks
-Version: 0.0.1
+Version: 0.1.0
 Authors@R: 
     person(given = "Matthew",
            family = "Sainsbury-Dale",
            role = c("aut", "cre"),
            email = "msainsburydale@gmail.com")
-Description: An R interface to the Julia package NeuralEstimators, with accompanying plotting functions for evaluating the performance of a neural estimator. 
+Description: An R interface to the Julia package 'NeuralEstimators.jl'. The package facilitates the user-friendly development of neural point estimators, which are neural networks that map data to a point summary of the posterior distribution. These estimators are likelihood-free and amortised, in the sense that, after an initial setup cost, inference from observed data can be made in a fraction of the time required by conventional approaches. It also facilitates the construction of neural networks that approximate the likelihood-to-evidence ratio in an amortised fashion, which allows for making inference based on the likelihood function or the entire posterior distribution. The package caters for any model for which simulation is feasible by allowing the user to implicitly define their model via simulated data.
 Maintainer: Matthew Sainsbury-Dale <msainsburydale@gmail.com>
 License: GPL (>= 2)
 Encoding: UTF-8
@@ -25,5 +25,5 @@ Suggests:
     rmarkdown,
     markdown,
     testthat (>= 3.0.0)
-VignetteBuilder: knitr
 Config/testthat/edition: 3
+SystemRequirements: Julia (>= 1.10)

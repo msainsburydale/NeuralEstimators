@@ -159,7 +159,8 @@ initialise_estimator <- function(
 #'  w = 32   # width of each layer
 #'  psi = Chain(Dense(d, w, relu), Dense(w, w, relu))
 #'  phi = Chain(Dense(w, w, relu), Dense(w, p))
-#'  estimator = DeepSet(psi, phi)
+#'  deepset = DeepSet(psi, phi)
+#'  estimator = PointEstimator(deepset)
 #' ')
 #' 
 #' # Sampler from the prior
@@ -390,10 +391,6 @@ train <- function(estimator,
 #' @export 
 tanhloss <- function(k) paste0("(x, y) -> tanhloss(x, y, ", k, ")")
 
-
-# TODO should clean these functions up... bit untidy with how it is
-# TODO need to add unit testing of these functions
-
 #' @title load the weights of a neural estimator
 #' @param estimator the neural estimator that we wish to load weights into
 #' @param filename file (including absolute path) of the neural-network weights saved as a \code{bson} file
@@ -441,7 +438,6 @@ risk <- function(assessment,
   if (is.list(assessment)) df <- assessment$estimates
   if (is.data.frame(assessment)) df <- assessment
   
-  # TODO add checks that df contains the correct columns
   truth <- NULL # Setting the variables to NULL first to appease CRAN checks (see https://stackoverflow.com/questions/9439256/how-can-i-handle-r-cmd-check-no-visible-binding-for-global-variable-notes-when)
   
   # Determine which variables we are grouping by
@@ -500,15 +496,12 @@ rmse <- function(assessment, ...) {
 #' \item{"k"; the index of the parameter vector in the test set}
 #' \item{"j"; the index of the data set}
 #' }
-#' @seealso [risk()] for computing the empirical Bayes risk from the returned object, and [plotdistribution()] and [plotrisk()] for functions that visualise the results contained in the \code{estimates} data frame described above
+#' @seealso [risk()], [rmse()], [bias()], [plotestimates()], and [plotdistribution()] for computing various empirical diagnostics and visualisations based on an assessment object
 #' @export
 assess <- function(
   estimators, # should be a list of estimators
   parameters,
   Z,
-  # NB not sure if there is a reason to implement xi
-  # xi = NULL,
-  # use_xi = FALSE,
   estimator_names = NULL,
   parameter_names = NULL,
   use_gpu = TRUE,
@@ -574,17 +567,7 @@ assess <- function(
 #' Z = matrix(rnorm(100), nrow = 1)
 #'
 #' ## Construct an (un-trained) point estimator
-#' estimator <- juliaEval('
-#'   using NeuralEstimators, Flux
-#'
-#'   p = 2    # number of parameters in the statistical model
-#'   w = 32   # number of neurons in each layer
-#'
-#'   psi = Chain(Dense(1, w, relu), Dense(w, w, relu))
-#'   phi = Chain(Dense(w, w, relu), Dense(w, p))
-#'   deepset = DeepSet(psi, phi)
-#'   estimator = PointEstimator
-#' ')
+#' estimator <- initialise_estimator(1, architecture = "MLP")
 #'
 #' ## Apply the estimator
 #' estimate(estimator, Z)}
@@ -633,16 +616,7 @@ estimate <- function(estimator, Z, theta = NULL, use_gpu = TRUE) {
 #' Z = t(rnorm(m))
 #'
 #' ## Construct the estimator
-#' estimator <- juliaEval('
-#'   using NeuralEstimators, Flux
-#'
-#'   p = 2    # number of parameters in the statistical model
-#'   w = 32   # number of neurons in each layer
-#'
-#'   psi = Chain(Dense(1, w, relu), Dense(w, w, relu))
-#'   phi = Chain(Dense(w, w, relu), Dense(w, p, exp))
-#'   estimator = DeepSet(psi, phi)
-#' ')
+#' estimator <- initialise_estimator(1, architecture = "MLP")
 #'
 #' ## Non-parametric bootstrap
 #' bootstrap(estimator, Z = Z)
@@ -683,54 +657,83 @@ bootstrap <- function(estimator,
   return(thetahat)
 }
 
-
-#TODO will need to think about how to deal with the prior; probably it will be  the same as how I dealt with the simulator function in train().
-#TODO add example
-#' @title sampleposterior
-#' 
-#' @description Sample from the approximate posterior distribution
-#'
-#' @param estimator a neural likelihood, posterior, or likelihood-to-evidence-ratio estimator
-#' @param Z data; it's format should be amenable to the architecture of \code{estimator}
-#' @param N number of samples (default 1000)
-#' @param prior the prior (default uniform), specified as a Julia or R function
-#' @param theta_grid a (fine) gridding of the parameter space, given as a matrix with p rows, where p is the number of parameters in the model
-#' @param use_gpu a boolean indicating whether to use the GPU if it is available (default true)
-#' @return a p × `N` matrix of posterior samples, where p is the number of parameters in the model. If multiple data sets are given in `Z`, a list of posterior samples will be returned
-#' @export
-sampleposterior <- function(
-    estimator, Z, N = 1000, prior = NULL, theta_grid = NULL, use_gpu = TRUE
-    ) {
-  N <- as.integer(N)
-  juliaLet('
-      using NeuralEstimators
-      sampleposterior(estimator, Z, N; theta_grid = theta_grid, use_gpu = use_gpu)
-  ', estimator=estimator, Z=Z, N = N, theta_grid = theta_grid, use_gpu = use_gpu)
+.defineprior <- function(prior) {
+  if (is.null(prior)) {
+    juliaEval('x -> 1f0')
+  } else if (!("JLFUN" %in% names(attributes(prior)))) {
+    tryCatch( { juliaEval("using RCall") }, error = function(e) "using an R function to define the prior requires the user to have installed the Julia package RCall")
+    juliaLet('using RCall; @rput prior', prior = prior)
+    juliaEval('using RCall; prior(theta) = rcopy(R"prior($theta)")')
+  }
 }
 
-#TODO will need to think about how to deal with the prior; probably it will be 
-# the same as how I dealt with the simulator function in train().
-# #' @param penalty the penalty (default no penalty), specified as a Julia or R function. 
-#TODO add example
-#TODO change theta_init to theta0 (for consistency with Julia version of the package)?
+#' @title sampleposterior
+#' 
+#' @description Given data `Z`, a neural likelihood-to-evidence-ratio `estimator`, and a `prior`, draws samples from the implied approximate posterior distribution
+#' 
+#' Currently, the sampling algorithm is based on a fine-gridding `theta_grid` of the parameter space. The approximate posterior density is evaluated over this grid, which is then used to draw samples. This is very effective when making inference with a small number of parameters. For models with a large number of parameters, other sampling algorithms may be needed (please feel free to contact the package maintainer for discussion).
+#'
+#' @inheritParams mlestimate
+#' @inheritParams mapestimate
+#' @param N number of samples to draw (default 1000)
+#' @return a p × `N` matrix of posterior samples, where p is the number of parameters in the model. If multiple data sets are given in `Z`, a list of posterior samples will be returned
+#' @seealso [mlestimate()], [mapestimate()]
+#' @export
+sampleposterior <- function(estimator, Z, theta_grid, N=1000, prior=NULL, use_gpu=TRUE) {
+  
+  N <- as.integer(N)
+  prior <- .defineprior(prior)
+  
+  if (is.list(Z)) {
+    if (length(Z) > 1) {
+      stop("only a single data set should be used with sampleposterior()")
+    } else {
+      Z <- Z[[1]]
+    }
+  }
+  
+  juliaLet('
+      using NeuralEstimators
+      sampleposterior(estimator, Z, N; theta_grid=theta_grid, use_gpu=use_gpu, prior=prior)
+  ', estimator=estimator, Z=Z, N=N, theta_grid=theta_grid, use_gpu=use_gpu, prior=prior)
+}
+
 #' @title Maximum likelihood estimation
 #' 
-#' @description Given data `Z` and a neural likelihood or likelihood-to-evidence-ratio `estimator`, computes the approximate (penalised) maximum likeihood estimate
+#' @description Given data `Z` and a neural likelihood-to-evidence-ratio `estimator`, computes the implied approximate maximum-likelihood estimate
 #' 
-#' If a vector `theta_init` of initial parameter estimates is given, the approximate likelihood is maximised by gradient descent. Otherwise, if a matrix of parameters `theta_grid` is given, the approximate likelihood is maximised by grid search.
+#' If a vector `theta0` of initial parameter estimates is given, the approximate likelihood is maximised by gradient descent. Otherwise, if a matrix of parameters `theta_grid` is given, the approximate likelihood is maximised by grid search.
 #'
-#' @param estimator a neural likelihood or likelihood-to-evidence-ratio estimator
+#' @param estimator a neural likelihood-to-evidence-ratio estimator
 #' @param Z data; it's format should be amenable to the architecture of \code{estimator}
-#' @param theta_init a vector of initial parameter estimates
+#' @param theta0 a vector of initial parameter estimates
 #' @param theta_grid a (fine) gridding of the parameter space, given as a matrix with p rows, where p is the number of parameters in the model
 #' @param use_gpu a boolean indicating whether to use the GPU if it is available (default true)
 #' @return a p × K matrix of maximum-likelihood estimates, where p is the number of parameters in the statistical model and K is the number of data sets provided in `Z`
+#' @seealso [sampleposterior()], [mapestimate()]
 #' @export
-mlestimate <- function(estimator, Z, theta_grid = NULL, theta_init = NULL,  use_gpu = TRUE) {
+mlestimate <- function(estimator, Z, theta_grid=NULL, theta0=NULL, use_gpu=TRUE) {
   juliaLet('
       using NeuralEstimators
-      mlestimate(estimator, Z; theta0 = theta_init, theta_grid = theta_grid, use_gpu = use_gpu)
-  ', estimator=estimator, Z=Z, theta_init = theta_init, theta_grid = theta_grid, use_gpu = use_gpu)
+      mlestimate(estimator, Z; theta0=theta0, theta_grid=theta_grid, use_gpu=use_gpu)
+  ', estimator=estimator, Z=Z, theta0=theta0, theta_grid=theta_grid, use_gpu=use_gpu)
 }
 
-#TODO mapestimate, which will essentially be a wrapper around mlestimate (can use @inheritParams)
+#' @title Maximum a posteriori estimation
+#' 
+#' @description Given data `Z`, a neural likelihood-to-evidence-ratio `estimator`, and a `prior`, computes the implied approximate maximum a posteriori (MAP) estimate
+#' 
+#' If a vector `theta0` of initial parameter estimates is given, the approximate posterior density is maximised by gradient descent. Otherwise, if a matrix of parameters `theta_grid` is given, the approximate posterior density is maximised by grid search.
+#'
+#' @inheritParams mlestimate
+#' @param prior the prior (default uniform), specified as a Julia or R function
+#' @return a p × K matrix of MAP estimates, where p is the number of parameters in the statistical model and K is the number of data sets provided in `Z`
+#' @seealso [sampleposterior()], [mlestimate()]
+#' @export
+mapestimate <- function(estimator, Z, prior=NULL, theta_grid=NULL, theta0=NULL, use_gpu=TRUE) {
+  prior <- .defineprior(prior)
+  juliaLet('
+      using NeuralEstimators
+      mapestimate(estimator, Z; theta0=theta0, theta_grid=theta_grid, use_gpu=use_gpu, prior=prior)
+  ', estimator=estimator, Z=Z, theta0=theta0, theta_grid=theta_grid, use_gpu=use_gpu, prior=prior)
+}

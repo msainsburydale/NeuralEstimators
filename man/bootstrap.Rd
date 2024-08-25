@@ -38,16 +38,7 @@ m = 100
 Z = t(rnorm(m))
 
 ## Construct the estimator
-estimator <- juliaEval('
-  using NeuralEstimators, Flux
-
-  p = 2    # number of parameters in the statistical model
-  w = 32   # number of neurons in each layer
-
-  psi = Chain(Dense(1, w, relu), Dense(w, w, relu))
-  phi = Chain(Dense(w, w, relu), Dense(w, p, exp))
-  estimator = DeepSet(psi, phi)
-')
+estimator <- initialise_estimator(1, architecture = "MLP")
 
 ## Non-parametric bootstrap
 bootstrap(estimator, Z = Z)

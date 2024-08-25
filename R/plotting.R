@@ -42,73 +42,6 @@ plotestimates <- function(df, estimator_labels = ggplot2::waiver(), parameter_la
     ggplot2::theme(strip.background = ggplot2::element_blank())
 }
 
-
-
-# ---- plotrisk() ----
-
-#' Plot the risk function (with respect to a given loss function) versus the sample size, m.
-#'
-#' @param df a long form data frame containing fields \code{estimator},
-#' \code{parameter}, \code{estimate}, \code{truth}, and \code{m}.
-#' @param parameter_labels a named vector containing parameter labels used in the plot.
-#' @param loss the loss function; defaults to absolute-error loss.
-#' @return a \code{'ggplot'} object showing the risk function versus the sample size, facetted by parameter.
-#' @export
-#' @seealso \code{\link{plotdistribution}}
-#' @examples
-#' \dontrun{
-#' # Generate toy data. Two estimators for a single parameter model,
-#' # sample sizes m = 1, 5, 10, 15, 25, and 30, and
-#' # 50 estimates for each combination of estimator and sample size:
-#' m         <- rep(rep(c(1, 5, 10, 15, 20, 25, 30), each = 50), times = 2)
-#' Z         <- lapply(m, rnorm)
-#' estimate  <- sapply(Z, mean)
-#' df <- data.frame(
-#'   estimator = c("Estimator 1", "Estimator 2"),
-#'   parameter = "mu", m = m, estimate = estimate, truth = 0
-#' )
-#'
-#' # Plot the risk function
-#' plotrisk(df)
-#' plotrisk(df, loss = function(x, y) (x-y)^2)}
-plotrisk <- function(df, parameter_labels = NULL, loss = function(x, y) abs(x - y)) {
-  
-  # TODO add checks that df contains the correct columns
-  
-  truth <- estimator <- parameter <- m <- NULL # Setting the variables to NULL first to appease CRAN checks (see https://stackoverflow.com/questions/9439256/how-can-i-handle-r-cmd-check-no-visible-binding-for-global-variable-notes-when)
-
-  df <- dplyr::mutate(df, residual = estimate - truth)
-
-  if (is.null(parameter_labels)) {
-    param_labeller <- identity
-  } else {
-    param_labeller <- ggplot2::label_parsed
-    df <- dplyr::mutate_at(df, .vars = "parameter", .funs = factor, levels = names(parameter_labels), labels = parameter_labels)
-    # df$parameter <- factor(df$parameter, levels = names(parameter_labels), labels = parameter_labels) # NB think above line is equivalent to this
-  }
-
-  # Compute global risk for each combination of estimator and sample size m
-  df <- df %>%
-    dplyr::group_by(estimator, parameter, m) %>%
-    dplyr::summarise(loss = mean(loss(estimate, truth)))
-
-  # Plot risk vs. m
-  ggplot2::ggplot(data = df, ggplot2::aes(x = m, y = loss, colour = estimator, group = estimator)) +
-    ggplot2::geom_point() +
-    ggplot2::geom_line() +
-    ggplot2::facet_wrap(parameter ~ ., scales = "free", labeller = param_labeller) +
-    ggplot2::labs(colour = "", x = expression(m), y = expression(r[Omega](hat(theta)))) +
-    ggplot2::theme_bw() +
-    ggplot2::theme(
-      legend.text = ggplot2::element_text(hjust = 0),
-      panel.grid = ggplot2::element_blank(),
-      strip.background = ggplot2::element_blank()
-  )
-}
-
-
-
-
 # ---- plotdistribution() ----
 
 #' Plot the empirical sampling distribution of an estimator.
@@ -207,7 +140,7 @@ plotdistribution <- function(
   if(!is.logical(flip)) stop("flip should be logical")
   if (!all(c("estimator", "parameter", "estimate", "truth") %in% names(df))) stop("df must contain the fields estimator, parameter, estimate, and truth.")
   if ("k" %in% names(df) && length(unique(df$k)) > 1) stop("df contains a column 'k' which has more than one unique value; this means that you are trying to visualise the distribution for more than one parameter configuration. To do this, please split the data frame by k and then use lapply() to generate a list of plots grouped by k.")
-  if ("m" %in% names(df) && length(unique(df$m)) > 1) stop("df contains a column 'm' which has more than one unique value; this means that you are trying to visualise the distribution for more than one sample size. To do this, please split the data frame by m and then use lapply() to generate a list of plots grouped by m.") #TODO just average over m? 
+  if ("m" %in% names(df) && length(unique(df$m)) > 1) stop("df contains a column 'm' which has more than one unique value; this means that you are trying to visualise the distribution for more than one sample size. To do this, please split the data frame by m and then use lapply() to generate a list of plots grouped by m.") #TODO just average over m, and inform the user that this is what we're doing? 
   if (!is.null(upper_triangle_plots) && !pairs) warning("The argument upper_triangle_plots is ignored when pairs == FALSE")
 
   if(is.null(parameter_labels)) {

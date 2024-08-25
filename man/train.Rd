@@ -105,7 +105,8 @@ estimator <- juliaEval('
  w = 32   # width of each layer
  psi = Chain(Dense(d, w, relu), Dense(w, w, relu))
  phi = Chain(Dense(w, w, relu), Dense(w, p))
- estimator = DeepSet(psi, phi)
+ deepset = DeepSet(psi, phi)
+ estimator = PointEstimator(deepset)
 ')
 
 # Sampler from the prior

@@ -4,4 +4,7 @@
 ^Meta$
 ^\.github$
 ^cran-comments.md$
-^NeuralEstimators.html$
+^devel$
+^vignettes/
+^inst/doc/.*\.Rmd$
+^inst/doc/.*\.Rnw$

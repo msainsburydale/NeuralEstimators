@@ -7,22 +7,22 @@
 sampleposterior(
   estimator,
   Z,
+  theta_grid,
   N = 1000,
   prior = NULL,
-  theta_grid = NULL,
   use_gpu = TRUE
 )
 }
 \arguments{
-\item{estimator}{a neural likelihood, posterior, or likelihood-to-evidence-ratio estimator}
+\item{estimator}{a neural likelihood-to-evidence-ratio estimator}
 
 \item{Z}{data; it's format should be amenable to the architecture of \code{estimator}}
 
-\item{N}{number of samples (default 1000)}
+\item{theta_grid}{a (fine) gridding of the parameter space, given as a matrix with p rows, where p is the number of parameters in the model}
+
+\item{N}{number of samples to draw (default 1000)}
 
 \item{prior}{the prior (default uniform), specified as a Julia or R function}
-
-\item{theta_grid}{a (fine) gridding of the parameter space, given as a matrix with p rows, where p is the number of parameters in the model}
 
 \item{use_gpu}{a boolean indicating whether to use the GPU if it is available (default true)}
 }
@@ -30,5 +30,10 @@ sampleposterior(
 a p × \code{N} matrix of posterior samples, where p is the number of parameters in the model. If multiple data sets are given in \code{Z}, a list of posterior samples will be returned
 }
 \description{
-Sample from the approximate posterior distribution
+Given data \code{Z}, a neural likelihood-to-evidence-ratio \code{estimator}, and a \code{prior}, draws samples from the implied approximate posterior distribution
+
+Currently, the sampling algorithm is based on a fine-gridding \code{theta_grid} of the parameter space. The approximate posterior density is evaluated over this grid, which is then used to draw samples. This is very effective when making inference with a small number of parameters. For models with a large number of parameters, other sampling algorithms may be needed (please feel free to contact the package maintainer for discussion).
+}
+\seealso{
+\code{\link[=mlestimate]{mlestimate()}}, \code{\link[=mapestimate]{mapestimate()}}
 }

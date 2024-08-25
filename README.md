@@ -2,7 +2,7 @@
 
 [![][docs-dev-img]][docs-dev-url]
 [![R-CMD-check](https://github.com/msainsburydale/NeuralEstimators/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/msainsburydale/NeuralEstimators/actions/workflows/R-CMD-check.yaml)
-[![codecov](https://codecov.io/gh/msainsburydale/NeuralEstimators/branch/main/graph/badge.svg?token=6cXItEsKs5)](https://codecov.io/gh/msainsburydale/NeuralEstimators)
+[![codecov](https://codecov.io/gh/msainsburydale/NeuralEstimators/branch/main/graph/badge.svg?token=6cXItEsKs5)](https://app.codecov.io/gh/msainsburydale/NeuralEstimators)
 
 [docs-dev-img]: https://img.shields.io/badge/vignette-blue.svg
 [docs-dev-url]: https://raw.githack.com/msainsburydale/NeuralEstimators/main/inst/doc/NeuralEstimators.html
@@ -13,7 +13,7 @@
 [julia-docs-img]: https://img.shields.io/badge/Julia_docs-purple.svg
 [julia-docs-url]: https://msainsburydale.github.io/NeuralEstimators.jl/dev/
 
-This repository contains the `R` interface to the `Julia` package `NeuralEstimators` (see [here](https://github.com/msainsburydale/NeuralEstimators.jl)). The package facilitates the user-friendly development of neural point estimators, which are neural networks that transform data into parameter point estimates. They are likelihood free, substantially faster than classical methods, and can be designed to be approximate Bayes estimators. The package caters for any model for which simulation is feasible. See the [vignette](https://raw.githack.com/msainsburydale/NeuralEstimators/main/inst/doc/NeuralEstimators.html) to get started!
+This repository contains the `R` interface to the `Julia` package `NeuralEstimators` (see [here](https://github.com/msainsburydale/NeuralEstimators.jl)). The package facilitates the user-friendly development of neural point estimators, which are neural networks that map data to a point summary of the posterior distribution. These estimators are likelihood-free and amortised, in the sense that, after an initial setup cost, inference from observed data can be made in a fraction of the time required by conventional approaches. It also facilitates the construction of neural networks that approximate the likelihood-to-evidence ratio in an amortised fashion, which allows for making inference based on the likelihood function or the entire posterior distribution. The package caters for any model for which simulation is feasible by allowing the user to implicitly define their model via simulated data. See the [vignette](https://raw.githack.com/msainsburydale/NeuralEstimators/main/inst/doc/NeuralEstimators.html) to get started!
 
 ### Installation tips
 
@@ -66,7 +66,4 @@ Several other software packages have been developed to facilitate neural likelih
 - [sbi](https://github.com/sbi-dev/sbi) (PyTorch)
 - [swyft](https://github.com/undark-lab/swyft) (PyTorch)
 
-
 A summary of the functionality in these packages is given in [Zammit-Mangion et al. (2024, Section 6.1)](https://arxiv.org/abs/2404.12484). Note that this list of related packages was created in July 2024; if you have software to add to this list, please contact the package maintainer. 
-
-<!-- TODO This package cannot go on CRAN as is, because of the dependence on Julia. The vignette might need to be pre-compiled. I do this in one of my packages, EFDR, where essentially the "vignette" is a link to an HTML file included elsewhere in the package (inst/doc I believe). In your case you may even point it towards the output of the Github Actions CI once you get that working, that would be better. -->
