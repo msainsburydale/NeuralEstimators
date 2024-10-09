@@ -221,15 +221,19 @@ test_that("neural ratio estimator can be constructed and used to make inference"
   expect_equal(ncol(ratio), 2)
   expect_error(estimate(estimator, list(Z, Z), theta))
   
-  theta_0 <- c(0.2, 0.4)
+  # Grid-based methods for estimation/posterior sampling
   theta_grid <- t(expand.grid(seq(0, 1, len = 50), seq(0, 1, len = 50)))
-  mlestimate(estimator, Z, theta0 = theta_0) 
   mlestimate(estimator, Z, theta_grid = theta_grid)
-  mapestimate(estimator, Z, theta0 = theta_0) 
   mapestimate(estimator, Z, theta_grid = theta_grid)
   # mapestimate(estimator, Z, theta_grid = theta_grid, prior = function(x) 1) # NB This requires the user to have installed the Julia package RCall, which is not particularly stable
   sampleposterior(estimator, Z[[1]], theta_grid = theta_grid) 
   sampleposterior(estimator, Z, theta_grid = theta_grid)
   expect_error(sampleposterior(estimator, c(Z, Z), theta_grid = theta_grid))
   # sampleposterior(estimator, Z, theta_grid = theta_grid, prior = function(x) 1) # NB This requires the user to have installed the Julia package RCall
+  
+  # Gradient descent method for estimation
+  # juliaEval('using Optim')
+  # theta0 <- c(0.2, 0.4)
+  # mlestimate(estimator, Z, theta0 = theta0) 
+  # mapestimate(estimator, Z, theta0 = theta0) 
 })

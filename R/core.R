@@ -343,8 +343,8 @@ train <- function(estimator,
      train_code, 
      loss_code,
     "
-    #optimiser = Flux.setup(OptimiserChain(WeightDecay(1e-4), Adam(learning_rate)), estimator), #NB this didn't work for some reason... come back to it if we end up needing to change to the `explicit` formulation for training flux models
-    optimiser = Adam(learning_rate),
+    #optimiser = Flux.setup(OptimiserChain(WeightDecay(1e-4), Flux.Adam(learning_rate)), estimator), #NB this didn't work for some reason... come back to it if we end up needing to change to the `explicit` formulation for training flux models
+    optimiser = Flux.Adam(learning_rate),
     epochs = epochs,
     batchsize = batchsize,
     savepath = savepath,
