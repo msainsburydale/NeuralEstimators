@@ -11,7 +11,7 @@ estimate(estimator, Z, theta = NULL, use_gpu = TRUE)
 
 \item{Z}{data; format should be amenable to the architecture of \code{estimator}}
 
-\item{theta}{parameter vectors (only for neural estimators that take both the data and parameters as input)}
+\item{theta}{parameter vectors (only for neural estimators that take both the data and parameters as input, e.g., neural ratio estimators)}
 
 \item{use_gpu}{a boolean indicating whether to use the GPU if it is available (default true)}
 }

@@ -44,6 +44,9 @@ initialise_estimator(
 
 \item{probs}{(applicable only if \code{estimator_type = "interval"}) probability levels defining the lower and upper endpoints of the posterior credible interval.}
 }
+\value{
+the initialised neural estimator, a JuliaProxy object
+}
 \description{
 Helper function for initialising a neural estimator.
 

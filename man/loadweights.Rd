@@ -2,7 +2,7 @@
 % Please edit documentation in R/core.R
 \name{loadweights}
 \alias{loadweights}
-\title{load the weights of a neural estimator}
+\title{load a collection of saved weights of a neural estimator}
 \usage{
 loadweights(estimator, filename)
 }
@@ -11,6 +11,12 @@ loadweights(estimator, filename)
 
 \item{filename}{file (including absolute path) of the neural-network weights saved as a \code{bson} file}
 }
+\value{
+\code{estimator} updated with the saved weights
+}
 \description{
-load the weights of a neural estimator
+load a collection of saved weights of a neural estimator
+}
+\seealso{
+\code{\link[=loadstate]{loadstate()}}
 }

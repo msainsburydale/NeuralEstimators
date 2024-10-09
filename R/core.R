@@ -16,6 +16,7 @@
 #' @param kernel_size  (applicable only to CNNs) a list of length \code{depth[1]} containing lists of integers of length D, where D is the dimension of the convolution (e.g., D = 2 for two-dimensional convolution).
 #' @param weight_by_distance (applicable only to GNNs) flag indicating whether the estimator will weight by spatial distance; if true (default), a \code{WeightedGraphConv} layer is used in the propagation module; otherwise, a regular \code{GraphConv} layer is used.
 #' @param probs (applicable only if `estimator_type = "interval"`) probability levels defining the lower and upper endpoints of the posterior credible interval.
+#' @return the initialised neural estimator, a JuliaProxy object
 #' @export 
 #' @examples
 #' \dontrun{
@@ -133,7 +134,7 @@ initialise_estimator <- function(
 #' @param epochs the number of epochs
 #' @param stopping_epochs cease training if the risk doesn't improve in this number of epochs (default 5)
 #' @param batchsize the batchsize to use when performing stochastic gradient descent
-#' @param savepath path to save the trained estimator and other information; if null (default), nothing is saved. If not null, the neural-network parameters (i.e., the weights and biases) will be saved during training as `bson` files; the risk function evaluated over the training and validation sets will also be saved, in the first and second columns of `loss_per_epoch.csv`, respectively; the best parameters (as measured by validation risk) will be saved as `best_network.bson`. 
+#' @param savepath path to save the trained estimator and other information; if null (default), nothing is saved. Otherwise, the neural-network parameters (i.e., the weights and biases) will be saved during training as `bson` files; the risk function evaluated over the training and validation sets will also be saved, in the first and second columns of `loss_per_epoch.csv`, respectively; the best parameters (as measured by validation risk) will be saved as `best_network.bson`. 
 #' @param use_gpu a boolean indicating whether to use the GPU if it is available (default true)
 #' @param verbose a boolean indicating whether information should be printed to the console during training
 #' @param epochs_per_Z_refresh integer indicating how often to refresh the training data
@@ -198,7 +199,7 @@ initialise_estimator <- function(
 #' # Defining the sampler and simulator in Julia can improve computational 
 #' # efficiency by avoiding the overhead of communicating between R and Julia. 
 #' # Julia is also fast (comparable to C) and so it can be useful to define 
-#' # these functions in Julia when they involve for loops. 
+#' # these functions in Julia when they involve for-loops. 
 #' 
 #' # Parameter sampler
 #' sampler <- juliaEval("
@@ -391,9 +392,12 @@ train <- function(estimator,
 #' @export 
 tanhloss <- function(k) paste0("(x, y) -> tanhloss(x, y, ", k, ")")
 
-#' @title load the weights of a neural estimator
+#' @title load a collection of saved weights of a neural estimator
+#' 
 #' @param estimator the neural estimator that we wish to load weights into
 #' @param filename file (including absolute path) of the neural-network weights saved as a \code{bson} file
+#' @seealso [loadstate()] 
+#' @return `estimator` updated with the saved weights 
 #' @export
 loadweights <- function(estimator, filename) {
   juliaLet(
@@ -406,19 +410,41 @@ loadweights <- function(estimator, filename) {
   )
 }
 
-#' @title load the weights of the best neural estimator
-#' @param estimator the neural estimator that we wish to load weights into
-#' @param path absolute path to the folder containing the saved neural-network weights, saved as \code{best_network.bson}
+#' @title load a saved state of a neural estimator
+#' @param estimator the neural estimator that we wish to load the state into
+#' @param filename file (including absolute path) of the neural-network state in a \code{bson} file
+#' @return `estimator` updated with the saved state 
 #' @export
-loadbestweights <- function(estimator, path) {
+loadstate <- function(estimator, filename) {
   juliaLet(
     '
-    using NeuralEstimators, Flux
-    Flux.loadparams!(estimator, NeuralEstimators.loadbestweights(path))
+    using NeuralEstimators
+    using Flux
+    using BSON: @load
+    @load filename model_state
+    Flux.loadmodel!(estimator, model_state)
     estimator
     ',
-    estimator = estimator, path = path
-    )
+    estimator = estimator, filename = filename
+  )
+}
+
+#' @title save the state of a neural estimator
+#' @param estimator the neural estimator that we wish to save
+#' @param filename file in which to save the neural-network state as a \code{bson} file
+#' @return No return value, called for side effects
+#' @export
+savestate <- function(estimator, filename) {
+  juliaLet(
+    '
+    using NeuralEstimators
+    using Flux
+    using BSON: @save
+    model_state = Flux.state(estimator)
+    @save filename model_state
+    ',
+    estimator = estimator, filename = filename
+  )
 }
 
 #' @title computes a Monte Carlo approximation of an estimator's Bayes risk
@@ -509,6 +535,7 @@ assess <- function(
 ) {
 
   if (!is.list(estimators)) estimators <- list(estimators)
+  if (is.vector(parameters)) parameters <- t(parameters)
 
   # Metaprogramming: Define the Julia code based on the value of the arguments
   estimator_names_code <- if (!is.null(estimator_names)) " estimator_names = estimator_names, " else ""
@@ -547,14 +574,13 @@ assess <- function(
   list(estimates = estimates, runtimes = runtimes)
 }
 
-#TODO why with only one data set do we get a Julia object return type?
 #' @title estimate
 #'
 #' @description estimate parameters from observed data using a neural estimator
 #'
 #' @param estimator a neural estimator
 #' @param Z data; format should be amenable to the architecture of \code{estimator}
-#' @param theta parameter vectors (only for neural estimators that take both the data and parameters as input)
+#' @param theta parameter vectors (only for neural estimators that take both the data and parameters as input, e.g., neural ratio estimators)
 #' @param use_gpu a boolean indicating whether to use the GPU if it is available (default true)
 #' @return a matrix of parameter estimates (i.e., \code{estimator} applied to \code{Z})
 #' @export
@@ -572,9 +598,9 @@ assess <- function(
 #' ## Apply the estimator
 #' estimate(estimator, Z)}
 estimate <- function(estimator, Z, theta = NULL, use_gpu = TRUE) {
-
-  if (!is.list(Z)) Z <- list(Z)
-
+  
+  if (!is.list(Z) & !("JuliaProxy" %in% class(Z))) Z <- list(Z) 
+  
   thetahat <- juliaLet('
   using NeuralEstimators, Flux
   
@@ -586,23 +612,22 @@ estimate <- function(estimator, Z, theta = NULL, use_gpu = TRUE) {
   output = output |> cpu
   output = Float64.(output)
   output
-  ', estimator = estimator, Z = Z, theta = theta, use_gpu=use_gpu)
+  ', estimator = estimator, Z = Z, theta = theta, use_gpu = use_gpu)
+  
+  # For some reason, the Julia dimensions are retained when we have only a single data
+  if (length(Z) == 1) attributes(thetahat)$JLDIM <- NULL
+  
   return(thetahat)
 }
 
 #' @title bootstrap
 #' 
-#' @description Generate \code{B} bootstrap estimates from a neural estimator
-#' 
-#' Non-parametric bootstrap is facilitated by setting the data \code{Z} to 
-#' be a single data set.  Parametric bootstrap is facilitated by setting the 
-#' data \code{Z} to be multiple simulated data sets stored as a list whose 
-#' length implicitly defines \code{B}. 
+#' @description Compute bootstrap estimates from a neural estimator
 #'
 #' @param estimator a neural estimator
-#' @param Z either simulated data of length B or a single observed data set, which will be bootstrap sampled B times to generate B bootstrap estimates
-#' @param B number of bootstrap estimates (default 400)
-#' @param blocks integer vector specifying the blocks in non-parameteric bootstrapping (default \code{NULL}). For example, with 5 replicates, the first two corresponding to block 1 and the remaining three corresponding to block 2, blocks should be \code{c(1,1,2,2,2)}. The bootstrap sampling algorithm aims to produce bootstrap data sets that are of a similar size to \code{Z}, but this can only be achieved exactly if all blocks are equal in length.
+#' @param Z either a list of data sets simulated conditionally on the fitted parameters (parametric bootstrap); or a single observed data set containing independent replicates, which will be sampled with replacement `B` (non-parametric bootstrap)
+#' @param B number of non-parametric bootstrap estimates (default 400)
+#' @param blocks integer vector specifying the blocks in non-parameteric bootstrap (default \code{NULL}). For example, with 5 replicates, the first two corresponding to block 1 and the remaining three corresponding to block 2, `blocks` should be \code{c(1,1,2,2,2)}. The bootstrap sampling algorithm aims to produce bootstrap data sets that are of a similar size to \code{Z}, but this can only be achieved exactly if all blocks are equal in length.
 #' @param use_gpu a boolean indicating whether to use the GPU if it is available (default \code{TRUE})
 #' @return p × B matrix, where p is the number of parameters in the model and B is the number of bootstrap samples
 #' @export
@@ -615,18 +640,12 @@ estimate <- function(estimator, Z, theta = NULL, use_gpu = TRUE) {
 #' m = 100
 #' Z = t(rnorm(m))
 #'
-#' ## Construct the estimator
+#' ## Construct an (un-trained) neural point estimator
 #' estimator <- initialise_estimator(1, architecture = "MLP")
 #'
 #' ## Non-parametric bootstrap
 #' bootstrap(estimator, Z = Z)
 #' bootstrap(estimator, Z = Z, blocks = rep(1:5, each = m/5))
-#'
-#' ## Parametric bootstrap 
-#' thetahat = estimate(estimator, Z)  # estimated parameters
-#' B = 400
-#' Z = lapply(1:B, function(b) t(rnorm(m, mean = thetahat[1], sd = thetahat[2])))
-#' bootstrap(estimator, Z = Z)}
 bootstrap <- function(estimator,
                       Z,
                       B = 400,
@@ -638,19 +657,14 @@ bootstrap <- function(estimator,
   if (!is.list(Z)) Z <- list(Z)
 
   if (length(Z) > 1) {
-    #NB Can alternatively just use estimateinbatches() since thats all we're doing here
-    thetahat <- juliaLet('
-      using NeuralEstimators
-      Z = broadcast.(Float32, Z)
-      bootstrap(estimator, parameters, Z, use_gpu = use_gpu)',
-                         estimator=estimator, parameters=matrix(1), Z=Z, use_gpu=use_gpu # NB dummy value of parameters provided here, since we don't actually need it. 
-    )
+    #NB Just using estimate() since that needs to be done here
+    thetahat <- estimate(estimator, Z, use_gpu = use_gpu)
   } else {
     thetahat <- juliaLet('
       using NeuralEstimators
       Z = broadcast.(Float32, Z)
       bootstrap(estimator, Z, use_gpu = use_gpu, B = B, blocks = blocks)',
-      estimator=estimator, Z=Z, use_gpu=use_gpu, blocks=blocks, B=B
+                         estimator=estimator, Z=Z, use_gpu = use_gpu, blocks=blocks, B=B
     )
   }
 
@@ -694,8 +708,8 @@ sampleposterior <- function(estimator, Z, theta_grid, N=1000, prior=NULL, use_gp
   
   juliaLet('
       using NeuralEstimators
-      sampleposterior(estimator, Z, N; theta_grid=theta_grid, use_gpu=use_gpu, prior=prior)
-  ', estimator=estimator, Z=Z, N=N, theta_grid=theta_grid, use_gpu=use_gpu, prior=prior)
+      sampleposterior(estimator, Z, N; theta_grid=theta_grid, use_gpu = use_gpu, prior=prior)
+  ', estimator=estimator, Z=Z, N=N, theta_grid=theta_grid, use_gpu = use_gpu, prior=prior)
 }
 
 #' @title Maximum likelihood estimation
@@ -715,8 +729,8 @@ sampleposterior <- function(estimator, Z, theta_grid, N=1000, prior=NULL, use_gp
 mlestimate <- function(estimator, Z, theta_grid=NULL, theta0=NULL, use_gpu=TRUE) {
   juliaLet('
       using NeuralEstimators
-      mlestimate(estimator, Z; theta0=theta0, theta_grid=theta_grid, use_gpu=use_gpu)
-  ', estimator=estimator, Z=Z, theta0=theta0, theta_grid=theta_grid, use_gpu=use_gpu)
+      mlestimate(estimator, Z; theta0=theta0, theta_grid=theta_grid, use_gpu = use_gpu)
+  ', estimator=estimator, Z=Z, theta0=theta0, theta_grid=theta_grid, use_gpu = use_gpu)
 }
 
 #' @title Maximum a posteriori estimation
@@ -734,6 +748,6 @@ mapestimate <- function(estimator, Z, prior=NULL, theta_grid=NULL, theta0=NULL, 
   prior <- .defineprior(prior)
   juliaLet('
       using NeuralEstimators
-      mapestimate(estimator, Z; theta0=theta0, theta_grid=theta_grid, use_gpu=use_gpu, prior=prior)
-  ', estimator=estimator, Z=Z, theta0=theta0, theta_grid=theta_grid, use_gpu=use_gpu, prior=prior)
+      mapestimate(estimator, Z; theta0=theta0, theta_grid=theta_grid, use_gpu = use_gpu, prior=prior)
+  ', estimator=estimator, Z=Z, theta0=theta0, theta_grid=theta_grid, use_gpu = use_gpu, prior=prior)
 }

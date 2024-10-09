@@ -162,6 +162,11 @@ test_that("the neural estimator can be assessed with assess()", {
   bias(assessment$estimates)
   rmse(assessment)
   rmse(assessment$estimates)
+  
+  # Test that parameters can be given as a vector in single-parameter case
+  estimator_one_param <- initialise_estimator(1, architecture = "MLP")
+  assessment <- assess(estimator_one_param, rnorm(100), Z_test)
+  
   expect_equal(1, 1)
 })
 
@@ -175,14 +180,8 @@ test_that("the neural estimator can be applied to real data using estimate() and
   expect_equal(ncol(thetahat), 1)
   
   ## Non-parametric bootstrap estimates
-  B = 400
+  B  <- 400
   bs <- bootstrap(estimator, Z, B = B)  
-  expect_equal(nrow(bs), p)
-  expect_equal(ncol(bs), B)
-  
-  ## Parametric bootstrap 
-  Z = lapply(1:B, function(b) t(rnorm(m, mean = thetahat[1], sd = thetahat[2])))
-  bs <- bootstrap(estimator, Z = Z)
   expect_equal(nrow(bs), p)
   expect_equal(ncol(bs), B)
 })

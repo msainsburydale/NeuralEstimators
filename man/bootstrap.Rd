@@ -9,11 +9,11 @@ bootstrap(estimator, Z, B = 400, blocks = NULL, use_gpu = TRUE)
 \arguments{
 \item{estimator}{a neural estimator}
 
-\item{Z}{either simulated data of length B or a single observed data set, which will be bootstrap sampled B times to generate B bootstrap estimates}
+\item{Z}{either a list of data sets simulated conditionally on the fitted parameters (parametric bootstrap); or a single observed data set containing independent replicates, which will be sampled with replacement \code{B} (non-parametric bootstrap)}
 
-\item{B}{number of bootstrap estimates (default 400)}
+\item{B}{number of non-parametric bootstrap estimates (default 400)}
 
-\item{blocks}{integer vector specifying the blocks in non-parameteric bootstrapping (default \code{NULL}). For example, with 5 replicates, the first two corresponding to block 1 and the remaining three corresponding to block 2, blocks should be \code{c(1,1,2,2,2)}. The bootstrap sampling algorithm aims to produce bootstrap data sets that are of a similar size to \code{Z}, but this can only be achieved exactly if all blocks are equal in length.}
+\item{blocks}{integer vector specifying the blocks in non-parameteric bootstrap (default \code{NULL}). For example, with 5 replicates, the first two corresponding to block 1 and the remaining three corresponding to block 2, \code{blocks} should be \code{c(1,1,2,2,2)}. The bootstrap sampling algorithm aims to produce bootstrap data sets that are of a similar size to \code{Z}, but this can only be achieved exactly if all blocks are equal in length.}
 
 \item{use_gpu}{a boolean indicating whether to use the GPU if it is available (default \code{TRUE})}
 }
@@ -21,32 +21,5 @@ bootstrap(estimator, Z, B = 400, blocks = NULL, use_gpu = TRUE)
 p × B matrix, where p is the number of parameters in the model and B is the number of bootstrap samples
 }
 \description{
-Generate \code{B} bootstrap estimates from a neural estimator
-
-Non-parametric bootstrap is facilitated by setting the data \code{Z} to
-be a single data set.  Parametric bootstrap is facilitated by setting the
-data \code{Z} to be multiple simulated data sets stored as a list whose
-length implicitly defines \code{B}.
-}
-\examples{
-\dontrun{
-library("NeuralEstimators")
-library("JuliaConnectoR")
-
-## Observed data: m independent replicates of a N(0, 1) random variable
-m = 100
-Z = t(rnorm(m))
-
-## Construct the estimator
-estimator <- initialise_estimator(1, architecture = "MLP")
-
-## Non-parametric bootstrap
-bootstrap(estimator, Z = Z)
-bootstrap(estimator, Z = Z, blocks = rep(1:5, each = m/5))
-
-## Parametric bootstrap 
-thetahat = estimate(estimator, Z)  # estimated parameters
-B = 400
-Z = lapply(1:B, function(b) t(rnorm(m, mean = thetahat[1], sd = thetahat[2])))
-bootstrap(estimator, Z = Z)}
+Compute bootstrap estimates from a neural estimator
 }

@@ -5,6 +5,9 @@
 ^\.github$
 ^cran-comments.md$
 ^devel$
-^vignettes/
 ^inst/doc/.*\.Rmd$
 ^inst/doc/.*\.Rnw$
+^vignettes$
+^vignettes/
+# Note that vignettes needs to be commented out to build the vignettes again. 
+# Also need to add 'VignetteBuilder: knitr' to the DESCRIPTION

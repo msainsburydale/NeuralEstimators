@@ -91,7 +91,7 @@ exponential covariance function,
 $$
 \textrm{cov}(Z_i, Z_j) = \textrm{exp}(-\|\boldsymbol{s}_i - \boldsymbol{s}_j\|/\theta),
 $$
-with unknown range parameter $\theta > 0$. Here, we take the spatial domain be the unit square, we simulate data on a grid with $16^2 = 256$ possible observation locations, and we adopt a uniform prior, $\theta \sim \rm{Unif}(0, 0.4)$. 
+with unknown range parameter $\theta > 0$. Here, we take the spatial domain to be the unit square, we simulate data on a grid with $16^2 = 256$ possible observation locations, and we adopt a uniform prior, $\theta \sim \rm{Unif}(0, 0.4)$. 
 
 To begin, we define a function for sampling from the prior distribution and a function for marginal simulation from the statistical model. Note that our simulation code can be made faster (e.g., using parallel versions of `lapply`, utilising GPUs, etc.), but we provide a relatively simple implementation for pedagogical purposes: 
 
@@ -109,8 +109,8 @@ prior <- function(K) {
 # m: number of conditionally independent replicates for each parameter vector
 simulate <- function(theta, m = 1) { 
   
-  # Spatial locations, a grid over the unit square, and spatial distance matrix
-  N <- 16 # number of locations along each dimension of the grid
+  # Spatial locations (16x16 grid over the unit square) and spatial distance matrix
+  N <- 16 
   S <- expand.grid(seq(1, 0, len = N), seq(0, 1, len = N))
   D <- as.matrix(dist(S))         
   
@@ -168,11 +168,11 @@ ggplot(df, aes(x = Var2, y = Var1, fill = value)) +
 Next, we design our neural-network architecture.
 
 The package `NeuralEstimators` is centred on the DeepSets framework
-[(Zaheer et al., 2017)](https://arxiv.org/abs/1703.06114), which
+[(Zaheer et al., 2017)](https://doi.org/10.48550/arXiv.1703.06114), which
 allows for making inference with an arbitrary
 number of independent replicates and for incorporating both neural
 (learned) and user-defined summary statistics. Specifically, the neural
-Bayes estimator is taken to be of the form, 
+Bayes estimator takes the form, 
 $$
 \hat{\boldsymbol{\theta}}(\boldsymbol{Z}_1,\dots,\boldsymbol{Z}_m) = \boldsymbol{\phi}\bigg\{\frac{1}{m} \sum_{i=1}^m\boldsymbol{\psi}(\boldsymbol{Z}_i)\bigg\},
 $$ 
@@ -180,8 +180,7 @@ where $\boldsymbol{Z}_1,\dots,\boldsymbol{Z}_m$ are replicates of
 $\boldsymbol{Z}$, $\boldsymbol{\psi}(\cdot)$ is a conventional neural
 network whose architecture depends on the multivariate structure of the
 data (e.g., a CNN for gridded data), and $\boldsymbol{\phi}(\cdot)$ is
-(always) a multilayer perceptron (MLP). See [Sainsbury-Dale et al.
-(2024)](https://www.tandfonline.com/doi/full/10.1080/00031305.2023.2249522)
+(always) a multilayer perceptron (MLP). See [Sainsbury-Dale et al. (2024)](https://doi.org/10.1080/00031305.2023.2249522)
 for further details on the use of DeepSets in the context of neural
 Bayes estimation and a discussion on the framework's connection to
 conventional estimators. See also [Dumoulin and Visin (2016)](https://arxiv.org/abs/1603.07285)  for a detailed description of CNNs and their construction, which is beyond the scope of this vignette: 
@@ -191,17 +190,17 @@ conventional estimators. See also [Dumoulin and Visin (2016)](https://arxiv.org/
 estimator <- juliaEval('
   # Summary network
   psi = Chain(
-      Conv((3, 3), 1 => 32, relu),   # 3x3 convolutional filter, 1 input channel to 32 output channels, ReLU activation
+      Conv((3, 3), 1 => 32, relu),   # 3x3 convolutional filter, 1 input channel to 32 output channels
       MaxPool((2, 2)),               # 2x2 max pooling layer for dimension reduction
-      Conv((3, 3), 32 => 64, relu),  # 3x3 convolutional filter, 32 input channels to 64 output channels, ReLU activation
+      Conv((3, 3), 32 => 64, relu),  # 3x3 convolutional filter, 32 input channels to 64 output channels
       MaxPool((2, 2)),               # 2x2 max pooling layer for dimension reduction
       Flux.flatten                   # flatten the output to feed into a fully connected layer
   )
   
   # Inference network
   phi = Chain(
-      Dense(256, 64, relu),          # fully connected layer, 256 input neurons to 64 output neurons, ReLU activation
-      Dense(64, 1)                   # fully connected layer, 64 input neurons to 1 output neuron
+      Dense(256, 256, relu),          # fully connected layer, 256 input neurons to 256 output neurons
+      Dense(256, 1, softplus)         # fully connected layer, 256 input neurons to 1 output neuron
   )
   
   # Construct DeepSet object and initialise a point estimator
@@ -209,6 +208,8 @@ estimator <- juliaEval('
   estimator = PointEstimator(deepset)
 ')
 ```
+
+Note that the output activation function (i.e., the activation function of the final layer) of the inference network $\boldsymbol{\phi}(\cdot)$ depends on the support of $\theta$; here, since $\theta > 0$, we use a softplus output activation function, $\log(\exp(x) + 1)$, to ensure positive parameter estimates. 
 
 Next, we train the estimator using parameter vectors sampled from the prior distribution, and data simulated from the statistical model conditional on these parameter vectors:
 
@@ -406,11 +407,7 @@ ggplot(df, aes(x = Var2, y = Var1, fill = value)) +
   )
 ```
 
-Next, we construct and train a masked neural Bayes estimator. Here, the
-first convolutional layer takes two input channels, since we store the
-encoded data $\boldsymbol{U}$ in the first channel and the missingness
-pattern $\boldsymbol{W}$ in the second. Otherwise, the architecture
-remains as given above:
+Next, we construct and train a masked neural Bayes estimator. Since we store the encoded data $\boldsymbol{U}$ in the first channel and the missingness pattern $\boldsymbol{W}$ in the second, the first convolutional layer takes two input channels. Otherwise, the architecture remains as given above:
 
 ```{r}
 masked_estimator <- juliaEval('
@@ -424,9 +421,10 @@ masked_estimator <- juliaEval('
 	)
 	
 	# Inference network
-  phi = Chain(Dense(256, 64, relu), Dense(64, 1))
+  phi = Chain(Dense(256, 256, relu), Dense(256, 1, softplus))
 
   deepset = DeepSet(psi, phi)
+  PointEstimator(deepset)
 ')
 ```
 
@@ -437,8 +435,7 @@ UW_train <- encodedata(lapply(Z_train, removedata))
 UW_val   <- encodedata(lapply(Z_val, removedata))
 ```
 
-Training and assessment of the neural Bayes estimator then proceeds as
-usual:
+Training and assessment of the masked neural Bayes estimator then proceeds as before:
 
 ```{r, fig.width=5, fig.height=3, out.width='50%', fig.align='center'}
 # Train the estimator 
@@ -468,14 +465,14 @@ theta <- matrix(0.2)
 Z <- simulate(theta)[[1]] 
 Z1 <- removedata(Z, 0.25)
 UW <- encodedata(Z1)
-c(estimate(masked_estimator, UW))
+estimate(masked_estimator, UW)
 ```
 
 ## The neural EM algorithm
 
-Let $\boldsymbol{Z}_1$ and $\boldsymbol{Z}_2$ denote the observed and unobserved (i.e., missing) data, respectively, and let $\boldsymbol{Z} \equiv (\boldsymbol{Z}_1', \boldsymbol{Z}_2')'$ denote the complete data. A classical approach to facilitating inference when data are missing is the expectation-maximisation (EM) algorithm [(Dempster et al., 1977)](https://rss.onlinelibrary.wiley.com/doi/10.1111/j.2517-6161.1977.tb01600.x). 
+Let $\boldsymbol{Z}_1$ and $\boldsymbol{Z}_2$ denote the observed and unobserved (i.e., missing) data, respectively, and let $\boldsymbol{Z} \equiv (\boldsymbol{Z}_1', \boldsymbol{Z}_2')'$ denote the complete data. A classical approach to facilitating inference when data are missing is the expectation-maximisation (EM) algorithm [(Dempster et al., 1977)](https://doi.org/10.1111/j.2517-6161.1977.tb01600.x). 
 
-The *neural EM algorithm* is an approximate version of the conventional (Bayesian) Monte Carlo EM algorithm [(Wei and Tanner, 1990)](https://www.tandfonline.com/doi/abs/10.1080/01621459.1990.10474930) which, at the $l$th iteration, updates the parameter vector through
+The *neural EM algorithm* is an approximate version of the conventional (Bayesian) Monte Carlo EM algorithm [(Wei and Tanner, 1990)](https://doi.org/10.1080/01621459.1990.10474930) which, at the $l$th iteration, updates the parameter vector through
 $$
 \boldsymbol{\theta}^{(l)} = \textrm{argmax}_{\boldsymbol{\theta}} \sum_{h = 1}^H \ell(\boldsymbol{\theta};  \boldsymbol{Z}_1,  \boldsymbol{Z}_2^{(lh)}) + \log \pi_H(\boldsymbol{\theta}),
 $$
@@ -491,7 +488,7 @@ which yields the 0--1 loss function in the limit as $\kappa \to 0$.
 
 An advantage of using the neural EM algorithm is that the neural-network architecture does not need to be altered compared with that used in the complete-data case, and we can therefore use our complete-data estimator trained earlier as the starting point of our neural MAP estimator; this is known as pretraining, and it can substantially reduce the computational cost of training. 
 
-<!-- Note that above EM update requires a MAP estimate from (conditionally-simulated) replicates. If we wish to allow for $H$ to be variable (e.g., chosen adaptively across iterations), then one should train the estimator to account for data sets with variable sample sizes. See [Sainsbury-Dale et al. (2024, Sec. 2.2.2)](https://www.tandfonline.com/doi/full/10.1080/00031305.2023.2249522) for further discussion. -->
+<!-- Note that above EM update requires a MAP estimate from (conditionally-simulated) replicates. If we wish to allow for $H$ to be variable (e.g., chosen adaptively across iterations), then one should train the estimator to account for data sets with variable sample sizes. See [Sainsbury-Dale et al. (2024, Sec. 2.2.2)](https://doi.org/10.1080/00031305.2023.2249522) for further discussion. -->
 <!-- # Simulate data sets with variable sample sizes, allowing H to be chosen at inference time -->
 <!-- Z_train <- simulate(theta_train, 1:100) -->
 <!-- Z_val   <- simulate(theta_val, 1:100) -->
