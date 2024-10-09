@@ -40,7 +40,9 @@ jobs:
             julia -e '
               using Pkg
               Pkg.add(url="https://github.com/msainsburydale/NeuralEstimators.jl")
-              Pkg.add("Flux")'
+              Pkg.add("Flux")
+              Pkg.add("Optim") # required for a method of mlestimate/mapestimate
+              '
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:

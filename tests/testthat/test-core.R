@@ -214,7 +214,7 @@ test_that("neural ratio estimator can be constructed and used to make inference"
   mlestimate(estimator, Z, theta_grid = theta_grid)
   mapestimate(estimator, Z, theta0 = theta_0) 
   mapestimate(estimator, Z, theta_grid = theta_grid)
-  # mapestimate(estimator, Z, theta_grid = theta_grid, prior = function(x) 1) # NB This requires the user to have installed the Julia package RCall
+  # mapestimate(estimator, Z, theta_grid = theta_grid, prior = function(x) 1) # NB This requires the user to have installed the Julia package RCall, which is not particularly stable
   sampleposterior(estimator, Z[[1]], theta_grid = theta_grid) 
   sampleposterior(estimator, Z, theta_grid = theta_grid)
   expect_error(sampleposterior(estimator, c(Z, Z), theta_grid = theta_grid))
