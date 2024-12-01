@@ -6,6 +6,6 @@
 ^cran-comments.md$
 ^devel$
 vignettes/*.html
-vignettes/*.asis
+vignettes/*.html.asis
 # Note that vignettes/*.html needs to be commented out to build the vignettes again 
 # Also need to change to 'VignetteBuilder: knitr' to the DESCRIPTION
