@@ -24,7 +24,7 @@ To install the package, please:
 	- To install the current stable version of the package from terminal, run the command `julia -e 'using Pkg; Pkg.add("NeuralEstimators")'`. 
 	- Alternatively, one may install the development version using `julia -e 'using Pkg; Pkg.add(url="https://github.com/msainsburydale/NeuralEstimators.jl")'`.
 1. Install the `R` interface to `NeuralEstimators`.
- 	- The package is available on [CRAN](https://cran.r-project.org/web/packages/NeuralEstimators/index.html), so one may simply run `install.packages("NeuralEstimators")` within `R`. 
+ 	- The package is available on [CRAN](https://CRAN.R-project.org/package=NeuralEstimators), so one may simply run `install.packages("NeuralEstimators")` within `R`. 
  	- Alternatively, one may install the development version by installing `devtools` and running `devtools::install_github("msainsburydale/NeuralEstimators")`. 
 
 Note that if you wish to simulate training data "on-the-fly" using `R` functions, you will also need to install the Julia package `RCall`. Note also that one may compile the vignettes during installation (which takes roughly 10 minutes) by adding the argument `build_vignettes = TRUE` in the final command above.   
@@ -63,7 +63,7 @@ This software was developed as part of academic research. If you would like to s
 
 Several other software packages have been developed to facilitate neural likelihood-free inference. These include:
 
-- [BayesFlow](https://github.com/stefanradev93/BayesFlow) (TensorFlow)
+- [BayesFlow](https://github.com/bayesflow-org/bayesflow) (TensorFlow)
 - [LAMPE](https://github.com/probabilists/lampe) (PyTorch)
 - [sbi](https://github.com/sbi-dev/sbi) (PyTorch)
 - [swyft](https://github.com/undark-lab/swyft) (PyTorch)

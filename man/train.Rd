@@ -52,17 +52,17 @@ train(
 
 \item{xi}{a list of objects used for data simulation (e.g., distance matrices); if it is provided, the parameter sampler is called as \code{sampler(K, xi)}.}
 
-\item{loss}{the loss function: a string ('absolute-error' for mean-absolute-error loss or 'squared-error' for mean-squared-error loss), or a string of Julia code defining the loss function.}
+\item{loss}{the loss function: a string ('absolute-error' for mean-absolute-error loss or 'squared-error' for mean-squared-error loss), or a string of Julia code defining the loss function. For some classes of estimators (e.g., \code{QuantileEstimator} and \code{RatioEstimator}), the loss function does not need to be specified.}
 
 \item{learning_rate}{the learning rate for the optimiser ADAM (default 1e-3)}
 
-\item{epochs}{the number of epochs}
+\item{epochs}{the number of epochs to train the neural network. An epoch is one complete pass through the entire training data set when doing stochastic gradient descent.}
 
-\item{batchsize}{the batchsize to use when performing stochastic gradient descent}
+\item{batchsize}{the batchsize to use when performing stochastic gradient descent, that is, the number of training samples processed between each update of the neural-network parameters.}
 
 \item{savepath}{path to save the trained estimator and other information; if null (default), nothing is saved. Otherwise, the neural-network parameters (i.e., the weights and biases) will be saved during training as \code{bson} files; the risk function evaluated over the training and validation sets will also be saved, in the first and second columns of \code{loss_per_epoch.csv}, respectively; the best parameters (as measured by validation risk) will be saved as \code{best_network.bson}.}
 
-\item{stopping_epochs}{cease training if the risk doesn't improve in this number of epochs (default 5)}
+\item{stopping_epochs}{cease training if the risk doesn't improve in this number of epochs (default 5).}
 
 \item{epochs_per_Z_refresh}{integer indicating how often to refresh the training data}
 
@@ -70,9 +70,9 @@ train(
 
 \item{simulate_just_in_time}{flag indicating whether we should simulate "just-in-time", in the sense that only a \code{batchsize} number of parameter vectors and corresponding data are in memory at a given time}
 
-\item{use_gpu}{a boolean indicating whether to use the GPU if it is available (default true)}
+\item{use_gpu}{a boolean indicating whether to use the GPU if one is available}
 
-\item{verbose}{a boolean indicating whether information should be printed to the console during training}
+\item{verbose}{a boolean indicating whether information, including empirical risk values and timings, should be printed to the console during training.}
 }
 \value{
 a trained neural estimator or, if \code{m} is a vector, a list of trained neural estimators

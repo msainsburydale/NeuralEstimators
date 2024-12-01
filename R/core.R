@@ -129,14 +129,14 @@ initialise_estimator <- function(
 #' @param M deprecated; use \code{m}
 #' @param K the number of parameter vectors sampled in the training set at each epoch; the size of the validation set is set to \code{K}/5.
 #' @param xi a list of objects used for data simulation (e.g., distance matrices); if it is provided, the parameter sampler is called as \code{sampler(K, xi)}.
-#' @param loss the loss function: a string ('absolute-error' for mean-absolute-error loss or 'squared-error' for mean-squared-error loss), or a string of Julia code defining the loss function.
+#' @param loss the loss function: a string ('absolute-error' for mean-absolute-error loss or 'squared-error' for mean-squared-error loss), or a string of Julia code defining the loss function. For some classes of estimators (e.g., `QuantileEstimator` and `RatioEstimator`), the loss function does not need to be specified.
 #' @param learning_rate the learning rate for the optimiser ADAM (default 1e-3)
-#' @param epochs the number of epochs
-#' @param stopping_epochs cease training if the risk doesn't improve in this number of epochs (default 5)
-#' @param batchsize the batchsize to use when performing stochastic gradient descent
+#' @param epochs the number of epochs to train the neural network. An epoch is one complete pass through the entire training data set when doing stochastic gradient descent.
+#' @param stopping_epochs cease training if the risk doesn't improve in this number of epochs (default 5).
+#' @param batchsize the batchsize to use when performing stochastic gradient descent, that is, the number of training samples processed between each update of the neural-network parameters. 
 #' @param savepath path to save the trained estimator and other information; if null (default), nothing is saved. Otherwise, the neural-network parameters (i.e., the weights and biases) will be saved during training as `bson` files; the risk function evaluated over the training and validation sets will also be saved, in the first and second columns of `loss_per_epoch.csv`, respectively; the best parameters (as measured by validation risk) will be saved as `best_network.bson`. 
-#' @param use_gpu a boolean indicating whether to use the GPU if it is available (default true)
-#' @param verbose a boolean indicating whether information should be printed to the console during training
+#' @param use_gpu a boolean indicating whether to use the GPU if one is available 
+#' @param verbose a boolean indicating whether information, including empirical risk values and timings, should be printed to the console during training.
 #' @param epochs_per_Z_refresh integer indicating how often to refresh the training data
 #' @param epochs_per_theta_refresh integer indicating how often to refresh the training parameters; must be a multiple of \code{epochs_per_Z_refresh}
 #' @param simulate_just_in_time  flag indicating whether we should simulate "just-in-time", in the sense that only a \code{batchsize} number of parameter vectors and corresponding data are in memory at a given time
@@ -416,11 +416,10 @@ loadweights <- function(estimator, filename) {
 #' @return `estimator` updated with the saved state 
 #' @export
 loadstate <- function(estimator, filename) {
+  juliaEval('using NeuralEstimators, Flux')
+  juliaEval('using BSON: @load')
   juliaLet(
     '
-    using NeuralEstimators
-    using Flux
-    using BSON: @load
     @load filename model_state
     Flux.loadmodel!(estimator, model_state)
     estimator
@@ -435,11 +434,10 @@ loadstate <- function(estimator, filename) {
 #' @return No return value, called for side effects
 #' @export
 savestate <- function(estimator, filename) {
+  juliaEval('using NeuralEstimators, Flux')
+  juliaEval('using BSON: @save')
   juliaLet(
     '
-    using NeuralEstimators
-    using Flux
-    using BSON: @save
     model_state = Flux.state(estimator)
     @save filename model_state
     ',
