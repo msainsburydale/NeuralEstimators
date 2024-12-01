@@ -15,7 +15,8 @@ loadweights(estimator, filename)
 \code{estimator} updated with the saved weights
 }
 \description{
-load a collection of saved weights of a neural estimator
+This function is deprecated and will be removed in a future version.
+Please use \code{\link[=loadstate]{loadstate()}} instead, which provides more comprehensive functionality.
 }
 \seealso{
 \code{\link[=loadstate]{loadstate()}}

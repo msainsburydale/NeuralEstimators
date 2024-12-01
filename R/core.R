@@ -394,12 +394,17 @@ tanhloss <- function(k) paste0("(x, y) -> tanhloss(x, y, ", k, ")")
 
 #' @title load a collection of saved weights of a neural estimator
 #' 
+#' @description 
+#' This function is deprecated and will be removed in a future version.
+#' Please use [loadstate()] instead, which provides more comprehensive functionality.
+#'
 #' @param estimator the neural estimator that we wish to load weights into
 #' @param filename file (including absolute path) of the neural-network weights saved as a \code{bson} file
 #' @seealso [loadstate()] 
 #' @return `estimator` updated with the saved weights 
 #' @export
 loadweights <- function(estimator, filename) {
+  warning("`loadweights()` is deprecated. Please use `loadstate()` instead.", call. = FALSE)
   juliaLet(
     '
     using NeuralEstimators, Flux
@@ -411,6 +416,10 @@ loadweights <- function(estimator, filename) {
 }
 
 #' @title load a saved state of a neural estimator
+#' 
+#' @description 
+#' Load a saved state of a neural estimator, including both weights and additional model parameters.
+#'
 #' @param estimator the neural estimator that we wish to load the state into
 #' @param filename file (including absolute path) of the neural-network state in a \code{bson} file
 #' @return `estimator` updated with the saved state 

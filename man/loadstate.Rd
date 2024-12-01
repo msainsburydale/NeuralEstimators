@@ -15,5 +15,5 @@ loadstate(estimator, filename)
 \code{estimator} updated with the saved state
 }
 \description{
-load a saved state of a neural estimator
+Load a saved state of a neural estimator, including both weights and additional model parameters.
 }
