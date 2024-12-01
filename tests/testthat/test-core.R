@@ -71,6 +71,7 @@ test_that("a neural estimator can be initialised", {
   ## Using the helper function
   p = 2
   initialise_estimator(p, architecture = "MLP")
+  initialise_estimator(p, architecture = "MLP", variance_stabiliser = 'x -> cbrt.(x)')
   initialise_estimator(p, architecture = "GNN")
   initialise_estimator(p, architecture = "CNN", kernel_size = list(10, 5, 3))
   initialise_estimator(p, architecture = "CNN", kernel_size = list(c(10, 10), c(5, 5), c(3, 3)))
