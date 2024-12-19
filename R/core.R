@@ -586,24 +586,25 @@ assess <- function(
 #' @description estimate parameters from observed data using a neural estimator
 #'
 #' @param estimator a neural estimator
-#' @param Z data; format should be amenable to the architecture of \code{estimator}
+#' @param Z data; format should be amenable to the architecture of `estimator`
 #' @param theta parameter vectors (only for neural estimators that take both the data and parameters as input, e.g., neural ratio estimators)
 #' @param use_gpu a boolean indicating whether to use the GPU if it is available (default true)
-#' @return a matrix of parameter estimates (i.e., \code{estimator} applied to \code{Z})
+#' @return a matrix of parameter estimates (i.e., `estimator` applied to `Z`)
 #' @export
 #' @examples
 #' \dontrun{
-#' library("NeuralEstimators")
-#' library("JuliaConnectoR")
+#' library(NeuralEstimators)
+#' library(JuliaConnectoR)
 #'
 #' ## Observed data: 100 replicates of a univariate random variable
-#' Z = matrix(rnorm(100), nrow = 1)
+#' Z <- matrix(rnorm(100), nrow = 1)
 #'
 #' ## Construct an (un-trained) point estimator
 #' estimator <- initialise_estimator(1, architecture = "MLP")
 #'
 #' ## Apply the estimator
-#' estimate(estimator, Z)}
+#' estimate(estimator, Z)
+#' }
 estimate <- function(estimator, Z, theta = NULL, use_gpu = TRUE) {
   
   if (!is.list(Z) & !("JuliaProxy" %in% class(Z))) Z <- list(Z) 
@@ -653,6 +654,7 @@ estimate <- function(estimator, Z, theta = NULL, use_gpu = TRUE) {
 #' ## Non-parametric bootstrap
 #' bootstrap(estimator, Z = Z)
 #' bootstrap(estimator, Z = Z, blocks = rep(1:5, each = m/5))
+#' }
 bootstrap <- function(estimator,
                       Z,
                       B = 400,

@@ -23,15 +23,16 @@ estimate parameters from observed data using a neural estimator
 }
 \examples{
 \dontrun{
-library("NeuralEstimators")
-library("JuliaConnectoR")
+library(NeuralEstimators)
+library(JuliaConnectoR)
 
 ## Observed data: 100 replicates of a univariate random variable
-Z = matrix(rnorm(100), nrow = 1)
+Z <- matrix(rnorm(100), nrow = 1)
 
 ## Construct an (un-trained) point estimator
 estimator <- initialise_estimator(1, architecture = "MLP")
 
 ## Apply the estimator
-estimate(estimator, Z)}
+estimate(estimator, Z)
+}
 }

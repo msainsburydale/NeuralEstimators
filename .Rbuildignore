@@ -5,8 +5,8 @@
 ^\.github$
 ^cran-comments.md$
 ^devel$
-^vignettes/.*\.html$
-^vignettes/.*\\.html$
-^vignettes/.*\.html\.asis$
-^vignettes/.*\\.html\\.asis$
-# Note: ^vignettes/.*\.html$ and ^vignettes/.*\\.html$ need to be commented out to build the vignettes again. Also need to change to 'VignetteBuilder: knitr' to the DESCRIPTION
+vignettes/README.md
+^vignettes/.*\.Rmd$
+#^vignettes/.*\.html$
+#^vignettes/.*\.html\.asis$
+# Note: ^vignettes/.*\.html$ and ^vignettes/.*\\.html$ need to be commented out to build the vignettes again

@@ -23,3 +23,20 @@ p × B matrix, where p is the number of parameters in the model and B is the num
 \description{
 Compute bootstrap estimates from a neural estimator
 }
+\examples{
+\dontrun{
+library("NeuralEstimators")
+library("JuliaConnectoR")
+
+## Observed data: m independent replicates of a N(0, 1) random variable
+m = 100
+Z = t(rnorm(m))
+
+## Construct an (un-trained) neural point estimator
+estimator <- initialise_estimator(1, architecture = "MLP")
+
+## Non-parametric bootstrap
+bootstrap(estimator, Z = Z)
+bootstrap(estimator, Z = Z, blocks = rep(1:5, each = m/5))
+}
+}

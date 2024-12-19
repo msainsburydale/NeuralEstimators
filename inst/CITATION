@@ -1,16 +1,38 @@
+citHeader("To cite the NeuralEstimators package or its associated methodology, please use the following references:")
+
 bibentry(
-  bibtype  = "Article",
-  title    = "Likelihood-Free Parameter Estimation with Neural {B}ayes Estimators",
-  author   = c(person("Matthew Sainsbury-Dale"), person("Andrew Zammit-Mangion"), person("Raphael Huser")),
-  journal  = "The American Statistician",
-  year     = "2024",
-  volume   = "78",
-  pages    = "1--14",
-  doi      = "10.1080/00031305.2023.2249522",
-  header   = "To cite the package NeuralEstimators in publications use:",
-  textVersion  = paste(
-        "Sainsbury-Dale, M and Zammit-Mangion, A and Huser, R (2024).",
-        "Likelihood-Free Parameter Estimation with Neural Bayes Estimators.",
-        "The American Statistician, 78:1-14."
-        )
+  bibtype = "Manual",
+  title   = "{NeuralEstimators}: Likelihood-Free Parameter Estimation using Neural Networks",
+  author  = person("Matthew", "Sainsbury-Dale"),
+  year    = "2024",
+  note    = "R package version 0.1-2",
+  url     = "https://CRAN.R-project.org/package=NeuralEstimators",
+  doi     = "10.32614/CRAN.package.NeuralEstimators",
+  textVersion = paste(
+    "Sainsbury-Dale, M (2024).",
+    "NeuralEstimators: Likelihood-Free Parameter Estimation using Neural Networks.",
+    "R package version 0.1-2.",
+    "URL: https://CRAN.R-project.org/package=NeuralEstimators."
+  )
+)
+
+bibentry(
+  bibtype = "Article",
+  title   = "Likelihood-Free Parameter Estimation with Neural {B}ayes Estimators",
+  author  = c(
+    person("Matthew", "Sainsbury-Dale"),
+    person("Andrew", "Zammit-Mangion"),
+    person("Raphael", "Huser")
+  ),
+  journal = "The American Statistician",
+  year    = "2024",
+  volume  = "78",
+  pages   = "1--14",
+  doi     = "10.1080/00031305.2023.2249522",
+  textVersion = paste(
+    "Sainsbury-Dale, M, Zammit-Mangion, A, and Huser, R (2024).",
+    "Likelihood-Free Parameter Estimation with Neural Bayes Estimators.",
+    "The American Statistician, 78:1-14.",
+    "DOI: 10.1080/00031305.2023.2249522."
+  )
 )
