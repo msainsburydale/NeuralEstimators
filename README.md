@@ -5,8 +5,6 @@
 [![R-CMD-check](https://github.com/msainsburydale/NeuralEstimators/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/msainsburydale/NeuralEstimators/actions/workflows/R-CMD-check.yaml)
 [![codecov](https://codecov.io/gh/msainsburydale/NeuralEstimators/branch/main/graph/badge.svg?token=6cXItEsKs5)](https://app.codecov.io/gh/msainsburydale/NeuralEstimators)
 
-https://CRAN.R-project.org/package=NeuralEstimators
-
 [CRAN-img]: https://img.shields.io/badge/CRAN-blue.svg
 [CRAN-url]: https://CRAN.R-project.org/package=NeuralEstimators
 
