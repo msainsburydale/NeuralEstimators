@@ -9,13 +9,14 @@ The vignettes for `NeuralEstimators` are built using `Rmd` files, which are conv
 - In `.Rbuildignore` comment out `^vignettes/.*\.Rmd$`
 - Create the vignette `Rmd` file and place it in the folder `vignettes`
 - Run `devtools::build_vignettes()`
+- Move the generated `html` file from the folder `doc` to the folder `vignettes`, and create an `asis` file for the vignette.  
 
 ### Uploading the package to CRAN
 
 - In the `DESCRIPTION` set `VignetteBuilder: R.rsp` and bump the version number
 - In `.Rbuildignore` comment out `^vignettes/.*\.html$` and `^vignettes/.*\.html\.asis$` 
 - In `.Rbuildignore` uncomment `^vignettes/.*\.Rmd$`
-- Build the package using `devtools::build()`
 - Check the package using `devtools::check()`
-- Check the package on Windows using [WinBuilder](https://win-builder.r-project.org/)
-- Once checked, submit the package to CRAN 
+- Build the package using `devtools::build()`
+- Check the package using [WinBuilder](https://win-builder.r-project.org/)
+- Once checked, submit to CRAN 

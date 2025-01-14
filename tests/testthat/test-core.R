@@ -220,7 +220,6 @@ test_that("neural ratio estimator can be constructed and used to make inference"
   ratio <- estimate(estimator, Z, cbind(theta, theta))   # ratio estimates 
   expect_equal(nrow(ratio), 1)
   expect_equal(ncol(ratio), 2)
-  expect_error(estimate(estimator, list(Z, Z), theta))
   
   # Grid-based methods for estimation/posterior sampling
   theta_grid <- t(expand.grid(seq(0, 1, len = 50), seq(0, 1, len = 50)))

@@ -343,8 +343,7 @@ train <- function(estimator,
      train_code, 
      loss_code,
     "
-    #optimiser = Flux.setup(OptimiserChain(WeightDecay(1e-4), Flux.Adam(learning_rate)), estimator), #NB this didn't work for some reason... come back to it if we end up needing to change to the `explicit` formulation for training flux models
-    optimiser = Flux.Adam(learning_rate),
+    optimiser = Flux.setup(Flux.Adam(), estimator), 
     epochs = epochs,
     batchsize = batchsize,
     savepath = savepath,
@@ -555,10 +554,6 @@ assess <- function(
   "
   using NeuralEstimators, Flux
 
-  # Convert parameters and data to Float32 for computational efficiency
-  Z = broadcast.(z -> Float32.(z), Z)
-  parameters = broadcast.(Float32, parameters)
-
   assessment = assess(
         estimators, parameters, Z,",
 		    estimator_names_code, parameter_names_code,
@@ -611,8 +606,6 @@ estimate <- function(estimator, Z, theta = NULL, use_gpu = TRUE) {
   
   thetahat <- juliaLet('
   using NeuralEstimators, Flux
-  
-  Z = broadcast.(Float32, Z)
   
   output = estimateinbatches(estimator, Z, theta; use_gpu = use_gpu)
   
@@ -671,7 +664,6 @@ bootstrap <- function(estimator,
   } else {
     thetahat <- juliaLet('
       using NeuralEstimators
-      Z = broadcast.(Float32, Z)
       bootstrap(estimator, Z, use_gpu = use_gpu, B = B, blocks = blocks)',
                          estimator=estimator, Z=Z, use_gpu = use_gpu, blocks=blocks, B=B
     )

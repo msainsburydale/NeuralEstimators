@@ -1,6 +1,6 @@
 Package: NeuralEstimators
 Title: Likelihood-Free Parameter Estimation using Neural Networks
-Version: 0.1.2
+Version: 0.1.3
 Authors@R: 
     person(given = "Matthew",
            family = "Sainsbury-Dale",
@@ -27,5 +27,5 @@ Suggests:
     R.rsp,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
-SystemRequirements: Julia (>= 1.9)
+SystemRequirements: Julia (>= 1.10)
 VignetteBuilder: R.rsp

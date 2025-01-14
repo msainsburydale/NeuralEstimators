@@ -26,8 +26,7 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
 In this vignette, we demonstrate neural Bayes estimation with gridded
-data using convolutional neural networks (CNNs). These architectures
-require completely-observed gridded data; in this vignette, we also show how one can use CNNs with incomplete data using two techniques.
+data using convolutional neural networks (CNNs). The direct use of CNNs requires completely-observed gridded data; here, we also show how one can use CNNs with incomplete data using techniques described by [Wang et al. (2024)](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1012184) and [Sainsbury-Dale et al. (2025)](https://doi.org/10.48550/arXiv.2501.04330). For a general introduction to the package, see the vignette ["Introduction to NeuralEstimators"](https://cran.r-project.org/package=NeuralEstimators/vignettes/NeuralEstimators.html).
 
 Before proceeding, we load the required packages (see [here](https://github.com/msainsburydale/NeuralEstimators?tab=readme-ov-file#installation-tips) for instructions on installing Julia and the Julia packages `NeuralEstimators` and `Flux`):
 
@@ -35,6 +34,7 @@ Before proceeding, we load the required packages (see [here](https://github.com/
 library("NeuralEstimators")
 library("JuliaConnectoR")
 library("ggplot2")
+library("parallel")
 juliaEval('using NeuralEstimators, Flux')
 ```
 
@@ -82,18 +82,13 @@ abind_base <- function(...) {
 We first consider the case that the data are collected completely over a
 regular grid. 
 
-We develop a neural Bayes estimator for a spatial
-Gaussian process model, where $\boldsymbol{Z} \equiv (Z_{1}, \dots, Z_{n})'$ are data collected at
-locations $\{\boldsymbol{s}_{1}, \dots, \boldsymbol{s}_{n}\}$ in
-a spatial domain  that is a subset of $\mathbb{R}^2$. The data are assumed to be
-spatially-correlated mean-zero Gaussian random variables with
-exponential covariance function, 
+We develop a neural Bayes estimator for a spatial Gaussian process model, where $\boldsymbol{Z} \equiv (Z_{1}, \dots, Z_{n})'$ are data collected at locations $\{\boldsymbol{s}_{1}, \dots, \boldsymbol{s}_{n}\}$ in a spatial domain that is a subset of $\mathbb{R}^2$. The data are modelled as spatially-correlated mean-zero Gaussian random variables with exponential covariance function, given by
 $$
-\textrm{cov}(Z_i, Z_j) = \textrm{exp}(-\|\boldsymbol{s}_i - \boldsymbol{s}_j\|/\theta),
+\textrm{cov}(Z_i, Z_j) = \textrm{exp}(-\|\boldsymbol{s}_i - \boldsymbol{s}_j\|/\theta), \quad i, j = 1, \dots, n,
 $$
-with unknown range parameter $\theta > 0$. Here, we take the spatial domain to be the unit square, we simulate data on a grid with $16^2 = 256$ possible observation locations, and we adopt a uniform prior, $\theta \sim \rm{Unif}(0, 0.4)$. 
+with unknown range parameter $\theta > 0$. Here, we take the spatial domain to be the unit square, we simulate data on a regular square grid of size $n = 16^2 = 256$, and we adopt a uniform prior $\theta \sim \rm{Unif}(0, 0.4)$. 
 
-To begin, we define a function for sampling from the prior distribution and a function for marginal simulation from the statistical model. Note that our simulation code can be made faster (e.g., using parallel versions of `lapply`, utilising GPUs, etc.), but we provide a relatively simple implementation for pedagogical purposes: 
+To begin, we define a function for sampling from the prior distribution and a function for marginal simulation from the statistical model. 
 
 ```{r}
 # Sampling from the prior distribution
@@ -115,7 +110,7 @@ simulate <- function(theta, m = 1) {
   D <- as.matrix(dist(S))         
   
   # Simulate conditionally independent replicates for each parameter vector
-  Z <- lapply(1:ncol(theta), function(k) {
+  Z <- mclapply(1:ncol(theta), function(k) {
     Sigma <- exp(-D/theta[k])  # covariance matrix
     L <- t(chol(Sigma))        # lower Cholesky factor of Sigma
     n <- nrow(L)               # number of observation locations
@@ -133,7 +128,7 @@ simulate <- function(theta, m = 1) {
 **A note on data format:** When working with the package `NeuralEstimators`, the following general rules regarding assumed data format apply: 
 
 - sets of parameter vectors are always stored as matrices, where each column corresponds to one parameter vector $\boldsymbol{\theta}$;  
-- simulated data are stored as a list, where each element of the list corresponds to a data set $\boldsymbol{Z}$ (possibly containing independent replicates) simulated conditional on a parameter vector $\boldsymbol{\theta}$. 
+- simulated data are stored as a list, where each element of the list corresponds to a data set $\boldsymbol{Z}$ (possibly containing independent replicates) simulated conditionally on a parameter vector $\boldsymbol{\theta}$. 
 
 When using CNNs, each data set must be stored as a multi-dimensional array. The penultimate dimension stores the so-called channels (this dimension is singleton for univariate processes, two for bivariate
 processes, etc.), while the final dimension stores conditionally independent replicates. For example, to store $50$ conditionally independent replicates of a bivariate spatial process measured over a $10\times15$ grid, one would construct an array of dimension $10\times15\times2\times50$.
