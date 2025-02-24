@@ -27,7 +27,7 @@ To install the package, please:
    Ensure you have both [Julia](https://julialang.org/downloads/) and [R](https://www.r-project.org/) installed on your system.
 
 2. **Install the Julia version of `NeuralEstimators`**  
-   - To install the stable version of the package, run the following command in your terminal:  
+   - To install the current stable version, run the following command in your terminal:  
      ```bash
      julia -e 'using Pkg; Pkg.add("NeuralEstimators")'
      ```  
@@ -58,20 +58,19 @@ citation("NeuralEstimators")
 
 ### Contributing
 
-If you find a bug or have a suggestion, please [open an issue](https://github.com/msainsburydale/NeuralEstimators/issues). For instructions for developing vignettes, see [vignettes/README.md](https://github.com/msainsburydale/NeuralEstimators/blob/main/vignettes/README.md). 
+If you encounter a bug or have a suggestion, please consider [opening an issue](https://github.com/msainsburydale/NeuralEstimators/issues) or submitting a pull request. Instructions for developing vignettes can be found in [vignettes/README.md](https://github.com/msainsburydale/NeuralEstimators/blob/main/vignettes/README.md). 
 
 ### Papers using NeuralEstimators
 
 - **Likelihood-free parameter estimation with neural Bayes estimators** [[paper]](https://doi.org/10.1080/00031305.2023.2249522) [[code]](https://github.com/msainsburydale/NeuralBayesEstimators)
 
-- **Neural Bayes estimators for censored inference with peaks-over-threshold models** [[paper]](https://arxiv.org/abs/2306.15642)
+- **Neural methods for amortized inference** [[paper]](https://doi.org/10.1146/annurev-statistics-112723-034123)[[code]](https://github.com/andrewzm/Amortised_Neural_Inference_Review)
 
 - **Neural Bayes estimators for irregular spatial data using graph neural networks** [[paper]](https://doi.org/10.1080/10618600.2024.2433671)[[code]](https://github.com/msainsburydale/NeuralEstimatorsGNN)
 
-- **Neural Methods for Amortized Inference** [[paper]](https://arxiv.org/abs/2404.12484)[[code]](https://github.com/andrewzm/Amortised_Neural_Inference_Review)
+- **Neural Bayes estimators for censored inference with peaks-over-threshold models** [[paper]](https://jmlr.org/papers/v25/23-1134.html) [[code]](https://github.com/Jbrich95/CensoredNeuralEstimators)
 
-- **Neural parameter estimation with incomplete data** [[paper]](https://arxiv.org/abs/2501.04330)[[code]](https://github.com/msainsburydale/NeuralEM)
-
+- **Neural parameter estimation with incomplete data** [[paper]](https://arxiv.org/abs/2501.04330)[[code]](https://github.com/msainsburydale/NeuralIncompleteData)
 
 
 

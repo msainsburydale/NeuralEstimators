@@ -20,7 +20,7 @@ train(
   learning_rate = 1e-04,
   epochs = 100,
   batchsize = 32,
-  savepath = "",
+  savepath = NULL,
   stopping_epochs = 5,
   epochs_per_Z_refresh = 1,
   epochs_per_theta_refresh = 1,
@@ -52,7 +52,7 @@ train(
 
 \item{xi}{a list of objects used for data simulation (e.g., distance matrices); if it is provided, the parameter sampler is called as \code{sampler(K, xi)}.}
 
-\item{loss}{the loss function: a string ('absolute-error' for mean-absolute-error loss or 'squared-error' for mean-squared-error loss), or a string of Julia code defining the loss function. For some classes of estimators (e.g., \code{QuantileEstimator} and \code{RatioEstimator}), the loss function does not need to be specified.}
+\item{loss}{the loss function: a string ('absolute-error' for mean-absolute-error loss or 'squared-error' for mean-squared-error loss), or a string of Julia code defining the loss function. For some classes of estimators (e.g., \code{RatioEstimator}, \code{QuantileEstimator}, \code{RatioEstimator}), the loss function does not need to be specified.}
 
 \item{learning_rate}{the learning rate for the optimiser ADAM (default 1e-3)}
 
@@ -96,15 +96,15 @@ Note that using \code{R} functions to perform "on-the-fly" simulation requires t
 # Load R and Julia packages
 library("NeuralEstimators")
 library("JuliaConnectoR")
-juliaEval("using NeuralEstimators, Flux, Distributions")
+juliaEval("using NeuralEstimators, Flux")
 
 # Define the neural-network architecture
 estimator <- juliaEval('
- d = 1    # dimension of each replicate
- p = 2    # number of parameters in the model
- w = 32   # width of each layer
- psi = Chain(Dense(d, w, relu), Dense(w, w, relu))
- phi = Chain(Dense(w, w, relu), Dense(w, p))
+ n = 1    # dimension of each replicate
+ d = 2    # number of parameters in the model
+ w = 32   # width of each hidden layer
+ psi = Chain(Dense(n, w, relu), Dense(w, w, relu))
+ phi = Chain(Dense(w, w, relu), Dense(w, d))
  deepset = DeepSet(psi, phi)
  estimator = PointEstimator(deepset)
 ')
@@ -136,15 +136,17 @@ estimator <- train(estimator,
                    Z_train = Z_train, 
                    Z_val = Z_val)
                    
-# Train using simulation on-the-fly (requires Julia package RCall)
+##### Simulation on-the-fly using R functions ####
+
+juliaEval("using RCall") # requires the Julia package RCall
 estimator <- train(estimator, sampler = sampler, simulator = simulator, m = m)
 
 ##### Simulation on-the-fly using Julia functions ####
 
 # Defining the sampler and simulator in Julia can improve computational 
 # efficiency by avoiding the overhead of communicating between R and Julia. 
-# Julia is also fast (comparable to C) and so it can be useful to define 
-# these functions in Julia when they involve for-loops. 
+
+juliaEval("using Distributions")
 
 # Parameter sampler
 sampler <- juliaEval("
@@ -162,7 +164,7 @@ simulator <- juliaEval("
       	return Z
       end")
 
-# Train the estimator
+# Train
 estimator <- train(estimator, sampler = sampler, simulator = simulator, m = m)}
 }
 \seealso{

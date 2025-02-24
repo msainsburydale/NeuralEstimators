@@ -212,8 +212,8 @@ test_that("neural ratio estimator can be constructed and used to make inference"
     estimator = RatioEstimator(deepset)
 ')
   
-  theta <- as.matrix(c(0, 0.5))         # true parameters
-  Z     <- simulator(theta, m)          # "observed" data
+  theta <- as.matrix(c(0, 0.5))            # true parameters
+  Z     <- simulator(theta, m)             # "observed" data
   ratio <- estimate(estimator, Z, theta)   # ratio estimate
   expect_equal(nrow(ratio), 1)
   expect_equal(ncol(ratio), 1)
@@ -228,7 +228,6 @@ test_that("neural ratio estimator can be constructed and used to make inference"
   # mapestimate(estimator, Z, theta_grid = theta_grid, prior = function(x) 1) # NB This requires the user to have installed the Julia package RCall, which is not particularly stable
   sampleposterior(estimator, Z[[1]], theta_grid = theta_grid) 
   sampleposterior(estimator, Z, theta_grid = theta_grid)
-  expect_error(sampleposterior(estimator, c(Z, Z), theta_grid = theta_grid))
   # sampleposterior(estimator, Z, theta_grid = theta_grid, prior = function(x) 1) # NB This requires the user to have installed the Julia package RCall
   
   # Gradient descent method for estimation

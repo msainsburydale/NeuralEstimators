@@ -6,6 +6,8 @@
 ^cran-comments.md$
 ^devel$
 ^vignettes/README.md
+vignettes/README.md
 ^vignettes/.*\.Rmd$
 #^vignettes/.*\.html$
 #^vignettes/.*\.html\.asis$
+

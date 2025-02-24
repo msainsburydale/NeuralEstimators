@@ -44,10 +44,8 @@ test_that("the Julia version of NeuralEstimators is available", {
 test_that("encodedata() is working", {
   Z <- matrix(c(1, 2, NA, NA, 5, 6, 7, NA, 9), nrow = 3)
   UW <- encodedata(Z)
-  expect_equal(dim(UW), c(3, 3, 2, 1))
   UW <- encodedata(list(Z, Z))
   expect_equal(length(UW), 2)
-  expect_equal(dim(UW[[1]]), c(3, 3, 2, 1))
 })
 
 

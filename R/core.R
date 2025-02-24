@@ -1,110 +1,4 @@
-#' @title Initialise a neural estimator
-#' 
-#' @description Helper function for initialising a neural estimator. 
-#' 
-#' The estimator is couched in the DeepSets framework so that it can be applied to data with an arbitrary number of independent replicates (including the special case of a single replicate).
-#' 
-#' @param p number of unknown parameters in the statistical model
-#' @param architecture a string: for unstructured data, one may use a fully-connected MLP ("MLP"); for data collected over a grid, a convolutional neural network ("CNN"); and for graphical or irregular spatial data, a graphical neural network ("GNN").
-#' @param d for unstructured multivariate data (i.e., when `architecture = "MLP"`), the dimension of the data (e.g., `d = 3` for trivariate data); otherwise, if `architecture` is `"CNN"` or `"GNN"`, the argument \code{d} controls the number of input channels (e.g., \code{d = 1} for univariate spatial processes). 
-#' @param estimator_type the type of estimator; either "point" or "interval".
-#' @param depth the number of hidden layers. Either a single integer or an integer vector of length two specifying the depth of inner (summary) and outer (inference) network of the DeepSets framework. Since there is an input and an output layer, the total number of layers is \code{sum(depth) + 2}.
-#' @param width a single integer or an integer vector of length \code{sum(depth)} specifying the width (or number of convolutional filters/channels) in each layer.
-#' @param activation the (non-linear) activation function of each hidden layer. Accepts a string of Julia code (default \code{"relu"}).
-#' @param activation_output the activation function of the output layer layer. Accepts a string of Julia code (default \code{"identity"}).
-#' @param variance_stabiliser a function that will be applied directly to the input, usually to stabilise the variance.: a string ('log' for the natural logarithm, or 'cbrt' for the cube-root function), or a string of Julia code that will be converted to a Julia function using \code{juliaEval()}.
-#' @param kernel_size  (applicable only to CNNs) a list of length \code{depth[1]} containing lists of integers of length D, where D is the dimension of the convolution (e.g., D = 2 for two-dimensional convolution).
-#' @param weight_by_distance (applicable only to GNNs) flag indicating whether the estimator will weight by spatial distance; if true (default), a \code{WeightedGraphConv} layer is used in the propagation module; otherwise, a regular \code{GraphConv} layer is used.
-#' @param probs (applicable only if `estimator_type = "interval"`) probability levels defining the lower and upper endpoints of the posterior credible interval.
-#' @return the initialised neural estimator, a JuliaProxy object
-#' @export 
-#' @examples
-#' \dontrun{
-#' library("NeuralEstimators")
-#' p = 2
-#' initialise_estimator(p, architecture = "MLP")
-#' initialise_estimator(p, architecture = "GNN")
-#' 
-#' ## 1D convolution              
-#' initialise_estimator(p, architecture = "CNN", kernel_size = list(10, 5, 3))
-#' 
-#' ## 2D convolution
-#' initialise_estimator(p, architecture = "CNN", 
-#'                      kernel_size = list(c(10, 10), c(5, 5), c(3, 3)))}
-initialise_estimator <- function(    
-  p,
-  architecture,
-  d = 1,
-  estimator_type = "point",
-  depth = 3,
-  width = 32,
-  activation = "relu", 
-  activation_output = "identity", 
-  variance_stabiliser = NULL, 
-  kernel_size = NULL, 
-  weight_by_distance = TRUE,
-  probs = c(0.025, 0.975)   
-) {
-  
-  # Convert numbers that should be integers (so that the user can write 32 rather than 32L)
-  p <- as.integer(p)
-  d <- as.integer(d)
-  depth <- as.integer(depth)
-  width <- as.integer(width)
-  
-  # Coerce kernel size to a list of 
-  if(!is.null(kernel_size)) {
-    if (!is.list(kernel_size)) stop("The argument `kernel_size` must be a list vectors")
-    kernel_size <- lapply(kernel_size, as.integer)
-  }
-
-  juliaEval("using NeuralEstimators, Flux")
-  
-  # Allow the user to define the activation functions using a string of Julia code
-  # (conveniently, the default values translate directly into Julia code)
-  activation = juliaEval(activation)
-  activation_output = juliaEval(activation_output)
-
-  # Variance stabiliser:
-  if (!is.null(variance_stabiliser)) {
-    if (variance_stabiliser == "log") {
-      variance_stabiliser = juliaEval('x -> log.(x)')
-    } else if(variance_stabiliser == "cbrt") {
-      variance_stabiliser = juliaEval('x -> cbrt.(x)')
-    } else {
-      variance_stabiliser = juliaEval(variance_stabiliser)
-    }
-  }
-
-  estimator <- juliaLet(
-    "initialise_estimator(p;
-                        architecture = architecture,
-                        d = d,
-                        estimator_type = estimator_type,
-                        depth = depth,
-                        width = width,
-                        activation = activation, 
-                        activation_output = activation_output, 
-                        variance_stabiliser = variance_stabiliser,
-                        kernel_size = kernel_size, 
-                        weight_by_distance = weight_by_distance, 
-                        probs = probs
-    )", 
-    p = p,
-    architecture = architecture,
-    d = d,
-    estimator_type = estimator_type,
-    depth = depth,
-    width = width,
-    activation = activation, 
-    activation_output = activation_output, 
-    kernel_size = kernel_size, 
-    weight_by_distance = weight_by_distance, 
-    variance_stabiliser = variance_stabiliser, 
-    probs = probs)
-  
-  return(estimator)
-}
+NE <- juliaImport("NeuralEstimators")
 
 #' @title Train a neural estimator
 #' 
@@ -129,7 +23,7 @@ initialise_estimator <- function(
 #' @param M deprecated; use \code{m}
 #' @param K the number of parameter vectors sampled in the training set at each epoch; the size of the validation set is set to \code{K}/5.
 #' @param xi a list of objects used for data simulation (e.g., distance matrices); if it is provided, the parameter sampler is called as \code{sampler(K, xi)}.
-#' @param loss the loss function: a string ('absolute-error' for mean-absolute-error loss or 'squared-error' for mean-squared-error loss), or a string of Julia code defining the loss function. For some classes of estimators (e.g., `QuantileEstimator` and `RatioEstimator`), the loss function does not need to be specified.
+#' @param loss the loss function: a string ('absolute-error' for mean-absolute-error loss or 'squared-error' for mean-squared-error loss), or a string of Julia code defining the loss function. For some classes of estimators (e.g., `RatioEstimator`, `QuantileEstimator`, `RatioEstimator`), the loss function does not need to be specified.
 #' @param learning_rate the learning rate for the optimiser ADAM (default 1e-3)
 #' @param epochs the number of epochs to train the neural network. An epoch is one complete pass through the entire training data set when doing stochastic gradient descent.
 #' @param stopping_epochs cease training if the risk doesn't improve in this number of epochs (default 5).
@@ -151,15 +45,15 @@ initialise_estimator <- function(
 #' # Load R and Julia packages
 #' library("NeuralEstimators")
 #' library("JuliaConnectoR")
-#' juliaEval("using NeuralEstimators, Flux, Distributions")
+#' juliaEval("using NeuralEstimators, Flux")
 #' 
 #' # Define the neural-network architecture
 #' estimator <- juliaEval('
-#'  d = 1    # dimension of each replicate
-#'  p = 2    # number of parameters in the model
-#'  w = 32   # width of each layer
-#'  psi = Chain(Dense(d, w, relu), Dense(w, w, relu))
-#'  phi = Chain(Dense(w, w, relu), Dense(w, p))
+#'  n = 1    # dimension of each replicate
+#'  d = 2    # number of parameters in the model
+#'  w = 32   # width of each hidden layer
+#'  psi = Chain(Dense(n, w, relu), Dense(w, w, relu))
+#'  phi = Chain(Dense(w, w, relu), Dense(w, d))
 #'  deepset = DeepSet(psi, phi)
 #'  estimator = PointEstimator(deepset)
 #' ')
@@ -191,15 +85,17 @@ initialise_estimator <- function(
 #'                    Z_train = Z_train, 
 #'                    Z_val = Z_val)
 #'                    
-#' # Train using simulation on-the-fly (requires Julia package RCall)
+#' ##### Simulation on-the-fly using R functions ####
+#' 
+#' juliaEval("using RCall") # requires the Julia package RCall
 #' estimator <- train(estimator, sampler = sampler, simulator = simulator, m = m)
 #' 
 #' ##### Simulation on-the-fly using Julia functions ####
 #' 
 #' # Defining the sampler and simulator in Julia can improve computational 
 #' # efficiency by avoiding the overhead of communicating between R and Julia. 
-#' # Julia is also fast (comparable to C) and so it can be useful to define 
-#' # these functions in Julia when they involve for-loops. 
+#' 
+#' juliaEval("using Distributions")
 #' 
 #' # Parameter sampler
 #' sampler <- juliaEval("
@@ -217,7 +113,7 @@ initialise_estimator <- function(
 #'       	return Z
 #'       end")
 #' 
-#' # Train the estimator
+#' # Train
 #' estimator <- train(estimator, sampler = sampler, simulator = simulator, m = m)}
 train <- function(estimator,
                   sampler = NULL,   
@@ -233,7 +129,7 @@ train <- function(estimator,
                   learning_rate = 1e-4,
                   epochs = 100,
                   batchsize = 32,
-                  savepath = "",
+                  savepath = NULL,
                   stopping_epochs = 5,
                   epochs_per_Z_refresh = 1,      
                   epochs_per_theta_refresh = 1,  
@@ -331,7 +227,7 @@ train <- function(estimator,
   }
   
   # Omit the loss function for certain classes of neural estimators
-  omit_loss <- juliaLet('typeof(estimator) <: Union{RatioEstimator, IntervalEstimator, QuantileEstimatorDiscrete, QuantileEstimatorContinuous}', estimator = estimator)
+  omit_loss <- juliaLet('typeof(estimator) <: Union{PosteriorEstimator, RatioEstimator, IntervalEstimator, QuantileEstimator, QuantileEstimatorDiscrete, QuantileEstimatorContinuous}', estimator = estimator)
   loss_code <- if (omit_loss) "" else "loss = loss,"
 
   # Metaprogramming: load Julia packages and add keyword arguments that are applicable to all methods of train()
@@ -684,33 +580,17 @@ bootstrap <- function(estimator,
 
 #' @title sampleposterior
 #' 
-#' @description Given data `Z`, a neural likelihood-to-evidence-ratio `estimator`, and a `prior`, draws samples from the implied approximate posterior distribution
-#' 
-#' Currently, the sampling algorithm is based on a fine-gridding `theta_grid` of the parameter space. The approximate posterior density is evaluated over this grid, which is then used to draw samples. This is very effective when making inference with a small number of parameters. For models with a large number of parameters, other sampling algorithms may be needed (please feel free to contact the package maintainer for discussion).
+#' @description Samples from the approximate posterior distribution implied by `estimator` given data `Z`
 #'
-#' @inheritParams mlestimate
-#' @inheritParams mapestimate
-#' @param N number of samples to draw (default 1000)
-#' @return a p × `N` matrix of posterior samples, where p is the number of parameters in the model. If multiple data sets are given in `Z`, a list of posterior samples will be returned
-#' @seealso [mlestimate()], [mapestimate()]
+#' @param estimator a neural posterior or likelihood-to-evidence-ratio estimator
+#' @param Z data in a format amenable to the neural-network architecture of `estimator`
+#' @param N number of samples to draw
+#' @param ... additional keyword arguments passed to the Julia version of `sampleposterior()` applicable when `estimator` is a likelihood-to-evidence-ratio estimator
+#' @return a d × `N` matrix of posterior samples, where d is the dimension of the parameter vector. If `Z` is a list containing multiple data sets, a list of matrices will be returned
 #' @export
-sampleposterior <- function(estimator, Z, theta_grid, N=1000, prior=NULL, use_gpu=TRUE) {
-  
+sampleposterior <- function(estimator, Z, N = 1000, ...) {
   N <- as.integer(N)
-  prior <- .defineprior(prior)
-  
-  if (is.list(Z)) {
-    if (length(Z) > 1) {
-      stop("only a single data set should be used with sampleposterior()")
-    } else {
-      Z <- Z[[1]]
-    }
-  }
-  
-  juliaLet('
-      using NeuralEstimators
-      sampleposterior(estimator, Z, N; theta_grid=theta_grid, use_gpu = use_gpu, prior=prior)
-  ', estimator=estimator, Z=Z, N=N, theta_grid=theta_grid, use_gpu = use_gpu, prior=prior)
+  NE$sampleposterior(estimator, Z, N, ...)
 }
 
 #' @title Maximum likelihood estimation
@@ -751,4 +631,112 @@ mapestimate <- function(estimator, Z, prior=NULL, theta_grid=NULL, theta0=NULL, 
       using NeuralEstimators
       mapestimate(estimator, Z; theta0=theta0, theta_grid=theta_grid, use_gpu = use_gpu, prior=prior)
   ', estimator=estimator, Z=Z, theta0=theta0, theta_grid=theta_grid, use_gpu = use_gpu, prior=prior)
+}
+
+#' @title Initialise a neural estimator
+#' 
+#' @description Helper function for initialising a neural estimator. 
+#' 
+#' The estimator is couched in the DeepSets framework so that it can be applied to data with an arbitrary number of independent replicates (including the special case of a single replicate).
+#' 
+#' @param p number of unknown parameters in the statistical model
+#' @param architecture a string: for unstructured data, one may use a fully-connected MLP ("MLP"); for data collected over a grid, a convolutional neural network ("CNN"); and for graphical or irregular spatial data, a graphical neural network ("GNN").
+#' @param d for unstructured multivariate data (i.e., when `architecture = "MLP"`), the dimension of the data (e.g., `d = 3` for trivariate data); otherwise, if `architecture` is `"CNN"` or `"GNN"`, the argument \code{d} controls the number of input channels (e.g., \code{d = 1} for univariate spatial processes). 
+#' @param estimator_type the type of estimator; either "point" or "interval".
+#' @param depth the number of hidden layers. Either a single integer or an integer vector of length two specifying the depth of inner (summary) and outer (inference) network of the DeepSets framework. Since there is an input and an output layer, the total number of layers is \code{sum(depth) + 2}.
+#' @param width a single integer or an integer vector of length \code{sum(depth)} specifying the width (or number of convolutional filters/channels) in each layer.
+#' @param activation the (non-linear) activation function of each hidden layer. Accepts a string of Julia code (default \code{"relu"}).
+#' @param activation_output the activation function of the output layer layer. Accepts a string of Julia code (default \code{"identity"}).
+#' @param variance_stabiliser a function that will be applied directly to the input, usually to stabilise the variance.: a string ('log' for the natural logarithm, or 'cbrt' for the cube-root function), or a string of Julia code that will be converted to a Julia function using \code{juliaEval()}.
+#' @param kernel_size  (applicable only to CNNs) a list of length \code{depth[1]} containing lists of integers of length D, where D is the dimension of the convolution (e.g., D = 2 for two-dimensional convolution).
+#' @param weight_by_distance (applicable only to GNNs) flag indicating whether the estimator will weight by spatial distance; if true (default), a \code{WeightedGraphConv} layer is used in the propagation module; otherwise, a regular \code{GraphConv} layer is used.
+#' @param probs (applicable only if `estimator_type = "interval"`) probability levels defining the lower and upper endpoints of the posterior credible interval.
+#' @return the initialised neural estimator, a JuliaProxy object
+#' @export 
+#' @examples
+#' \dontrun{
+#' library("NeuralEstimators")
+#' p = 2
+#' initialise_estimator(p, architecture = "MLP")
+#' initialise_estimator(p, architecture = "GNN")
+#' 
+#' ## 1D convolution              
+#' initialise_estimator(p, architecture = "CNN", kernel_size = list(10, 5, 3))
+#' 
+#' ## 2D convolution
+#' initialise_estimator(p, architecture = "CNN", 
+#'                      kernel_size = list(c(10, 10), c(5, 5), c(3, 3)))}
+initialise_estimator <- function(    
+    p,
+    architecture,
+    d = 1,
+    estimator_type = "point",
+    depth = 3,
+    width = 32,
+    activation = "relu", 
+    activation_output = "identity", 
+    variance_stabiliser = NULL, 
+    kernel_size = NULL, 
+    weight_by_distance = TRUE,
+    probs = c(0.025, 0.975)   
+) {
+  
+  # Convert numbers that should be integers (so that the user can write 32 rather than 32L)
+  p <- as.integer(p)
+  d <- as.integer(d)
+  depth <- as.integer(depth)
+  width <- as.integer(width)
+  
+  # Coerce kernel size to a list of 
+  if(!is.null(kernel_size)) {
+    if (!is.list(kernel_size)) stop("The argument `kernel_size` must be a list vectors")
+    kernel_size <- lapply(kernel_size, as.integer)
+  }
+  
+  juliaEval("using NeuralEstimators, Flux")
+  
+  # Allow the user to define the activation functions using a string of Julia code
+  # (conveniently, the default values translate directly into Julia code)
+  activation = juliaEval(activation)
+  activation_output = juliaEval(activation_output)
+  
+  # Variance stabiliser:
+  if (!is.null(variance_stabiliser)) {
+    if (variance_stabiliser == "log") {
+      variance_stabiliser = juliaEval('x -> log.(x)')
+    } else if(variance_stabiliser == "cbrt") {
+      variance_stabiliser = juliaEval('x -> cbrt.(x)')
+    } else {
+      variance_stabiliser = juliaEval(variance_stabiliser)
+    }
+  }
+  
+  estimator <- juliaLet(
+    "initialise_estimator(p;
+                        architecture = architecture,
+                        d = d,
+                        estimator_type = estimator_type,
+                        depth = depth,
+                        width = width,
+                        activation = activation, 
+                        activation_output = activation_output, 
+                        variance_stabiliser = variance_stabiliser,
+                        kernel_size = kernel_size, 
+                        weight_by_distance = weight_by_distance, 
+                        probs = probs
+    )", 
+    p = p,
+    architecture = architecture,
+    d = d,
+    estimator_type = estimator_type,
+    depth = depth,
+    width = width,
+    activation = activation, 
+    activation_output = activation_output, 
+    kernel_size = kernel_size, 
+    weight_by_distance = weight_by_distance, 
+    variance_stabiliser = variance_stabiliser, 
+    probs = probs)
+  
+  return(estimator)
 }
