@@ -52,7 +52,7 @@ train(
 
 \item{xi}{a list of objects used for data simulation (e.g., distance matrices); if it is provided, the parameter sampler is called as \code{sampler(K, xi)}.}
 
-\item{loss}{the loss function: a string ('absolute-error' for mean-absolute-error loss or 'squared-error' for mean-squared-error loss), or a string of Julia code defining the loss function. For some classes of estimators (e.g., \code{RatioEstimator}, \code{QuantileEstimator}, \code{RatioEstimator}), the loss function does not need to be specified.}
+\item{loss}{the loss function: a string ('absolute-error' for mean-absolute-error loss or 'squared-error' for mean-squared-error loss), or a string of Julia code defining the loss function. For some classes of estimators (e.g., \code{PosteriorEstimator}, \code{QuantileEstimator}, \code{RatioEstimator}), the loss function does not need to be specified.}
 
 \item{learning_rate}{the learning rate for the optimiser ADAM (default 1e-3)}
 
@@ -168,5 +168,5 @@ simulator <- juliaEval("
 estimator <- train(estimator, sampler = sampler, simulator = simulator, m = m)}
 }
 \seealso{
-\code{\link[=assess]{assess()}} for assessing an estimator post training, and \code{\link[=estimate]{estimate()}} for applying an estimator to observed data
+\code{\link[=assess]{assess()}} for assessing an estimator post training, and \code{\link[=estimate]{estimate()}}/\code{\link[=sampleposterior]{sampleposterior()}} for making inference with observed data
 }

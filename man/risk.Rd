@@ -12,7 +12,7 @@ risk(
 )
 }
 \arguments{
-\item{assessment}{an object returned by \code{assess()} (or the \code{estimates} data frame of this object)}
+\item{assessment}{an object returned by \code{\link[=assess]{assess()}}}
 
 \item{loss}{a binary operator defining the loss function (default absolute-error loss)}
 

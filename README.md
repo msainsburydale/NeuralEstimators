@@ -17,7 +17,9 @@
 [julia-docs-img]: https://img.shields.io/badge/Julia_docs-purple.svg
 [julia-docs-url]: https://msainsburydale.github.io/NeuralEstimators.jl/dev/
 
-This repository contains the `R` interface to the `Julia` package `NeuralEstimators`. The package facilitates the user-friendly development of neural point estimators, which are neural networks that map data to a point summary of the posterior distribution. These estimators are likelihood-free and amortised, in the sense that, after an initial setup cost, inference from observed data can be made in a fraction of the time required by conventional approaches. It also facilitates the construction of neural networks that approximate the likelihood-to-evidence ratio in an amortised fashion, which allows for making inference based on the likelihood function or the entire posterior distribution. The package caters for any model for which simulation is feasible by allowing the user to implicitly define their model via simulated data. See the [Julia documentation](https://msainsburydale.github.io/NeuralEstimators.jl/dev/) or the [vignette](https://cran.r-project.org/package=NeuralEstimators/vignettes/NeuralEstimators.html) to get started!
+This repository contains the `R` interface to the `Julia` package `NeuralEstimators`. The package facilitates a suite of neural methods for parameter inference in scenarios where simulation from the model is feasible. These methods are **likelihood-free** and **amortised**, in the sense that, once the neural networks are trained on simulated data, they enable rapid inference across arbitrarily many observed data sets in a fraction of the time required by conventional approaches. The package caters for any model for which simulation is feasible by allowing the user to implicitly define their model via simulated data. 
+
+See the [Julia documentation](https://msainsburydale.github.io/NeuralEstimators.jl/dev/) or the [vignette](https://cran.r-project.org/package=NeuralEstimators/vignettes/NeuralEstimators.html) to get started!
 
 ### Installation
 
@@ -45,8 +47,6 @@ To install the package, please:
      ```R
      devtools::install_github("msainsburydale/NeuralEstimators")
      ```
-
- 	
 
 ### Supporting and citing
 

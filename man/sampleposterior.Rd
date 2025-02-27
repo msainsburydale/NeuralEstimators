@@ -11,13 +11,16 @@ sampleposterior(estimator, Z, N = 1000, ...)
 
 \item{Z}{data in a format amenable to the neural-network architecture of \code{estimator}}
 
-\item{N}{number of samples to draw}
+\item{N}{number of approximate posterior samples to draw}
 
-\item{...}{additional keyword arguments passed to the Julia version of \code{sampleposterior()} applicable when \code{estimator} is a likelihood-to-evidence-ratio estimator}
+\item{...}{additional keyword arguments passed to the Julia version of \href{https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/core/#NeuralEstimators.sampleposterior}{\code{sampleposterior()}}, applicable when \code{estimator} is a likelihood-to-evidence-ratio estimator}
 }
 \value{
 a d × \code{N} matrix of posterior samples, where d is the dimension of the parameter vector. If \code{Z} is a list containing multiple data sets, a list of matrices will be returned
 }
 \description{
-Samples from the approximate posterior distribution implied by \code{estimator} given data \code{Z}
+Samples from the approximate posterior distribution given data \code{Z}.
+}
+\seealso{
+\code{\link[=estimate]{estimate()}} for making inference with neural Bayes estimators
 }

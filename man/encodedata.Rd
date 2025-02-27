@@ -12,12 +12,10 @@ encodedata(Z, c = 0)
 \item{c}{fixed constant with which to replace \code{NA} entries}
 }
 \value{
-Augmented data set (U, W). If \code{Z} is provided as a list, the return type will be a \code{JuliaProxy} object; these objects can be indexed in the usual manner (e.g., using \code{[[}), or converted to an R object using \code{juliaGet()} (note however that \code{juliaGet()} can be slow for large data sets).
+Augmented data set (U, W). If \code{Z} is provided as a list, the return type will be a \code{JuliaProxy} object; these objects can be indexed in the usual manner using \code{[[}, or converted to an R object using \code{juliaGet()} (note however that \code{juliaGet()} can be slow for large data sets).
 }
 \description{
-for data \code{Z} with missing (\code{NA}) entries, returns an augmented data set (U, W) where W encodes the missingness pattern as an indicator vector and U is the original data Z with missing entries replaced by a fixed constant \code{c}.
-
-The indicator vector W is stored in the second-to-last dimension of \code{Z}, which should be singleton. If the second-to-last dimension is not singleton, then two singleton dimensions will be added to the array, and W will be stored in the new second-to-last dimension.
+For data \code{Z} with missing (\code{NA}) entries, computes an augmented data set (U, W) where W encodes the missingness pattern as an indicator vector and U is the original data Z with missing entries replaced by a fixed constant \code{c}.
 }
 \examples{
 \dontrun{
@@ -25,4 +23,7 @@ library("NeuralEstimators")
 Z <- matrix(c(1, 2, NA, NA, 5, 6, 7, NA, 9), nrow = 3)
 encodedata(Z)
 encodedata(list(Z, Z))}
+}
+\seealso{
+the Julia version of \href{https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/utility/#NeuralEstimators.encodedata}{\code{encodedata()}}
 }

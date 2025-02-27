@@ -9,17 +9,16 @@ spatialgraph(S, Z, isotropic = TRUE, stationary = TRUE, ...)
 \arguments{
 \item{S}{Spatial locations, provided as:
 \itemize{
-\item An \verb{n x d} matrix when locations are fixed across replicates, where \code{n} is the number
-of spatial locations and \code{d} is the spatial dimension (typically \code{d=2}).
-\item A list of \verb{n_i x d} matrices when locations vary across replicates, where each matrix
-corresponds to the spatial locations of a single replicate.
+\item An \eqn{n\times 2}{n x 2} matrix when locations are fixed across replicates, where \eqn{n} is the number of spatial locations.
+\item A list of \eqn{n_i \times 2}{ni x 2} matrices when locations vary across replicates.
+\item A list of the above elements (i.e., a list of matrices or a list of lists of matrices) when constructing graphs from multiple data sets.
 }}
 
 \item{Z}{Spatial data, provided as:
 \itemize{
-\item An \verb{n x m} matrix when locations are fixed, where \code{m} is the number of replicates.
-\item A list of \code{n_i} vectors when locations vary across replicates, where each vector
-corresponds to the data for a single replicate.
+\item An \eqn{n\times m}{n x m} matrix when locations are fixed, where \eqn{m} is the number of replicates.
+\item A list of \eqn{n_i}{ni}-vectors when locations vary across replicates.
+\item A list of the above elements (i.e., a list of matrices or a list of lists of vectors) when constructing graphs from multiple data sets.
 }}
 
 \item{isotropic}{Logical. If \code{TRUE}, edge features store the spatial distance (magnitude)
@@ -31,36 +30,54 @@ on the value of \code{stationary}.}
 edge features include the full spatial locations of both nodes.}
 
 \item{...}{Additional keyword arguments from the Julia function \href{https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/utility/#NeuralEstimators.adjacencymatrix}{\code{adjacencymatrix()}}
-determine the neighborhood of each node, with the default being a randomly
-selected set of \code{k=30} neighbors within a radius of \code{r=0.15} units.}
+that define the neighborhood of each node, with the default being a randomly
+selected set of \code{k=30} neighbors within a radius of \code{r=0.15} spatial distance units.}
 }
 \value{
-A \code{GNNGraph} (a \code{JuliaProxy} object) ready for use in a graph neural network.
+A \code{GNNGraph} (\code{JuliaProxy} object) or, if multiple data sets are provided, a vector of \code{GNNGraph} objects which can be indexed in the usual manner using \code{[[} or converted to an R list using a combination of indexing and \code{lapply}.
 }
 \description{
-Constructs a graph object for use in graph neural networks.
+Constructs a graph object for use in a graph neural network (GNN).
 }
 \examples{
 \dontrun{
 library("NeuralEstimators")
 
-# Number of replicates and spatial dimension
+# Number of replicates
 m <- 5
-d <- 2
 
 # Spatial locations fixed for all replicates
-n <- 100
-S <- matrix(runif(n * d), n, d)
+n <- 100 
+S <- matrix(runif(n * 2), n, 2)
 Z <- matrix(runif(n * m), n, m)
 g <- spatialgraph(S, Z)
 
 # Spatial locations varying between replicates
 n <- sample(50:100, m, replace = TRUE)
-S <- lapply(n, function(ni) matrix(runif(ni * d), ni, d))
+S <- lapply(n, function(ni) matrix(runif(ni * 2), ni, 2))
 Z <- lapply(n, function(ni) runif(ni))
 g <- spatialgraph(S, Z)
+
+# Multiple data sets: Spatial locations fixed for all replicates within a given data set
+K <- 15 # number of data sets
+n <- sample(50:100, K, replace = TRUE) # number of spatial locations can vary between data sets
+S <- lapply(1:K, function(k) matrix(runif(n[k] * 2), n[k], 2))
+Z <- lapply(1:K, function(k) matrix(runif(n[k] * m), n[k], m))
+g <- spatialgraph(S, Z)
+
+# Multiple data sets: Spatial locations varying between replicates within a given data set
+S <- lapply(1:K, function(k) {
+  lapply(1:m, function(i) {
+  ni <- sample(50:100, 1)       # randomly generate the number of locations for each replicate
+  matrix(runif(ni * 2), ni, 2)  # generate the spatial locations
+  })
+})
+Z <- lapply(1:K, function(k) {
+  lapply(1:m, function(i) {
+    n <- nrow(S[[k]][[i]])
+    runif(n)  
+  })
+})
+g <- spatialgraph(S, Z)
 }
-}
-\seealso{
-\code{\link[=spatialgraphlist]{spatialgraphlist()}} for the vectorised version of this function.
 }

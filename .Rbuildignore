@@ -11,3 +11,4 @@ vignettes/README.md
 #^vignettes/.*\.html$
 #^vignettes/.*\.html\.asis$
 
+posterior_sampling.R

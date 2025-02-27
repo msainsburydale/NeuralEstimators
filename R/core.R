@@ -23,7 +23,7 @@ NE <- juliaImport("NeuralEstimators")
 #' @param M deprecated; use \code{m}
 #' @param K the number of parameter vectors sampled in the training set at each epoch; the size of the validation set is set to \code{K}/5.
 #' @param xi a list of objects used for data simulation (e.g., distance matrices); if it is provided, the parameter sampler is called as \code{sampler(K, xi)}.
-#' @param loss the loss function: a string ('absolute-error' for mean-absolute-error loss or 'squared-error' for mean-squared-error loss), or a string of Julia code defining the loss function. For some classes of estimators (e.g., `RatioEstimator`, `QuantileEstimator`, `RatioEstimator`), the loss function does not need to be specified.
+#' @param loss the loss function: a string ('absolute-error' for mean-absolute-error loss or 'squared-error' for mean-squared-error loss), or a string of Julia code defining the loss function. For some classes of estimators (e.g., `PosteriorEstimator`, `QuantileEstimator`, `RatioEstimator`), the loss function does not need to be specified.
 #' @param learning_rate the learning rate for the optimiser ADAM (default 1e-3)
 #' @param epochs the number of epochs to train the neural network. An epoch is one complete pass through the entire training data set when doing stochastic gradient descent.
 #' @param stopping_epochs cease training if the risk doesn't improve in this number of epochs (default 5).
@@ -36,7 +36,7 @@ NE <- juliaImport("NeuralEstimators")
 #' @param simulate_just_in_time  flag indicating whether we should simulate "just-in-time", in the sense that only a \code{batchsize} number of parameter vectors and corresponding data are in memory at a given time
 #' @return a trained neural estimator or, if \code{m} is a vector, a list of trained neural estimators
 #' @export
-#' @seealso [assess()] for assessing an estimator post training, and [estimate()] for applying an estimator to observed data
+#' @seealso [assess()] for assessing an estimator post training, and [estimate()]/[sampleposterior()] for making inference with observed data
 #' @examples
 #' \dontrun{
 #' # Construct a neural Bayes estimator for replicated univariate Gaussian 
@@ -276,47 +276,12 @@ train <- function(estimator,
   return(estimator)
 }
 
-#' @title tanhloss
-#' @description For \code{k} > 0, defines Julia code that defines the loss function,
-#' \deqn{L(\hat{\theta}, \theta) = \tanh\left(\frac{|\hat{\theta} - \theta|}{k}\right),}
-#' which approximates the 0-1 loss as \code{k} tends to zero. 
+#' @title Load a saved state of a neural estimator
 #' 
-#' The resulting string is intended to be used in the function \code{\link{train}}, but can also be converted to a callable function using \code{juliaEval}. 
-#' @param k Positive numeric value that controls the smoothness of the approximation.
-#' @return String defining the tanh loss function in Julia code.
-#' @export 
-tanhloss <- function(k) paste0("(x, y) -> tanhloss(x, y, ", k, ")")
-
-#' @title load a collection of saved weights of a neural estimator
-#' 
-#' @description 
-#' This function is deprecated and will be removed in a future version.
-#' Please use [loadstate()] instead, which provides more comprehensive functionality.
-#'
-#' @param estimator the neural estimator that we wish to load weights into
-#' @param filename file (including absolute path) of the neural-network weights saved as a \code{bson} file
-#' @seealso [loadstate()] 
-#' @return `estimator` updated with the saved weights 
-#' @export
-loadweights <- function(estimator, filename) {
-  warning("`loadweights()` is deprecated. Please use `loadstate()` instead.", call. = FALSE)
-  juliaLet(
-    '
-    using NeuralEstimators, Flux
-    Flux.loadparams!(estimator, NeuralEstimators.loadweights(filename))
-    estimator
-    ',
-    estimator = estimator, filename = filename
-  )
-}
-
-#' @title load a saved state of a neural estimator
-#' 
-#' @description 
-#' Load a saved state of a neural estimator, including both weights and additional model parameters.
+#' @description Load a saved state of a neural estimator (e.g., optimised neural-network parameters). Useful for amortised inference, whereby a neural network is trained once and then used repeatedly to make inference with new data sets.
 #'
 #' @param estimator the neural estimator that we wish to load the state into
-#' @param filename file (including absolute path) of the neural-network state in a \code{bson} file
+#' @param filename file name (including path) of the neural-network state stored in a \code{bson} file
 #' @return `estimator` updated with the saved state 
 #' @export
 loadstate <- function(estimator, filename) {
@@ -350,7 +315,7 @@ savestate <- function(estimator, filename) {
 }
 
 #' @title computes a Monte Carlo approximation of an estimator's Bayes risk
-#' @param assessment an object returned by \code{assess()} (or the \code{estimates} data frame of this object)
+#' @param assessment an object returned by [assess()] 
 #' @param loss a binary operator defining the loss function (default absolute-error loss)
 #' @param average_over_parameters if \code{TRUE}, the loss is averaged over all parameters; otherwise (default), the loss is averaged over each parameter separately
 #' @param average_over_sample_sizes if \code{TRUE} (default), the loss is averaged over all sample sizes (the column \code{m} in \code{df}); otherwise, the loss is averaged over each sample size separately
@@ -381,7 +346,7 @@ risk <- function(assessment,
 
 #' @title computes a Monte Carlo approximation of an estimator's bias
 #' @inheritParams risk 
-#' @param ... optional arguments inherited from `risk` (excluding the argument `loss`)
+#' @param ... optional arguments inherited from `risk()` (excluding the argument `loss`)
 #' @return a dataframe giving the estimated bias
 #' @seealso [assess()], [risk()], [rmse()]
 #' @export
@@ -393,7 +358,7 @@ bias <- function(assessment, ...) {
 
 #' @title computes a Monte Carlo approximation of an estimator's root-mean-square error (RMSE)
 #' @inheritParams risk 
-#' @param ... optional arguments inherited from `risk` (excluding the argument `loss`)
+#' @param ... optional arguments inherited from `risk()` (excluding the argument `loss`)
 #' @return a dataframe giving the estimated RMSE
 #' @seealso [assess()], [bias()], [risk()]
 #' @export
@@ -405,15 +370,15 @@ rmse <- function(assessment, ...) {
 }
 
 #' @title assess a neural estimator
-#' @param estimators a list of (neural) estimators
-#' @param parameters true parameters, stored as a pxK matrix, where p is the number of parameters in the statistical model and K is the number of sampled parameter vectors
-#' @param Z data simulated conditionally on the \code{parameters}. If \code{Z} contains more data sets than parameter vectors, the parameter matrix will be recycled by horizontal concatenation.
+#' @param estimators a neural estimator (or a list of neural estimators)
+#' @param parameters true parameters, stored as a \eqn{d\times K}{dxK} matrix, where \eqn{d} is the dimension of the parameter vector and \eqn{K} is the number of sampled parameter vectors
+#' @param Z data simulated conditionally on the \code{parameters}. If \code{length(Z)} > K, the parameter matrix will be recycled by horizontal concatenation as `parameters = parameters[, rep(1:K, J)]`, where `J = length(Z) / K`
 #' @param estimator_names list of names of the estimators (sensible defaults provided)
 #' @param parameter_names list of names of the parameters (sensible defaults provided)
 #' @param use_gpu a boolean indicating whether to use the GPU if it is available (default true)
 #' @param verbose a boolean indicating whether information should be printed to the console
-#' @return a list of two data frames: \code{runtimes}, contains the
-#' total time taken for each estimator, while \code{estimates} is a long-form
+#' @return a list of two data frames: \code{runtimes} contains the
+#' total time taken for each estimator, while \code{df} is a long-form
 #' data frame with columns:
 #' \itemize{
 #' \item{"estimator"; the name of the estimator}
@@ -424,10 +389,10 @@ rmse <- function(assessment, ...) {
 #' \item{"k"; the index of the parameter vector in the test set}
 #' \item{"j"; the index of the data set}
 #' }
-#' @seealso [risk()], [rmse()], [bias()], [plotestimates()], and [plotdistribution()] for computing various empirical diagnostics and visualisations based on an assessment object
+#' @seealso [risk()], [rmse()], [bias()], [plotestimates()], and [plotdistribution()] for computing various empirical diagnostics and visualisations from an object returned by `assess()`
 #' @export
 assess <- function(
-  estimators, # should be a list of estimators
+  estimators, 
   parameters,
   Z,
   estimator_names = NULL,
@@ -474,44 +439,34 @@ assess <- function(
 
 #' @title estimate
 #'
-#' @description estimate parameters from observed data using a neural estimator
+#' @description Apply a neural estimator to data
 #'
-#' @param estimator a neural estimator
-#' @param Z data; format should be amenable to the architecture of `estimator`
-#' @param theta parameter vectors (only for neural estimators that take both the data and parameters as input, e.g., neural ratio estimators)
-#' @param use_gpu a boolean indicating whether to use the GPU if it is available (default true)
-#' @return a matrix of parameter estimates (i.e., `estimator` applied to `Z`)
+#' @param estimator a neural estimator that can be applied to data in a call of the form `estimator(Z)`
+#' @param Z data in a format amenable to the neural-network architecture of `estimator`
+#' @param X additional inputs to the neural network; if provided, the call will be of the form `estimator((Z, X))`
+#' @param batchsize the batch size for applying `estimator` to `Z`. Batching occurs only if `Z` is a list, indicating multiple data sets 
+#' @param use_gpu boolean indicating whether to use the GPU if it is available
+#' @return a matrix of outputs resulting from applying `estimator` to `Z` (and possibly `X`)
+#' @seealso [sampleposterior()] for making inference with neural posterior or likelihood-to-evidence-ratio estimators
 #' @export
-#' @examples
-#' \dontrun{
-#' library(NeuralEstimators)
-#' library(JuliaConnectoR)
-#'
-#' ## Observed data: 100 replicates of a univariate random variable
-#' Z <- matrix(rnorm(100), nrow = 1)
-#'
-#' ## Construct an (un-trained) point estimator
-#' estimator <- initialise_estimator(1, architecture = "MLP")
-#'
-#' ## Apply the estimator
-#' estimate(estimator, Z)
-#' }
-estimate <- function(estimator, Z, theta = NULL, use_gpu = TRUE) {
+estimate <- function(estimator, Z, X = NULL, batchsize = 32, use_gpu = TRUE) {
   
   if (!is.list(Z) & !("JuliaProxy" %in% class(Z))) Z <- list(Z) 
+  
+  batchsize <- as.integer(batchsize)
   
   thetahat <- juliaLet('
   using NeuralEstimators, Flux
   
-  output = estimateinbatches(estimator, Z, theta; use_gpu = use_gpu)
+  output = estimate(estimator, Z, X; use_gpu = use_gpu, batchsize = batchsize)
   
   # Move back to the cpu and convert to a regular matrix
   output = output |> cpu
   output = Float64.(output)
   output
-  ', estimator = estimator, Z = Z, theta = theta, use_gpu = use_gpu)
+  ', estimator = estimator, Z = Z, X = X, use_gpu = use_gpu, batchsize = batchsize)
   
-  # For some reason, the Julia dimensions are retained when we have only a single data
+  # For some reason, the Julia dimensions are retained when we have only a single data set
   if (length(Z) == 1) attributes(thetahat)$JLDIM <- NULL
   
   return(thetahat)
@@ -519,31 +474,15 @@ estimate <- function(estimator, Z, theta = NULL, use_gpu = TRUE) {
 
 #' @title bootstrap
 #' 
-#' @description Compute bootstrap estimates from a neural estimator
+#' @description Compute bootstrap estimates from a neural point estimator
 #'
-#' @param estimator a neural estimator
-#' @param Z either a list of data sets simulated conditionally on the fitted parameters (parametric bootstrap); or a single observed data set containing independent replicates, which will be sampled with replacement `B` (non-parametric bootstrap)
-#' @param B number of non-parametric bootstrap estimates (default 400)
-#' @param blocks integer vector specifying the blocks in non-parameteric bootstrap (default \code{NULL}). For example, with 5 replicates, the first two corresponding to block 1 and the remaining three corresponding to block 2, `blocks` should be \code{c(1,1,2,2,2)}. The bootstrap sampling algorithm aims to produce bootstrap data sets that are of a similar size to \code{Z}, but this can only be achieved exactly if all blocks are equal in length.
-#' @param use_gpu a boolean indicating whether to use the GPU if it is available (default \code{TRUE})
-#' @return p × B matrix, where p is the number of parameters in the model and B is the number of bootstrap samples
+#' @param estimator a neural point estimator
+#' @param Z either a list of data sets simulated conditionally on the fitted parameters (parametric bootstrap); or a single observed data set containing independent replicates, which will be sampled with replacement `B` times (non-parametric bootstrap)
+#' @param B number of non-parametric bootstrap samples
+#' @param blocks integer vector specifying the blocks in non-parameteric bootstrap. For example, with 5 replicates, the first two corresponding to block 1 and the remaining three corresponding to block 2, `blocks` should be \code{c(1,1,2,2,2)}
+#' @param use_gpu boolean indicating whether to use the GPU if it is available
+#' @return d × `B` matrix, where d is the dimension of the parameter vector 
 #' @export
-#' @examples
-#' \dontrun{
-#' library("NeuralEstimators")
-#' library("JuliaConnectoR")
-#' 
-#' ## Observed data: m independent replicates of a N(0, 1) random variable
-#' m = 100
-#' Z = t(rnorm(m))
-#'
-#' ## Construct an (un-trained) neural point estimator
-#' estimator <- initialise_estimator(1, architecture = "MLP")
-#'
-#' ## Non-parametric bootstrap
-#' bootstrap(estimator, Z = Z)
-#' bootstrap(estimator, Z = Z, blocks = rep(1:5, each = m/5))
-#' }
 bootstrap <- function(estimator,
                       Z,
                       B = 400,
@@ -555,188 +494,40 @@ bootstrap <- function(estimator,
   if (!is.list(Z)) Z <- list(Z)
 
   if (length(Z) > 1) {
-    #NB Just using estimate() since that needs to be done here
+    #NB Just using estimate() since that is all that needs to be done here
     thetahat <- estimate(estimator, Z, use_gpu = use_gpu)
   } else {
-    thetahat <- juliaLet('
-      using NeuralEstimators
-      bootstrap(estimator, Z, use_gpu = use_gpu, B = B, blocks = blocks)',
-                         estimator=estimator, Z=Z, use_gpu = use_gpu, blocks=blocks, B=B
-    )
+    thetahat <- NE$bootstrap(estimator, Z, use_gpu = use_gpu, B = B, blocks = blocks)
   }
 
   return(thetahat)
 }
 
-.defineprior <- function(prior) {
-  if (is.null(prior)) {
-    juliaEval('x -> 1f0')
-  } else if (!("JLFUN" %in% names(attributes(prior)))) {
-    tryCatch( { juliaEval("using RCall") }, error = function(e) "using an R function to define the prior requires the user to have installed the Julia package RCall")
-    juliaLet('using RCall; @rput prior', prior = prior)
-    juliaEval('using RCall; prior(theta) = rcopy(R"prior($theta)")')
-  }
-}
-
 #' @title sampleposterior
 #' 
-#' @description Samples from the approximate posterior distribution implied by `estimator` given data `Z`
+#' @description Samples from the approximate posterior distribution given data `Z`. 
 #'
 #' @param estimator a neural posterior or likelihood-to-evidence-ratio estimator
 #' @param Z data in a format amenable to the neural-network architecture of `estimator`
-#' @param N number of samples to draw
-#' @param ... additional keyword arguments passed to the Julia version of `sampleposterior()` applicable when `estimator` is a likelihood-to-evidence-ratio estimator
+#' @param N number of approximate posterior samples to draw
+#' @param ... additional keyword arguments passed to the Julia version of [`sampleposterior()`](https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/core/#NeuralEstimators.sampleposterior), applicable when `estimator` is a likelihood-to-evidence-ratio estimator
 #' @return a d × `N` matrix of posterior samples, where d is the dimension of the parameter vector. If `Z` is a list containing multiple data sets, a list of matrices will be returned
+#' @seealso [estimate()] for making inference with neural Bayes estimators
 #' @export
 sampleposterior <- function(estimator, Z, N = 1000, ...) {
   N <- as.integer(N)
   NE$sampleposterior(estimator, Z, N, ...)
 }
 
-#' @title Maximum likelihood estimation
+#' @title posteriormode
 #' 
-#' @description Given data `Z` and a neural likelihood-to-evidence-ratio `estimator`, computes the implied approximate maximum-likelihood estimate
+#' @description Computes the (approximate) posterior mode (maximum a posteriori estimate) given data `Z`.  
 #' 
-#' If a vector `theta0` of initial parameter estimates is given, the approximate likelihood is maximised by gradient descent. Otherwise, if a matrix of parameters `theta_grid` is given, the approximate likelihood is maximised by grid search.
-#'
-#' @param estimator a neural likelihood-to-evidence-ratio estimator
-#' @param Z data; it's format should be amenable to the architecture of \code{estimator}
-#' @param theta0 a vector of initial parameter estimates
-#' @param theta_grid a (fine) gridding of the parameter space, given as a matrix with p rows, where p is the number of parameters in the model
-#' @param use_gpu a boolean indicating whether to use the GPU if it is available (default true)
-#' @return a p × K matrix of maximum-likelihood estimates, where p is the number of parameters in the statistical model and K is the number of data sets provided in `Z`
-#' @seealso [sampleposterior()], [mapestimate()]
+#' @inheritParams sampleposterior 
+#' @param ... additional keyword arguments passed to the Julia version of [`posteriormode()`](https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/core/#NeuralEstimators.posteriormode)
+#' @return a d × K matrix of posterior samples, where d is the dimension of the parameter vector and K is the number of data sets provided in `Z`
+#' @seealso [sampleposterior()] for sampling from the approximate posterior distribution
 #' @export
-mlestimate <- function(estimator, Z, theta_grid=NULL, theta0=NULL, use_gpu=TRUE) {
-  juliaLet('
-      using NeuralEstimators
-      mlestimate(estimator, Z; theta0=theta0, theta_grid=theta_grid, use_gpu = use_gpu)
-  ', estimator=estimator, Z=Z, theta0=theta0, theta_grid=theta_grid, use_gpu = use_gpu)
-}
-
-#' @title Maximum a posteriori estimation
-#' 
-#' @description Given data `Z`, a neural likelihood-to-evidence-ratio `estimator`, and a `prior`, computes the implied approximate maximum a posteriori (MAP) estimate
-#' 
-#' If a vector `theta0` of initial parameter estimates is given, the approximate posterior density is maximised by gradient descent. Otherwise, if a matrix of parameters `theta_grid` is given, the approximate posterior density is maximised by grid search.
-#'
-#' @inheritParams mlestimate
-#' @param prior the prior (default uniform), specified as a Julia or R function
-#' @return a p × K matrix of MAP estimates, where p is the number of parameters in the statistical model and K is the number of data sets provided in `Z`
-#' @seealso [sampleposterior()], [mlestimate()]
-#' @export
-mapestimate <- function(estimator, Z, prior=NULL, theta_grid=NULL, theta0=NULL, use_gpu=TRUE) {
-  prior <- .defineprior(prior)
-  juliaLet('
-      using NeuralEstimators
-      mapestimate(estimator, Z; theta0=theta0, theta_grid=theta_grid, use_gpu = use_gpu, prior=prior)
-  ', estimator=estimator, Z=Z, theta0=theta0, theta_grid=theta_grid, use_gpu = use_gpu, prior=prior)
-}
-
-#' @title Initialise a neural estimator
-#' 
-#' @description Helper function for initialising a neural estimator. 
-#' 
-#' The estimator is couched in the DeepSets framework so that it can be applied to data with an arbitrary number of independent replicates (including the special case of a single replicate).
-#' 
-#' @param p number of unknown parameters in the statistical model
-#' @param architecture a string: for unstructured data, one may use a fully-connected MLP ("MLP"); for data collected over a grid, a convolutional neural network ("CNN"); and for graphical or irregular spatial data, a graphical neural network ("GNN").
-#' @param d for unstructured multivariate data (i.e., when `architecture = "MLP"`), the dimension of the data (e.g., `d = 3` for trivariate data); otherwise, if `architecture` is `"CNN"` or `"GNN"`, the argument \code{d} controls the number of input channels (e.g., \code{d = 1} for univariate spatial processes). 
-#' @param estimator_type the type of estimator; either "point" or "interval".
-#' @param depth the number of hidden layers. Either a single integer or an integer vector of length two specifying the depth of inner (summary) and outer (inference) network of the DeepSets framework. Since there is an input and an output layer, the total number of layers is \code{sum(depth) + 2}.
-#' @param width a single integer or an integer vector of length \code{sum(depth)} specifying the width (or number of convolutional filters/channels) in each layer.
-#' @param activation the (non-linear) activation function of each hidden layer. Accepts a string of Julia code (default \code{"relu"}).
-#' @param activation_output the activation function of the output layer layer. Accepts a string of Julia code (default \code{"identity"}).
-#' @param variance_stabiliser a function that will be applied directly to the input, usually to stabilise the variance.: a string ('log' for the natural logarithm, or 'cbrt' for the cube-root function), or a string of Julia code that will be converted to a Julia function using \code{juliaEval()}.
-#' @param kernel_size  (applicable only to CNNs) a list of length \code{depth[1]} containing lists of integers of length D, where D is the dimension of the convolution (e.g., D = 2 for two-dimensional convolution).
-#' @param weight_by_distance (applicable only to GNNs) flag indicating whether the estimator will weight by spatial distance; if true (default), a \code{WeightedGraphConv} layer is used in the propagation module; otherwise, a regular \code{GraphConv} layer is used.
-#' @param probs (applicable only if `estimator_type = "interval"`) probability levels defining the lower and upper endpoints of the posterior credible interval.
-#' @return the initialised neural estimator, a JuliaProxy object
-#' @export 
-#' @examples
-#' \dontrun{
-#' library("NeuralEstimators")
-#' p = 2
-#' initialise_estimator(p, architecture = "MLP")
-#' initialise_estimator(p, architecture = "GNN")
-#' 
-#' ## 1D convolution              
-#' initialise_estimator(p, architecture = "CNN", kernel_size = list(10, 5, 3))
-#' 
-#' ## 2D convolution
-#' initialise_estimator(p, architecture = "CNN", 
-#'                      kernel_size = list(c(10, 10), c(5, 5), c(3, 3)))}
-initialise_estimator <- function(    
-    p,
-    architecture,
-    d = 1,
-    estimator_type = "point",
-    depth = 3,
-    width = 32,
-    activation = "relu", 
-    activation_output = "identity", 
-    variance_stabiliser = NULL, 
-    kernel_size = NULL, 
-    weight_by_distance = TRUE,
-    probs = c(0.025, 0.975)   
-) {
-  
-  # Convert numbers that should be integers (so that the user can write 32 rather than 32L)
-  p <- as.integer(p)
-  d <- as.integer(d)
-  depth <- as.integer(depth)
-  width <- as.integer(width)
-  
-  # Coerce kernel size to a list of 
-  if(!is.null(kernel_size)) {
-    if (!is.list(kernel_size)) stop("The argument `kernel_size` must be a list vectors")
-    kernel_size <- lapply(kernel_size, as.integer)
-  }
-  
-  juliaEval("using NeuralEstimators, Flux")
-  
-  # Allow the user to define the activation functions using a string of Julia code
-  # (conveniently, the default values translate directly into Julia code)
-  activation = juliaEval(activation)
-  activation_output = juliaEval(activation_output)
-  
-  # Variance stabiliser:
-  if (!is.null(variance_stabiliser)) {
-    if (variance_stabiliser == "log") {
-      variance_stabiliser = juliaEval('x -> log.(x)')
-    } else if(variance_stabiliser == "cbrt") {
-      variance_stabiliser = juliaEval('x -> cbrt.(x)')
-    } else {
-      variance_stabiliser = juliaEval(variance_stabiliser)
-    }
-  }
-  
-  estimator <- juliaLet(
-    "initialise_estimator(p;
-                        architecture = architecture,
-                        d = d,
-                        estimator_type = estimator_type,
-                        depth = depth,
-                        width = width,
-                        activation = activation, 
-                        activation_output = activation_output, 
-                        variance_stabiliser = variance_stabiliser,
-                        kernel_size = kernel_size, 
-                        weight_by_distance = weight_by_distance, 
-                        probs = probs
-    )", 
-    p = p,
-    architecture = architecture,
-    d = d,
-    estimator_type = estimator_type,
-    depth = depth,
-    width = width,
-    activation = activation, 
-    activation_output = activation_output, 
-    kernel_size = kernel_size, 
-    weight_by_distance = weight_by_distance, 
-    variance_stabiliser = variance_stabiliser, 
-    probs = probs)
-  
-  return(estimator)
+posteriormode <- function(estimator, Z, ...) {
+  NE$posteriormode(estimator, Z, ...)
 }

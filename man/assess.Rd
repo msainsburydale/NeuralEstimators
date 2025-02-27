@@ -15,11 +15,11 @@ assess(
 )
 }
 \arguments{
-\item{estimators}{a list of (neural) estimators}
+\item{estimators}{a neural estimator (or a list of neural estimators)}
 
-\item{parameters}{true parameters, stored as a pxK matrix, where p is the number of parameters in the statistical model and K is the number of sampled parameter vectors}
+\item{parameters}{true parameters, stored as a \eqn{d\times K}{dxK} matrix, where \eqn{d} is the dimension of the parameter vector and \eqn{K} is the number of sampled parameter vectors}
 
-\item{Z}{data simulated conditionally on the \code{parameters}. If \code{Z} contains more data sets than parameter vectors, the parameter matrix will be recycled by horizontal concatenation.}
+\item{Z}{data simulated conditionally on the \code{parameters}. If \code{length(Z)} > K, the parameter matrix will be recycled by horizontal concatenation as \code{parameters = parameters[, rep(1:K, J)]}, where \code{J = length(Z) / K}}
 
 \item{estimator_names}{list of names of the estimators (sensible defaults provided)}
 
@@ -30,8 +30,8 @@ assess(
 \item{verbose}{a boolean indicating whether information should be printed to the console}
 }
 \value{
-a list of two data frames: \code{runtimes}, contains the
-total time taken for each estimator, while \code{estimates} is a long-form
+a list of two data frames: \code{runtimes} contains the
+total time taken for each estimator, while \code{df} is a long-form
 data frame with columns:
 \itemize{
 \item{"estimator"; the name of the estimator}
@@ -47,5 +47,5 @@ data frame with columns:
 assess a neural estimator
 }
 \seealso{
-\code{\link[=risk]{risk()}}, \code{\link[=rmse]{rmse()}}, \code{\link[=bias]{bias()}}, \code{\link[=plotestimates]{plotestimates()}}, and \code{\link[=plotdistribution]{plotdistribution()}} for computing various empirical diagnostics and visualisations based on an assessment object
+\code{\link[=risk]{risk()}}, \code{\link[=rmse]{rmse()}}, \code{\link[=bias]{bias()}}, \code{\link[=plotestimates]{plotestimates()}}, and \code{\link[=plotdistribution]{plotdistribution()}} for computing various empirical diagnostics and visualisations from an object returned by \code{assess()}
 }

@@ -7,10 +7,11 @@ The vignettes for `NeuralEstimators` are built using `Rmd` files, which are conv
 - In the `DESCRIPTION` set `VignetteBuilder: knitr`
 - In `.Rbuildignore` uncomment `^vignettes/.*\.html$` and `^vignettes/.*\.html\.asis$` 
 - In `.Rbuildignore` comment out `^vignettes/.*\.Rmd$`
-- (Optional) In `.Rbuildignore` add `^vignettes/.*\.html$` and `^vignettes/.*\.html\.asis$` entries for the vignettes that you do not wish to update
+- (Optional) In `.Rbuildignore` add specific `vignettes/.*\.Rmd$`, `vignettes/.*\.html$`, and `vignettes/.*\.html\.asis$` entries for the vignettes that you do not wish to update
 - Create/edit the vignette `Rmd` file and place it in the folder `vignettes`
 - Run `devtools::build_vignettes()`
-- Move the generated `html` file from the folder `doc` to the folder `vignettes`, and create an `asis` file for the vignette if one is not already there
+- Move the generated `html` file from `/doc` to `/vignettes`, and create an `asis` file for the vignette if one is not already there
+- Move `README.md` back from `/doc` to `/vignettes` if it was moved when creating the vignette
 
 ### Uploading the package to CRAN
 
@@ -19,5 +20,5 @@ The vignettes for `NeuralEstimators` are built using `Rmd` files, which are conv
 - In `.Rbuildignore` uncomment `^vignettes/.*\.Rmd$`
 - Check the package using `devtools::check()`
 - Build the package using `devtools::build()`
-- Check the package using [WinBuilder](https://win-builder.r-project.org/)
+- Check the built package using [WinBuilder](https://win-builder.r-project.org/)
 - Once checked, submit to CRAN 

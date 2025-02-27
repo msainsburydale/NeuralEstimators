@@ -1,12 +1,12 @@
 Package: NeuralEstimators
 Title: Likelihood-Free Parameter Estimation using Neural Networks
-Version: 0.1.4
+Version: 0.2.0
 Authors@R: 
     person(given = "Matthew",
            family = "Sainsbury-Dale",
            role = c("aut", "cre"),
            email = "msainsburydale@gmail.com")
-Description: An 'R' interface to the 'Julia' package 'NeuralEstimators.jl'. The package facilitates the user-friendly development of neural point estimators, which are neural networks that map data to a point summary of the posterior distribution. These estimators are likelihood-free and amortised, in the sense that, after an initial setup cost, inference from observed data can be made in a fraction of the time required by conventional approaches; see Sainsbury-Dale, Zammit-Mangion, and Huser (2024) <doi:10.1080/00031305.2023.2249522> for further details and an accessible introduction. The package also enables the construction of neural networks that approximate the likelihood-to-evidence ratio in an amortised manner, allowing one to perform inference based on the likelihood function or the entire posterior distribution; see Zammit-Mangion, Sainsbury-Dale, and Huser (2024, Sec. 5.2) <doi:10.48550/arXiv.2404.12484>, and the references therein. The package accommodates any model for which simulation is feasible by allowing the user to implicitly define their model through simulated data.
+Description: An 'R' interface to the 'Julia' package 'NeuralEstimators.jl'. The package facilitates the user-friendly development of neural Bayes estimators, which are neural networks that map data to a point summary of the posterior distribution (Sainsbury-Dale et al., 2024, <doi:10.1080/00031305.2023.2249522>). These estimators are likelihood-free and amortised, in the sense that, once the neural networks are trained on simulated data, inference from observed data can be made in a fraction of the time required by conventional approaches. The package also supports amortised Bayesian or frequentist inference using neural networks that approximate the posterior or likelihood-to-evidence ratio (Zammit-Mangion et al., 2025, Sec. 3.2, 5.2, <doi:10.48550/arXiv.2404.12484>). The package accommodates any model for which simulation is feasible by allowing users to define models implicitly through simulated data.
 Maintainer: Matthew Sainsbury-Dale <msainsburydale@gmail.com>
 License: GPL (>= 2)
 Encoding: UTF-8
@@ -27,5 +27,8 @@ Suggests:
     R.rsp,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
-SystemRequirements: Julia (>= 1.10)
+SystemRequirements: Julia (>= 1.11)
 VignetteBuilder: R.rsp
+URL: 
+    https://github.com/msainsburydale/NeuralEstimators, 
+    https://msainsburydale.github.io/NeuralEstimators.jl/dev/

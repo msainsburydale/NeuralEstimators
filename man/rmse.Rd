@@ -7,9 +7,9 @@
 rmse(assessment, ...)
 }
 \arguments{
-\item{assessment}{an object returned by \code{assess()} (or the \code{estimates} data frame of this object)}
+\item{assessment}{an object returned by \code{\link[=assess]{assess()}}}
 
-\item{...}{optional arguments inherited from \code{risk} (excluding the argument \code{loss})}
+\item{...}{optional arguments inherited from \code{risk()} (excluding the argument \code{loss})}
 }
 \value{
 a dataframe giving the estimated RMSE

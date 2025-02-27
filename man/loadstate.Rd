@@ -2,18 +2,18 @@
 % Please edit documentation in R/core.R
 \name{loadstate}
 \alias{loadstate}
-\title{load a saved state of a neural estimator}
+\title{Load a saved state of a neural estimator}
 \usage{
 loadstate(estimator, filename)
 }
 \arguments{
 \item{estimator}{the neural estimator that we wish to load the state into}
 
-\item{filename}{file (including absolute path) of the neural-network state in a \code{bson} file}
+\item{filename}{file name (including path) of the neural-network state stored in a \code{bson} file}
 }
 \value{
 \code{estimator} updated with the saved state
 }
 \description{
-Load a saved state of a neural estimator, including both weights and additional model parameters.
+Load a saved state of a neural estimator (e.g., optimised neural-network parameters). Useful for amortised inference, whereby a neural network is trained once and then used repeatedly to make inference with new data sets.
 }

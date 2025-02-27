@@ -4,35 +4,25 @@
 \alias{estimate}
 \title{estimate}
 \usage{
-estimate(estimator, Z, theta = NULL, use_gpu = TRUE)
+estimate(estimator, Z, X = NULL, batchsize = 32, use_gpu = TRUE)
 }
 \arguments{
-\item{estimator}{a neural estimator}
+\item{estimator}{a neural estimator that can be applied to data in a call of the form \code{estimator(Z)}}
 
-\item{Z}{data; format should be amenable to the architecture of \code{estimator}}
+\item{Z}{data in a format amenable to the neural-network architecture of \code{estimator}}
 
-\item{theta}{parameter vectors (only for neural estimators that take both the data and parameters as input, e.g., neural ratio estimators)}
+\item{X}{additional inputs to the neural network; if provided, the call will be of the form \verb{estimator((Z, X))}}
 
-\item{use_gpu}{a boolean indicating whether to use the GPU if it is available (default true)}
+\item{batchsize}{the batch size for applying \code{estimator} to \code{Z}. Batching occurs only if \code{Z} is a list, indicating multiple data sets}
+
+\item{use_gpu}{boolean indicating whether to use the GPU if it is available}
 }
 \value{
-a matrix of parameter estimates (i.e., \code{estimator} applied to \code{Z})
+a matrix of outputs resulting from applying \code{estimator} to \code{Z} (and possibly \code{X})
 }
 \description{
-estimate parameters from observed data using a neural estimator
+Apply a neural estimator to data
 }
-\examples{
-\dontrun{
-library(NeuralEstimators)
-library(JuliaConnectoR)
-
-## Observed data: 100 replicates of a univariate random variable
-Z <- matrix(rnorm(100), nrow = 1)
-
-## Construct an (un-trained) point estimator
-estimator <- initialise_estimator(1, architecture = "MLP")
-
-## Apply the estimator
-estimate(estimator, Z)
-}
+\seealso{
+\code{\link[=sampleposterior]{sampleposterior()}} for making inference with neural posterior or likelihood-to-evidence-ratio estimators
 }

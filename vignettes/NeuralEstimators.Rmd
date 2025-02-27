@@ -27,7 +27,7 @@ This vignette describes the R interface to `NeuralEstimators`, a Julia package t
 
 Comprehensive documentation for the Julia version of the package is available [here](https://msainsburydale.github.io/NeuralEstimators.jl/dev/). 
 
-**Note on math rendering:** When viewing this vignette online, you may encounter issues with caligraphic math symbols rendering as "square boxes". If this occurs, you can adjust your settings to resolve it by right-clicking on the square box, and then selecting `Math Settings > Math Renderer > Common HTML`.
+**Note on math rendering:** When viewing this vignette online, you may encounter issues with calligraphic math symbols rendering as "square boxes". If this occurs, you can adjust your settings to resolve it by right-clicking on the square box, and then selecting `Math Settings > Math Renderer > Common HTML`.
 
 # Methodology
 
@@ -47,7 +47,7 @@ Bayes estimators are functionals of the posterior distribution (e.g., the Bayes 
 $$
 \boldsymbol{\gamma}^* \equiv \underset{\boldsymbol{\gamma}}{\mathrm{arg\,min\;}} \frac{1}{K} \sum_{k = 1}^K L(\boldsymbol{\theta}, \hat{\boldsymbol{\theta}}_{\boldsymbol{\gamma}}(\boldsymbol{Z}^{(k)})),
 $$
-with $\boldsymbol{\theta}^{(k)} \sim \pi(\boldsymbol{\theta})$ and, independently for each $k$, $\boldsymbol{Z}^{(k)} \sim p(\boldsymbol{Z} \mid  \boldsymbol{\theta}^{(k)})$. The process of obtaining $\boldsymbol{\gamma}^*$ is referred to as "training the network", and this can be performed efficiently using back-propagation and stochastic gradient descent. The trained neural network $\hat{\boldsymbol{\theta}}_{\boldsymbol{\gamma^*}}(\cdot)$ approximately minimises the Bayes risk, and therefore it is called a *neural Bayes estimator* ([Sainsbury-Dale at al., 2024](https://www.tandfonline.com/doi/full/10.1080/00031305.2023.2249522)). 
+with $\boldsymbol{\theta}^{(k)} \sim \pi(\boldsymbol{\theta})$ and, independently for each $k$, $\boldsymbol{Z}^{(k)} \sim p(\boldsymbol{Z} \mid  \boldsymbol{\theta}^{(k)})$. The process of obtaining $\boldsymbol{\gamma}^*$ is referred to as "training the network", and this can be performed efficiently using back-propagation and stochastic gradient descent. The trained neural network $\hat{\boldsymbol{\theta}}_{\boldsymbol{\gamma^*}}(\cdot)$ approximately minimises the Bayes risk, and therefore it is called a *neural Bayes estimator* ([Sainsbury-Dale et al., 2024](https://doi.org/10.1080/00031305.2023.2249522)). 
 
 Once trained, a neural Bayes estimator can be applied repeatedly to observed data (whose structure conforms with the chosen neural-network architecture) at a fraction of the computational cost of conventional inferential methods. It is therefore ideal to use a neural Bayes estimator in settings where inference needs to be made repeatedly; in this case, the initial training cost is said to be amortised over time. 
 
@@ -119,7 +119,7 @@ This connection links the likelihood-to-evidence ratio to the average-risk-optim
 $$
  \boldsymbol{\gamma}^* \equiv \underset{\boldsymbol{\gamma}}{\mathrm{arg\,min}} -\sum_{k=1}^K \Big[\log\{c_{\boldsymbol{\gamma}}(\boldsymbol{Z}^{(k)}, \boldsymbol{\theta}^{(k)})\} +  \log\{1 - c_{\boldsymbol{\gamma}}(\boldsymbol{Z}^{(\sigma(k))}, \boldsymbol{\theta}^{(k)})\} \Big],
 $$
-with each $\boldsymbol{\theta}^{(k)}$ sampled independently from a "proposal" distribution $p(\boldsymbol{\theta})$, $\boldsymbol{Z}^{(k)} \sim p(\boldsymbol{Z} \mid \boldsymbol{\theta}^{(k)})$, and $\sigma(\cdot)$ a random permutation of $\{1, \dots, K\}$. The proposal distribution $p(\boldsymbol{\theta})$ does not necessarily correspond to the prior distribution $\pi(\boldsymbol{\theta})$, which is specified in the down-stream inferential algorithm (see below). In theory, any $p(\boldsymbol{\theta})$ with support over $\Theta$ can be used. However, with finite training data, the choice of $p(\boldsymbol{\theta})$ is important, as it determines where the parameters $\{\boldsymbol{\theta}^{(k)}\}$ are most densely sampled and, hence, where the neural network $c_{\boldsymbol{\gamma}^*}(\cdot, \cdot)$ best approximates the Bayes classifier. Further, since neural networks are only reliable within the support of their training samples, a $p(\boldsymbol{\theta})$ lacking full support over $\Theta$ essentially acts as a "soft prior". 
+with each $\boldsymbol{\theta}^{(k)}$ sampled independently from a "proposal" distribution $p(\boldsymbol{\theta})$, $\boldsymbol{Z}^{(k)} \sim p(\boldsymbol{Z} \mid \boldsymbol{\theta}^{(k)})$, and $\sigma(\cdot)$ a random permutation of $\{1, \dots, K\}$. The proposal distribution $p(\boldsymbol{\theta})$ does not necessarily correspond to the prior distribution $\pi(\boldsymbol{\theta})$, which is specified in the downstream inference algorithm (see below). In theory, any $p(\boldsymbol{\theta})$ with support over $\Theta$ can be used. However, with finite training data, the choice of $p(\boldsymbol{\theta})$ is important, as it determines where the parameters $\{\boldsymbol{\theta}^{(k)}\}$ are most densely sampled and, hence, where the neural network $c_{\boldsymbol{\gamma}^*}(\cdot, \cdot)$ best approximates the Bayes classifier. Further, since neural networks are only reliable within the support of their training samples, a $p(\boldsymbol{\theta})$ lacking full support over $\Theta$ essentially acts as a "soft prior". 
 
 Once the neural network is trained, $r_{\boldsymbol{\gamma}^*}(\boldsymbol{Z}, \boldsymbol{\theta}) \equiv c_{\boldsymbol{\gamma}^*}(\boldsymbol{Z}, \boldsymbol{\theta})\{1 - c_{\boldsymbol{\gamma}^*}(\boldsymbol{Z}, \boldsymbol{\theta})\}^{-1}$, $\boldsymbol{Z} \in \mathcal{Z}, \boldsymbol{\theta} \in \Theta$, may be used to quickly approximate the likelihood-to-evidence ratio, and therefore it is called a *neural ratio estimator*. 
 
@@ -148,7 +148,7 @@ Once the `NeuralEstimator` has passed our assessments and is deemed to be well c
 
 # Examples
 
-We now consider examples where the data are univariate (Section [2.1](#univariate-data)), multivariate and unstructured (Section [2.2](#multivariate-data)), collected over a regular grid (Section [2.3](#gridded-data)), or collected over arbitrary spatial locations (Section [ 2.4](#irregular-spatial-data)). These examples focus on neural Bayes estimation. To perform neural posterior estimation or neural ratio estimation, simply replace `PointEstimator` with `PosteriorEstimator` or `RatioEstimator`, respectively, in the code provided below. 
+We now consider examples where the data are univariate (Section [2.1](#univariate-data)), multivariate and unstructured (Section [2.2](#multivariate-data)), collected over a regular grid (Section [2.3](#gridded-data)), or collected over arbitrary spatial locations (Section [ 2.4](#irregular-spatial-data)). These examples focus on neural Bayes estimation using a [`PointEstimator`](https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/core/#NeuralEstimators.PointEstimator). For a list of other estimator types available in the package (e.g., for neural posterior or ratio estimation), see [Estimators](https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/core/#Estimators) and the examples therein. 
 
 Before proceeding, we load the required packages: see the [README](https://github.com/msainsburydale/NeuralEstimators?tab=readme-ov-file#installation-tips) for instructions on installing Julia and the Julia packages `NeuralEstimators` and `Flux`. If you have access to an NVIDIA graphics processing unit (GPU), you can utilise it by simply adding `CUDA` to the list of Julia packages in the final line below: 
 
@@ -156,7 +156,8 @@ Before proceeding, we load the required packages: see the [README](https://githu
 library("NeuralEstimators")
 library("JuliaConnectoR")
 library("ggplot2")
-library("ggpubr")  
+library("ggpubr") 
+library("latex2exp")
 juliaEval('using NeuralEstimators, Flux') 
 ```
 
@@ -190,9 +191,31 @@ simulate <- function(Theta, m) {
   apply(Theta, 2, function(theta) t(rnorm(m, theta[1], theta[2])), simplify = FALSE)
 }
 
-m <- 15
+m <- 30
 Z_train <- simulate(theta_train, m)
 Z_val   <- simulate(theta_val, m)
+```
+
+Let’s visualise a few elements of the training set:
+
+```{r, fig.width=8, fig.height=3, out.width='100%', fig.align='center'}
+mu    <- theta_train[1, 1:4]
+sigma <- theta_train[2, 1:4]
+Z     <- Z_train[1:4]
+
+df <- Map(function(z, m, s) {
+  data.frame(Z = c(z), mu = m, sigma = s)
+  }, Z, mu, sigma)
+df <- do.call(rbind, df)
+
+df$theta <- paste0("$\\mu$ = ", round(df$mu, 3), ", $\\sigma$ = ", round(df$sigma, 3))
+df$theta <- as.factor(df$theta)
+levels(df$theta) <- sapply(levels(df$theta), TeX)
+
+ggplot(df) + 
+  geom_histogram(aes(x = Z), bins = 30, fill = "blue", alpha = 0.5, color = "black") +
+  facet_grid(~theta, labeller = label_parsed) +
+  theme_bw()
 ```
 
 We now design our neural network. 
@@ -218,8 +241,8 @@ estimator <- juliaEval('
   )
 
   # Construct inner and outer networks and combine into DeepSet
-  psi = Chain(Dense(n, w, relu), Dense(w, d, relu))    
-  phi = Chain(Dense(d, w, relu), final_layer)          
+  psi = Chain(Dense(n, w, relu), Dense(w, w, relu))    
+  phi = Chain(Dense(w, w, relu), final_layer)          
   network = DeepSet(psi, phi)
 
   # Wrap the neural network as a PointEstimator
@@ -227,7 +250,7 @@ estimator <- juliaEval('
 ')
 ```
 
-Next, we train the estimator using `train()`, here using the default mean-absolute-error loss, so that the resulting neural Bayes estimator approximates the marginal posterior medians. We use the sets of parameters and simulated data constructed earlier; one may alternatively use the arguments `sampler` and `simulator` to pass functions for sampling from the prior and simulating from the model, respectively, which facilitates the technique known as "simulation on-the-fly". These functions can be defined in R (as we have done in this example) or in Julia using the package `JuliaConnectoR`.
+Next, we train the estimator using `train()`, here using the default mean-absolute-error loss, so that the resulting neural Bayes estimator approximates the marginal posterior medians. We use the sets of parameters and simulated data constructed earlier; one may alternatively use the arguments `sampler` and `simulator` to pass functions for sampling from the prior and simulating from the model, respectively, which facilitates the technique known as "simulation on-the-fly". These functions can be defined in R (as we have done in this example) or in Julia using the package `JuliaConnectoR` (see the help file for `train()`).
 
 ```{r}
 # Train the estimator
@@ -236,8 +259,7 @@ estimator <- train(
   theta_train = theta_train,
   theta_val   = theta_val,
   Z_train = Z_train,
-  Z_val   = Z_val,
-  epochs = 20
+  Z_val   = Z_val
   )
 ```
 
@@ -323,7 +345,39 @@ estimator <- juliaEval('
 ')
 ```
 
+Let’s visualise a few realisations from the current model:
+
+```{r, fig.width=8, fig.height=3, out.width='100%', fig.align='center'}
+theta <- sampler(3)
+Z     <- simulate(theta, m = 250)
+mu1   <- theta[1, 1:3]
+mu2   <- theta[2, 1:3]
+sigma <- theta[3, 1:3]
+rho   <- theta[4, 1:3]
+
+df <- Map(function(z, m1, m2, s, r) {
+  data.frame(Z1 = z[1, ], Z2 = z[2, ], mu1 = m1, mu2 = m2, sigma = s, rho = r)
+  }, Z, mu1, mu2, sigma, rho)
+df <- do.call(rbind, df)
+
+df$theta <- paste0(
+  "$\\mu_1$ = ", round(df$mu1, 2), ", ",
+  "$\\mu_2$ = ", round(df$mu2, 2), ", ",
+  "$\\sigma$ = ", round(df$sigma, 2), ", ",
+  "$\\rho$ = ", round(df$rho, 2)
+  )
+df$theta <- as.factor(df$theta)
+levels(df$theta) <- sapply(levels(df$theta), TeX)
+
+ggplot(df) + 
+  geom_point(aes(x = Z1, y = Z2), alpha = 0.5) +
+  facet_grid(~theta, labeller = label_parsed) +
+  theme_bw()
+```
+
+
 The training, assessment, and application of the neural Bayes estimator then remains as in the example above: 
+
 
 ```{r, fig.width=7, fig.height=3.5, out.width='100%', fig.align='center'}
 # Construct training and validation data sets
@@ -384,16 +438,13 @@ sampler <- function(K) {
   return(theta)
 }
 
-# Marginal simulation from the statistical model
+# Marginal simulation from the statistical model, split into simulation of the 
+# spatial configurations S and the spatial data Z
 # theta: a matrix of parameters drawn from the prior
 # m: number of conditionally independent replicates for each parameter vector
 library("parallel") # mclapply()
 library("spatstat") # rMatClust()
-simulate <- function(theta, m = 1) { 
-  
-  # Number of parameter vectors
-  K <- ncol(theta) 
-  
+simulateS <- function(K) { 
   # Simulate spatial configurations over the unit square, with each configuration
   # drawn from a Matern cluster process with different, randomly sampled hyperparameters
   n      <- sample(100:300, K, replace = TRUE)  # approximate sample size 
@@ -405,9 +456,12 @@ simulate <- function(theta, m = 1) {
     cbind(x = pts$x, y = pts$y)
   })
   
-  # Simulate conditionally independent replicates for each pair of parameters 
-  # and spatial configurations
-  Z <- mclapply(1:K, function(k) {
+  return(S)
+}
+simulateZ <- function(theta, S, m = 1) {
+  # Simulate conditionally independent replicates for each pair of 
+  # parameters and spatial configurations
+  Z <- mclapply(1:ncol(theta), function(k) {
     D <- as.matrix(dist(S[[k]])) # distance matrix   
     n <- nrow(D)                 # sample size
     Sigma <- exp(-D/theta[k])    # covariance matrix
@@ -417,11 +471,43 @@ simulate <- function(theta, m = 1) {
     Z
   })
   
-  # Define a graph from the spatial configurations and associated spatial data
-  G <- spatialgraphlist(S, Z)
-  
+  return(Z)
+}
+simulate <- function(theta, S, ...) {
+  K <- ncol(theta)
+  S <- simulateS(K)
+  Z <- simulateZ(theta, S, ...)
+  G <- spatialgraph(S, Z) # graph from the spatial configurations and associated spatial data
   return(G)
 }
+```
+
+Let’s visualise a few realisations from our spatial Gaussian process model:
+
+```{r, fig.width=8, fig.height=3, out.width='100%', fig.align='center'}
+theta <- matrix(c(0.05, 0.1, 0.2, 0.4), nrow = 1)
+K     <- ncol(theta)
+S     <- simulateS(K)
+Z     <- simulateZ(theta, S)
+
+df <- Map(function(z, th, s) {
+  data.frame(Z = c(z), theta = th, s1 = s[, 1], s2 = s[, 2])
+  }, Z, theta, S)
+df <- do.call(rbind, df)
+
+df$theta <- paste0("$\\theta$ = ", round(df$theta, 2))
+df$theta <- as.factor(df$theta)
+levels(df$theta) <- sapply(levels(df$theta), TeX)
+
+ggplot(df) + 
+  geom_point(aes(x = s1, y = s2, colour = Z)) +
+  facet_grid(~theta, labeller = label_parsed) +
+  scale_colour_viridis_c(option = "magma") + 
+  labs(x = expression(s[1]), y = expression(s[2])) +
+  scale_x_continuous(breaks = c(0.2, 0.5, 0.8)) + 
+  scale_y_continuous(breaks = c(0.2, 0.5, 0.8)) + 
+  coord_fixed() + 
+  theme_bw() 
 ```
 
 Next, we define our GNN architecture and initialise the estimator. Here, we use an architecture tailored to isotropic spatial dependence models; for further details, see Section 2.2.1 of [Sainsbury-Dale et al. (2025)](https://doi.org/10.1080/10618600.2024.2433671). In this example our goal is to construct a point estimator, however other [kinds of estimators](https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/core/#Estimators) can be constructed by substituting the appropriate estimator class in the final line below:

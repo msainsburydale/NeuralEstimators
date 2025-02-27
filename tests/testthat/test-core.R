@@ -66,16 +66,7 @@ test_that("a neural estimator can be initialised", {
   psi = Chain(Dense(1, w, relu), Dense(w, w, relu), Dense(w, w, relu))
   phi = Chain(Dense(w, w, relu), Dense(w, p))
   estimator = PointEstimator(DeepSet(psi, phi))
-')
-  
-  ## Using the helper function
-  p = 2
-  initialise_estimator(p, architecture = "MLP")
-  initialise_estimator(p, architecture = "MLP", variance_stabiliser = 'x -> cbrt.(x)')
-  initialise_estimator(p, architecture = "GNN")
-  initialise_estimator(p, architecture = "CNN", kernel_size = list(10, 5, 3))
-  initialise_estimator(p, architecture = "CNN", kernel_size = list(c(10, 10), c(5, 5), c(3, 3)))
-  expect_error(initialise_estimator(p, architecture = "CNN"))
+  ')
   
   expect_equal(1, 1)
 })
@@ -178,7 +169,14 @@ test_that("the neural estimator can be assessed with assess()", {
   rmse(assessment$estimates)
   
   # Test that parameters can be given as a vector in single-parameter case
-  estimator_one_param <- initialise_estimator(1, architecture = "MLP")
+  estimator_one_param <- juliaEval('
+    using NeuralEstimators, Flux
+    p = 1    # number of parameters in the statistical model
+    w = 32   # number of neurons in each layer
+    psi = Chain(Dense(1, w, relu), Dense(w, w, relu), Dense(w, w, relu))
+    phi = Chain(Dense(w, w, relu), Dense(w, p))
+    estimator = PointEstimator(DeepSet(psi, phi))
+  ')
   assessment <- assess(estimator_one_param, rnorm(100), Z_test)
   
   expect_equal(1, 1)
@@ -223,9 +221,8 @@ test_that("neural ratio estimator can be constructed and used to make inference"
   
   # Grid-based methods for estimation/posterior sampling
   theta_grid <- t(expand.grid(seq(0, 1, len = 50), seq(0, 1, len = 50)))
-  mlestimate(estimator, Z, theta_grid = theta_grid)
-  mapestimate(estimator, Z, theta_grid = theta_grid)
-  # mapestimate(estimator, Z, theta_grid = theta_grid, prior = function(x) 1) # NB This requires the user to have installed the Julia package RCall, which is not particularly stable
+  posteriormode(estimator, Z, theta_grid = theta_grid)
+  # posteriormode(estimator, Z, theta_grid = theta_grid, prior = function(x) 1) # NB This requires the user to have installed the Julia package RCall, which is not particularly stable
   sampleposterior(estimator, Z[[1]], theta_grid = theta_grid) 
   sampleposterior(estimator, Z, theta_grid = theta_grid)
   # sampleposterior(estimator, Z, theta_grid = theta_grid, prior = function(x) 1) # NB This requires the user to have installed the Julia package RCall
@@ -233,6 +230,5 @@ test_that("neural ratio estimator can be constructed and used to make inference"
   # Gradient descent method for estimation
   # juliaEval('using Optim')
   # theta0 <- c(0.2, 0.4)
-  # mlestimate(estimator, Z, theta0 = theta0) 
-  # mapestimate(estimator, Z, theta0 = theta0) 
+  # posteriormode(estimator, Z, theta0 = theta0) 
 })
