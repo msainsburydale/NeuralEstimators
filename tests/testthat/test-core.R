@@ -19,7 +19,7 @@ test_that("Flux.jl is available", {
   juliaEval('
   # Install the package if not already installed
   using Pkg
-  installed = "Flux" ∈ keys(Pkg.project().dependencies)
+  installed = "Flux" in keys(Pkg.project().dependencies)
   if !installed
     Pkg.add("Flux")  
   end
@@ -32,7 +32,7 @@ test_that("NeuralEstimators.jl is available", {
   juliaEval('
   # Install the package if not already installed
   using Pkg
-  installed = "NeuralEstimators" ∈ keys(Pkg.project().dependencies)
+  installed = "NeuralEstimators" in keys(Pkg.project().dependencies)
   if !installed
     Pkg.add(url = "https://github.com/msainsburydale/NeuralEstimators.jl") 
   end
@@ -45,7 +45,7 @@ test_that("Optim.jl is available", {
   juliaEval('
   # Install the package if not already installed
   using Pkg
-  installed = "Optim" ∈ keys(Pkg.project().dependencies)
+  installed = "Optim" in keys(Pkg.project().dependencies)
   if !installed
     Pkg.add("Optim") 
   end
@@ -111,7 +111,7 @@ test_that("the neural estimator can be trained with fixed a training set", {
   expect_equal(1, 1)
 })
 
-# NB This requires the user to have installed the Julia package RCall
+# NB This requires the user to have installed the Julia package RCall, which can be unstable
 # test_that("the neural estimator can be trained with simulation on-the-fly (using R functions)", {
 # 
 #   estimator <- train(

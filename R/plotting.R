@@ -414,7 +414,6 @@ aes_string_quiet <- function(...) suppressWarnings(ggplot2::aes_string(...))
   )
 
   # Convert to object of class ggplot for consistency with other return values
-  # NB not doing this anymore, so that we do not require ggplotify
   gg <- ggplotify::as.ggplot(gg)
   
   return(gg)

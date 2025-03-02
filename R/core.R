@@ -1,4 +1,51 @@
-NE <- juliaImport("NeuralEstimators")
+# Same as JuliaConnectoR::juliaSetupOk(), but also check minimum version number
+.juliaSetupOk <- function(version = "1") {
+  
+  juliaCmd <- NULL
+  try({
+    # juliaCmd <- JuliaConnectoR:::getJuliaExecutablePath()
+    juliaCmd <- asNamespace("JuliaConnectoR")$getJuliaExecutablePath()
+  })
+  if (is.null(juliaCmd)) {
+    message("Julia not found")
+    return(FALSE)
+  }
+  
+  # juliaVersion <- JuliaConnectoR:::getJuliaVersionViaCmd(juliaCmd)
+  juliaVersion <-  asNamespace("JuliaConnectoR")$getJuliaVersionViaCmd(juliaCmd)
+  if (is.null(juliaVersion)) {
+    message("Julia could not be started")
+    return(FALSE)
+  }
+  
+  # Convert versions to numeric vectors
+  juliaVersionNum <- as.integer(unlist(strsplit(juliaVersion, ".", fixed = TRUE)))
+  requiredVersionNum <- as.integer(unlist(strsplit(version, ".", fixed = TRUE)))
+  
+  # Pad versions with zeros for safe comparison (e.g., "1.11" -> c(1,11,0) if necessary)
+  lengthDiff <- length(requiredVersionNum) - length(juliaVersionNum)
+  if (lengthDiff > 0) {
+    juliaVersionNum <- c(juliaVersionNum, rep(0, lengthDiff))
+  } else if (lengthDiff < 0) {
+    requiredVersionNum <- c(requiredVersionNum, rep(0, -lengthDiff))
+  }
+  
+  # Compare versions element-wise
+  if (isTRUE(all(juliaVersionNum >= requiredVersionNum))) {
+    return(TRUE)
+  } else {
+    message("Julia version must be at least ", version)
+    return(FALSE)
+  }
+}
+
+.getNeuralEstimators <- function() {
+  if (.juliaSetupOk() && juliaEval('"NeuralEstimators" in keys(Pkg.project().dependencies)')) {
+    juliaImport("NeuralEstimators") 
+  } else {
+    stop("Julia package NeuralEstimators.jl not found. If it is installed but not detected, please report this issue to the package maintainer.")
+  }
+}
 
 #' @title Train a neural estimator
 #' 
@@ -497,6 +544,7 @@ bootstrap <- function(estimator,
     #NB Just using estimate() since that is all that needs to be done here
     thetahat <- estimate(estimator, Z, use_gpu = use_gpu)
   } else {
+    NE <- .getNeuralEstimators()
     thetahat <- NE$bootstrap(estimator, Z, use_gpu = use_gpu, B = B, blocks = blocks)
   }
 
@@ -516,6 +564,7 @@ bootstrap <- function(estimator,
 #' @export
 sampleposterior <- function(estimator, Z, N = 1000, ...) {
   N <- as.integer(N)
+  NE <- .getNeuralEstimators()
   NE$sampleposterior(estimator, Z, N, ...)
 }
 
@@ -529,5 +578,6 @@ sampleposterior <- function(estimator, Z, N = 1000, ...) {
 #' @seealso [sampleposterior()] for sampling from the approximate posterior distribution
 #' @export
 posteriormode <- function(estimator, Z, ...) {
+  NE <- .getNeuralEstimators()
   NE$posteriormode(estimator, Z, ...)
 }

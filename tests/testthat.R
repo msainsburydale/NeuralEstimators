@@ -6,7 +6,11 @@
 # * https://r-pkgs.org/tests.html
 # * https://testthat.r-lib.org/reference/test_package.html#special-files
 
-library(testthat)
-library(NeuralEstimators)
+library("testthat")
+library("JuliaConnectoR")
+library("NeuralEstimators")
 
-test_check("NeuralEstimators")
+if (NeuralEstimators:::.juliaSetupOk("1.11")) {
+  test_check("NeuralEstimators")
+}
+

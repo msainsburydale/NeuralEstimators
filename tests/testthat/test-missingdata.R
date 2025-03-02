@@ -15,11 +15,11 @@ test_that("julia can be called", {
   expect_equal(x, 2)
 })
 
-test_that("Flux is available", {
+test_that("Flux.jl is available", {
   juliaEval('
   # Install the package if not already installed
   using Pkg
-  installed = "Flux" ∈ keys(Pkg.project().dependencies)
+  installed = "Flux" in keys(Pkg.project().dependencies)
   if !installed
     Pkg.add("Flux")  
   end
@@ -28,11 +28,11 @@ test_that("Flux is available", {
   expect_equal(1, 1)
 })
 
-test_that("the Julia version of NeuralEstimators is available", {
+test_that("NeuralEstimators.jl is available", {
   juliaEval('
   # Install the package if not already installed
   using Pkg
-  installed = "NeuralEstimators" ∈ keys(Pkg.project().dependencies)
+  installed = "NeuralEstimators" in keys(Pkg.project().dependencies)
   if !installed
     Pkg.add(url = "https://github.com/msainsburydale/NeuralEstimators.jl") 
   end

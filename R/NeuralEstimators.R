@@ -1,4 +1,6 @@
-#' @docType package
+#' @keywords internal
+"_PACKAGE"
+
 #' @import JuliaConnectoR
 #' @importFrom stats reshape
 #' @importFrom utils combn
