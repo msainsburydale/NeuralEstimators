@@ -71,7 +71,7 @@
 #' @param K the number of parameter vectors sampled in the training set at each epoch; the size of the validation set is set to \code{K}/5.
 #' @param xi a list of objects used for data simulation (e.g., distance matrices); if it is provided, the parameter sampler is called as \code{sampler(K, xi)}.
 #' @param loss the loss function: a string ('absolute-error' for mean-absolute-error loss or 'squared-error' for mean-squared-error loss), or a string of Julia code defining the loss function. For some classes of estimators (e.g., `PosteriorEstimator`, `QuantileEstimator`, `RatioEstimator`), the loss function does not need to be specified.
-#' @param learning_rate the learning rate for the optimiser ADAM (default 1e-3)
+#' @param learning_rate the initial learning rate for the optimiser ADAM (default 5e-4) 
 #' @param epochs the number of epochs to train the neural network. An epoch is one complete pass through the entire training data set when doing stochastic gradient descent.
 #' @param stopping_epochs cease training if the risk doesn't improve in this number of epochs (default 5).
 #' @param batchsize the batchsize to use when performing stochastic gradient descent, that is, the number of training samples processed between each update of the neural-network parameters. 
@@ -173,7 +173,7 @@ train <- function(estimator,
                   K = 10000,        
                   xi = NULL,        
                   loss = "absolute-error",
-                  learning_rate = 1e-4,
+                  learning_rate = 5e-4,
                   epochs = 100,
                   batchsize = 32,
                   savepath = NULL,
@@ -286,7 +286,7 @@ train <- function(estimator,
      train_code, 
      loss_code,
     "
-    optimiser = Flux.setup(Flux.Adam(), estimator), 
+    optimiser = Flux.setup(Flux.Adam(learning_rate), estimator), 
     epochs = epochs,
     batchsize = batchsize,
     savepath = savepath,

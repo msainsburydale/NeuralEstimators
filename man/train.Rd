@@ -17,7 +17,7 @@ train(
   K = 10000,
   xi = NULL,
   loss = "absolute-error",
-  learning_rate = 1e-04,
+  learning_rate = 5e-04,
   epochs = 100,
   batchsize = 32,
   savepath = NULL,
@@ -54,7 +54,7 @@ train(
 
 \item{loss}{the loss function: a string ('absolute-error' for mean-absolute-error loss or 'squared-error' for mean-squared-error loss), or a string of Julia code defining the loss function. For some classes of estimators (e.g., \code{PosteriorEstimator}, \code{QuantileEstimator}, \code{RatioEstimator}), the loss function does not need to be specified.}
 
-\item{learning_rate}{the learning rate for the optimiser ADAM (default 1e-3)}
+\item{learning_rate}{the initial learning rate for the optimiser ADAM (default 5e-4)}
 
 \item{epochs}{the number of epochs to train the neural network. An epoch is one complete pass through the entire training data set when doing stochastic gradient descent.}
 
