@@ -276,7 +276,7 @@ train <- function(estimator,
   # Omit the loss function for certain classes of neural estimators
   omit_loss <- juliaLet('typeof(estimator) <: Union{PosteriorEstimator, RatioEstimator, IntervalEstimator, QuantileEstimator, QuantileEstimatorDiscrete, QuantileEstimatorContinuous}', estimator = estimator)
   loss_code <- if (omit_loss) "" else "loss = loss,"
-
+  
   # Metaprogramming: load Julia packages and add keyword arguments that are applicable to all methods of train()
   code <- paste(
   "
@@ -497,25 +497,9 @@ assess <- function(
 #' @seealso [sampleposterior()] for making inference with neural posterior or likelihood-to-evidence-ratio estimators
 #' @export
 estimate <- function(estimator, Z, X = NULL, batchsize = 32, use_gpu = TRUE) {
-  
-  if (!is.list(Z) & !("JuliaProxy" %in% class(Z))) Z <- list(Z) 
-  
-  batchsize <- as.integer(batchsize)
-  
-  thetahat <- juliaLet('
-  using NeuralEstimators, Flux
-  
-  output = estimate(estimator, Z, X; use_gpu = use_gpu, batchsize = batchsize)
-  
-  # Move back to the cpu and convert to a regular matrix
-  output = output |> cpu
-  output = Float64.(output)
-  output
-  ', estimator = estimator, Z = Z, X = X, use_gpu = use_gpu, batchsize = batchsize)
-  
-  # For some reason, the Julia dimensions are retained when we have only a single data set
-  if (length(Z) == 1) attributes(thetahat)$JLDIM <- NULL
-  
+  NE <- .getNeuralEstimators()
+  thetahat <- NE$estimate(estimator, Z, X, use_gpu = use_gpu, batchsize = as.integer(batchsize))
+  thetahat <- juliaLet('using Flux: f64; f64(thetahat)', thetahat = thetahat) # convert to regular matrix and Float64
   return(thetahat)
 }
 

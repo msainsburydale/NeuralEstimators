@@ -1,6 +1,6 @@
 Package: NeuralEstimators
 Title: Likelihood-Free Parameter Estimation using Neural Networks
-Version: 0.2.0
+Version: 0.2.1
 Authors@R: 
     person(given = "Matthew",
            family = "Sainsbury-Dale",
