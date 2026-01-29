@@ -4,41 +4,25 @@
 \alias{assess}
 \title{assess a neural estimator}
 \usage{
-assess(
-  estimators,
-  parameters,
-  Z,
-  estimator_names = NULL,
-  parameter_names = NULL,
-  use_gpu = TRUE,
-  verbose = TRUE
-)
+assess(estimator, parameters, Z, ...)
 }
 \arguments{
-\item{estimators}{a neural estimator (or a list of neural estimators)}
+\item{estimator}{a neural estimator (or a list of neural estimators)}
 
 \item{parameters}{true parameters, stored as a \eqn{d\times K}{dxK} matrix, where \eqn{d} is the dimension of the parameter vector and \eqn{K} is the number of sampled parameter vectors}
 
 \item{Z}{data simulated conditionally on the \code{parameters}. If \code{length(Z)} > K, the parameter matrix will be recycled by horizontal concatenation as \code{parameters = parameters[, rep(1:K, J)]}, where \code{J = length(Z) / K}}
 
-\item{estimator_names}{list of names of the estimators (sensible defaults provided)}
-
-\item{parameter_names}{list of names of the parameters (sensible defaults provided)}
-
-\item{use_gpu}{a boolean indicating whether to use the GPU if it is available (default true)}
-
-\item{verbose}{a boolean indicating whether information should be printed to the console}
+\item{...}{additional keyword arguments passed to the Julia version of \href{https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/core/#NeuralEstimators.assess}{\code{assess()}}}
 }
 \value{
 a list of two data frames: \code{runtimes} contains the
 total time taken for each estimator, while \code{df} is a long-form
 data frame with columns:
 \itemize{
-\item{"estimator"; the name of the estimator}
 \item{"parameter"; the name of the parameter}
 \item{"truth"; the true value of the parameter}
 \item{"estimate"; the estimated value of the parameter}
-\item{"m"; the sample size (number of iid replicates)}
 \item{"k"; the index of the parameter vector in the test set}
 \item{"j"; the index of the data set}
 }

@@ -162,11 +162,8 @@ test_that("the neural estimator can be assessed with assess()", {
   Z_test      <- simulator(theta_test, m)
   assessment  <- assess(estimator, theta_test, Z_test)
   risk(assessment)
-  risk(assessment$estimates)
   bias(assessment)
-  bias(assessment$estimates)
   rmse(assessment)
-  rmse(assessment$estimates)
   
   # Test that parameters can be given as a vector in single-parameter case
   estimator_one_param <- juliaEval('

@@ -23,7 +23,10 @@ plotestimates <- function(df, estimator_labels = ggplot2::waiver(), parameter_la
   
   truth <- estimator <- NULL # Setting the variables to NULL first to appease CRAN checks (see https://stackoverflow.com/questions/9439256/how-can-i-handle-r-cmd-check-no-visible-binding-for-global-variable-notes-when)
   
-  if (!is.data.frame(df)) df <- df$estimates # cater for the case that the user has passed in an "Assessment" object
+  # Cater for the case that the user has passed in an "Assessment" object
+  if (!is.data.frame(df)) {
+    df <- if (!is.null(df$df)) df$df else df$estimates
+  }
   
   if (is.null(parameter_labels)) {
     param_labeller <- identity
@@ -133,7 +136,11 @@ plotdistribution <- function(
   flip = FALSE
   ) {
   
-  if (!is.data.frame(df)) df <- df$estimates # cater for the case that the user has passed in an "Assessment" object
+  # Cater for the case that the user has passed in an "Assessment" object
+  if (!is.data.frame(df)) {
+    df <- if (!is.null(df$df)) df$df else df$estimates
+  }
+  
 
   type <- match.arg(type)
   if(!is.logical(pairs)) stop("pairs should be logical")

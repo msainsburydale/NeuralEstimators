@@ -47,6 +47,7 @@
   }
 }
 
+
 #' @title Train a neural estimator
 #' 
 #' @description The function caters for different variants of "on-the-fly" simulation. 
@@ -375,15 +376,21 @@ risk <- function(assessment,
                  average_over_sample_sizes = TRUE
                  ) {
   
-  if (is.list(assessment)) df <- assessment$estimates
+  if (is.list(assessment)) df <- if (!is.null(assessment$df)) assessment$df else assessment$estimates
   if (is.data.frame(assessment)) df <- assessment
   
   truth <- NULL # Setting the variables to NULL first to appease CRAN checks (see https://stackoverflow.com/questions/9439256/how-can-i-handle-r-cmd-check-no-visible-binding-for-global-variable-notes-when)
   
   # Determine which variables we are grouping by
-  grouping_variables = "estimator"
-  if (!average_over_parameters) grouping_variables <- c(grouping_variables, "parameter")
-  if (!average_over_sample_sizes) grouping_variables <- c(grouping_variables, "m")
+  grouping_variables <- intersect(
+    c(
+      "estimator",
+      if (!average_over_parameters) "parameter",
+      if (!average_over_sample_sizes) "m"
+    ),
+    names(df)
+  )
+  
   
   # Compute the risk 
   dplyr::mutate(df, loss = loss(estimate, truth)) %>%
@@ -416,73 +423,113 @@ rmse <- function(assessment, ...) {
   return(df)
 }
 
+#TODO add output information for posterior samples
 #' @title assess a neural estimator
-#' @param estimators a neural estimator (or a list of neural estimators)
+#' @param estimator a neural estimator (or a list of neural estimators)
 #' @param parameters true parameters, stored as a \eqn{d\times K}{dxK} matrix, where \eqn{d} is the dimension of the parameter vector and \eqn{K} is the number of sampled parameter vectors
 #' @param Z data simulated conditionally on the \code{parameters}. If \code{length(Z)} > K, the parameter matrix will be recycled by horizontal concatenation as `parameters = parameters[, rep(1:K, J)]`, where `J = length(Z) / K`
-#' @param estimator_names list of names of the estimators (sensible defaults provided)
-#' @param parameter_names list of names of the parameters (sensible defaults provided)
-#' @param use_gpu a boolean indicating whether to use the GPU if it is available (default true)
-#' @param verbose a boolean indicating whether information should be printed to the console
+#' @param ... additional keyword arguments passed to the Julia version of [`assess()`](https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/core/#NeuralEstimators.assess)
 #' @return a list of two data frames: \code{runtimes} contains the
 #' total time taken for each estimator, while \code{df} is a long-form
 #' data frame with columns:
 #' \itemize{
-#' \item{"estimator"; the name of the estimator}
 #' \item{"parameter"; the name of the parameter}
 #' \item{"truth"; the true value of the parameter}
 #' \item{"estimate"; the estimated value of the parameter}
-#' \item{"m"; the sample size (number of iid replicates)}
 #' \item{"k"; the index of the parameter vector in the test set}
 #' \item{"j"; the index of the data set}
 #' }
 #' @seealso [risk()], [rmse()], [bias()], [plotestimates()], and [plotdistribution()] for computing various empirical diagnostics and visualisations from an object returned by `assess()`
 #' @export
 assess <- function(
-  estimators, 
-  parameters,
-  Z,
-  estimator_names = NULL,
-  parameter_names = NULL,
-  use_gpu = TRUE,
-  verbose = TRUE
+    estimator, 
+    parameters,
+    Z,
+    ...
 ) {
-
-  if (!is.list(estimators)) estimators <- list(estimators)
+  
+  #  if (!is.list(estimators)) estimators <- list(estimators)
   if (is.vector(parameters)) parameters <- t(parameters)
-
-  # Metaprogramming: Define the Julia code based on the value of the arguments
-  estimator_names_code <- if (!is.null(estimator_names)) " estimator_names = estimator_names, " else ""
-  parameter_names_code <- if (!is.null(parameter_names)) " parameter_names = parameter_names, " else ""
-
-  if (length(estimator_names) == 1 & !is.list(estimator_names)) estimator_names <- list(estimator_names)
-  if (length(parameter_names) == 1 & !is.list(parameter_names)) parameter_names <- list(parameter_names)
-
-  code <- paste(
-  "
-  using NeuralEstimators, Flux
-
-  assessment = assess(
-        estimators, parameters, Z,",
-		    estimator_names_code, parameter_names_code,
-		    "use_gpu = use_gpu, verbose = verbose
-		  )
-  ")
-
-
-  assessment <- juliaLet(code, estimators = estimators, parameters = parameters, Z = Z,
-                         use_gpu = TRUE, verbose = TRUE,
-                         estimator_names = estimator_names,
-                         parameter_names = parameter_names)
-
+  
+  NE <- .getNeuralEstimators()
+  assessment <- NE$assess(estimator, parameters, Z, ...)
+  
   estimates <- juliaLet('assessment.df', assessment = assessment)
   runtimes  <- juliaLet('assessment.runtime', assessment = assessment)
-
+  
   estimates <- as.data.frame(estimates)
   runtimes  <- as.data.frame(runtimes)
-
-  list(estimates = estimates, runtimes = runtimes)
+  output <- list(estimates = estimates, runtimes = runtimes)
+  
+  # Safe check for assessment.samples
+  if ("samples" %in% names(assessment) && !is.null(assessment$samples)) {
+    samples <- as.data.frame(assessment$samples)
+    output <- c(output, list(samples = samples))
+  } 
+  
+  return(output)
 }
+
+# @param estimator_names list of names of the estimators (sensible defaults provided)
+# @param parameter_names list of names of the parameters (sensible defaults provided)
+# @param use_gpu a boolean indicating whether to use the GPU if it is available (default true)
+# @param verbose a boolean indicating whether information should be printed to the console
+# assess <- function(
+#     estimator, 
+#     parameters,
+#     Z,
+#     estimator_names = NULL,
+#     parameter_names = NULL,
+#     use_gpu = TRUE,
+#     verbose = TRUE
+# ) {
+#   
+#   #  if (!is.list(estimators)) estimators <- list(estimators)
+#   if (is.vector(parameters)) parameters <- t(parameters)
+#   
+#   # Metaprogramming: Define the Julia code based on the value of the arguments
+#   estimator_names_code <- if (!is.null(estimator_names)) " estimator_names = estimator_names, " else ""
+#   parameter_names_code <- if (!is.null(parameter_names)) " parameter_names = parameter_names, " else ""
+#   
+#   if (length(estimator_names) == 1 & !is.list(estimator_names)) estimator_names <- list(estimator_names)
+#   if (length(parameter_names) == 1 & !is.list(parameter_names)) parameter_names <- list(parameter_names)
+#   
+#   code <- paste(
+#     "
+#   using NeuralEstimators, Flux
+# 
+#   assessment = assess(
+#         estimators, parameters, Z,",
+#     estimator_names_code, parameter_names_code,
+#     "use_gpu = use_gpu, verbose = verbose
+# 		  )
+#   ")
+#   
+#   
+#   assessment <- juliaLet(code, estimators = estimators, parameters = parameters, Z = Z,
+#                          use_gpu = TRUE, verbose = TRUE,
+#                          estimator_names = estimator_names,
+#                          parameter_names = parameter_names)
+#   
+#   estimates <- juliaLet('assessment.df', assessment = assessment)
+#   runtimes  <- juliaLet('assessment.runtime', assessment = assessment)
+#   
+#   estimates <- as.data.frame(estimates)
+#   runtimes  <- as.data.frame(runtimes)
+#   
+#   output <- list(estimates = estimates, runtimes = runtimes)
+#   
+#   # Safe check for assessment.samples
+#   if ("samples" %in% names(assessment) && !is.null(assessment$samples)) {
+#     samples <- as.data.frame(assessment$samples)
+#     output <- c(output, list(samples = samples))
+#   } 
+#   
+#   return(output)
+# }
+# 
+# 
+
 
 #' @title estimate
 #'
