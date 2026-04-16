@@ -447,7 +447,6 @@ assess <- function(
     ...
 ) {
   
-  #  if (!is.list(estimators)) estimators <- list(estimators)
   if (is.vector(parameters)) parameters <- t(parameters)
   
   NE <- .getNeuralEstimators()
@@ -460,11 +459,15 @@ assess <- function(
   runtimes  <- as.data.frame(runtimes)
   output <- list(estimates = estimates, runtimes = runtimes)
   
-  # Safe check for assessment.samples
-  if ("samples" %in% names(assessment) && !is.null(assessment$samples)) {
-    samples <- as.data.frame(assessment$samples)
-    output <- c(output, list(samples = samples))
-  } 
+  # Add assessment.samples if it is available
+  if (juliaLet("hasproperty(assessment, :samples) && !isnothing(assessment.samples)", assessment = assessment)) {
+    browser()
+    samples <- juliaLet('assessment.samples', assessment = assessment)
+    if (!is.null(samples)) {
+      #samples <- as.data.frame(samples) # NB this conversion takes a really long time, so just pro
+      output <- c(output, list(samples = samples))
+    }
+  }
   
   return(output)
 }
