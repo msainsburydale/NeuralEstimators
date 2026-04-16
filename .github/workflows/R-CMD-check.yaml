@@ -18,7 +18,7 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - {os: ubuntu-latest, r: 'release', julia: '1.11'}
+          - {os: ubuntu-latest, r: 'release', julia: '1.12'}
 
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
@@ -41,7 +41,7 @@ jobs:
               using Pkg
               Pkg.add(url="https://github.com/msainsburydale/NeuralEstimators.jl")
               Pkg.add("Flux")
-              Pkg.add("Optim") # required for a method of mlestimate/mapestimate
+              Pkg.add("Optimisers")
               '
 
       - uses: r-lib/actions/setup-r-dependencies@v2
