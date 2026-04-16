@@ -12,10 +12,12 @@ train(
   theta_val = NULL,
   Z_train = NULL,
   Z_val = NULL,
-  m = NULL,
-  M = NULL,
   K = 10000,
-  xi = NULL,
+  m = NULL,
+  sampler_args = NULL,
+  sampler_kwargs = NULL,
+  simulator_args = NULL,
+  simulator_kwargs = NULL,
   loss = "absolute-error",
   learning_rate = 5e-04,
   epochs = 100,
@@ -44,13 +46,17 @@ train(
 
 \item{Z_val}{a simulated data set used for monitoring the performance of the estimator during training}
 
-\item{m}{vector of sample sizes. If \code{NULL} (default), a single neural estimator is trained, with the sample size inferred from \code{Z_val}. If \code{m} is a vector of integers, a sequence of neural estimators is constructed for each sample size; see the Julia documentation for \code{trainx()} for further details}
-
-\item{M}{deprecated; use \code{m}}
-
 \item{K}{the number of parameter vectors sampled in the training set at each epoch; the size of the validation set is set to \code{K}/5.}
 
-\item{xi}{a list of objects used for data simulation (e.g., distance matrices); if it is provided, the parameter sampler is called as \code{sampler(K, xi)}.}
+\item{m}{deprecated; use \code{simulator_args}}
+
+\item{sampler_args}{a list of positional arguments passed to the parameter sampler; if provided, \code{sampler} is called as \code{sampler(K, sampler_args...)}.}
+
+\item{sampler_kwargs}{a list of positional arguments passed to the parameter sampler; if provided, \code{sampler} is called as \code{sampler(K; sampler_kwargs...)}.}
+
+\item{simulator_args}{a list of positional arguments passed to the data simulator; if provided, \code{simulator} is called as \code{simulator(theta, simulator_args...)}.}
+
+\item{simulator_kwargs}{a list of positional arguments passed to the data simulator; if provided, \code{simulator} is called as \code{simulator(theta; simulator_kwargs...)}.}
 
 \item{loss}{the loss function: a string ('absolute-error' for mean-absolute-error loss or 'squared-error' for mean-squared-error loss), or a string of Julia code defining the loss function. For some classes of estimators (e.g., \code{PosteriorEstimator}, \code{QuantileEstimator}, \code{RatioEstimator}), the loss function does not need to be specified.}
 
@@ -168,5 +174,5 @@ simulator <- juliaEval("
 estimator <- train(estimator, sampler = sampler, simulator = simulator, m = m)}
 }
 \seealso{
-\code{\link[=assess]{assess()}} for assessing an estimator post training, and \code{\link[=estimate]{estimate()}}/\code{\link[=sampleposterior]{sampleposterior()}} for making inference with observed data
+the Julia version of \href{https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/training}{\code{train()}}, \code{\link[=assess]{assess()}} for assessing an estimator post training, and \code{\link[=estimate]{estimate()}}/\code{\link[=sampleposterior]{sampleposterior()}} for making inference with observed data
 }

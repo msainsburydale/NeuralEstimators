@@ -111,20 +111,6 @@ test_that("the neural estimator can be trained with fixed a training set", {
   expect_equal(1, 1)
 })
 
-# NB This requires the user to have installed the Julia package RCall, which can be unstable
-# test_that("the neural estimator can be trained with simulation on-the-fly (using R functions)", {
-# 
-#   estimator <- train(
-#     estimator,
-#     sampler = sampler,
-#     simulator = simulator,
-#     m = m,
-#     epochs = 2,
-#     verbose = F
-#   )
-#   expect_equal(1, 1)
-# })
-
 test_that("the neural estimator can be trained with simulation on-the-fly (using Julia functions)", {
   
   # Parameter sampler
@@ -145,9 +131,7 @@ test_that("the neural estimator can be trained with simulation on-the-fly (using
   estimator  <- train(estimator, sampler = sampler, simulator = simulator, m = m, epochs = 2, verbose = F)
   estimator  <- train(estimator, sampler = sampler, simulator = simulator, m = m, epochs = 2, loss = "squared-error", verbose = F)
   estimator  <- train(estimator, sampler = sampler, simulator = simulator, m = m, epochs = 2, loss = "Flux.Losses.mae", verbose = F)
-  estimators <- train(estimator, sampler = sampler, simulator = simulator, m = c(m, 2*m), epochs = 2, verbose = F)
   
-  expect_warning(train(estimator, sampler = sampler, simulator = simulator, M = m, epochs = 2, verbose = F))
   expect_error(train(estimator, sampler = sampler, simulator = simulator))
   expect_error(train(estimator, sampler = sampler, Z_train = Z_train, Z_val = Z_val, epochs = 2, verbose = F))
   expect_error(train(estimator, sampler = sampler, theta_train = theta_train, theta_val = theta_val, epochs = 2, verbose = F))
@@ -199,33 +183,26 @@ test_that("neural ratio estimator can be constructed and used to make inference"
   
   estimator <- juliaEval('
     using NeuralEstimators, Flux
-    p = 2    # number of parameters in the statistical model
+    d = 2    # number of parameters in the statistical model
     w = 32   # number of neurons in each layer
+    num_summaries = 3d
     psi = Chain(Dense(1, w, relu), Dense(w, w, relu), Dense(w, w, relu))
-    phi = Chain(Dense(w+p, w, relu), Dense(w, 1))
-    deepset = DeepSet(psi, phi)
-    estimator = RatioEstimator(deepset)
+    phi = Chain(Dense(w, w, relu), Dense(w, num_summaries))
+    summary_network = DeepSet(psi, phi)
+    estimator = RatioEstimator(summary_network, d; num_summaries = num_summaries)
 ')
   
   theta <- as.matrix(c(0, 0.5))            # true parameters
   Z     <- simulator(theta, m)             # "observed" data
-  ratio <- estimate(estimator, Z, theta)   # ratio estimate
+  ratio <- logratio(estimator, Z, theta)   # ratio estimate
   expect_equal(nrow(ratio), 1)
   expect_equal(ncol(ratio), 1)
-  ratio <- estimate(estimator, Z, cbind(theta, theta))   # ratio estimates 
+  ratio <- logratio(estimator, Z, cbind(theta, theta))   # ratio estimates 
   expect_equal(nrow(ratio), 1)
   expect_equal(ncol(ratio), 2)
   
   # Grid-based methods for estimation/posterior sampling
-  theta_grid <- t(expand.grid(seq(0, 1, len = 50), seq(0, 1, len = 50)))
-  posteriormode(estimator, Z, theta_grid = theta_grid)
-  # posteriormode(estimator, Z, theta_grid = theta_grid, prior = function(x) 1) # NB This requires the user to have installed the Julia package RCall, which is not particularly stable
-  sampleposterior(estimator, Z[[1]], theta_grid = theta_grid) 
-  sampleposterior(estimator, Z, theta_grid = theta_grid)
-  # sampleposterior(estimator, Z, theta_grid = theta_grid, prior = function(x) 1) # NB This requires the user to have installed the Julia package RCall
-  
-  # Gradient descent method for estimation
-  # juliaEval('using Optim')
-  # theta0 <- c(0.2, 0.4)
-  # posteriormode(estimator, Z, theta0 = theta0) 
+  grid <- t(expand.grid(seq(0, 1, len = 50), seq(0, 1, len = 50)))
+  sampleposterior(estimator, Z[[1]], grid = grid) 
+  sampleposterior(estimator, Z, grid = grid)
 })

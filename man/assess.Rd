@@ -13,7 +13,7 @@ assess(estimator, parameters, Z, ...)
 
 \item{Z}{data simulated conditionally on the \code{parameters}. If \code{length(Z)} > K, the parameter matrix will be recycled by horizontal concatenation as \code{parameters = parameters[, rep(1:K, J)]}, where \code{J = length(Z) / K}}
 
-\item{...}{additional keyword arguments passed to the Julia version of \href{https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/core/#NeuralEstimators.assess}{\code{assess()}}}
+\item{...}{additional keyword arguments passed to the Julia version of \href{https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/assessment}{\code{assess()}}}
 }
 \value{
 a list of two data frames: \code{runtimes} contains the

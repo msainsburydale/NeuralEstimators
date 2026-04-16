@@ -11,4 +11,9 @@ vignettes/README.md
 #^vignettes/.*\.html$
 #^vignettes/.*\.html\.asis$
 
+# Specifc vignettes we don't want to update during prototyping:
+#^vignettes/NeuralEstimators_IncompleteData.Rmd$
+#^vignettes/NeuralEstimators_IncompleteData.html$
+#^vignettes/NeuralEstimators_IncompleteData.asis$
+
 posterior_sampling.R
