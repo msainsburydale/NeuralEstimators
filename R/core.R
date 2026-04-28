@@ -461,7 +461,6 @@ assess <- function(
   
   # Add assessment.samples if it is available
   if (juliaLet("hasproperty(assessment, :samples) && !isnothing(assessment.samples)", assessment = assessment)) {
-    browser()
     samples <- juliaLet('assessment.samples', assessment = assessment)
     if (!is.null(samples)) {
       #samples <- as.data.frame(samples) # NB this conversion takes a really long time, so just pro
