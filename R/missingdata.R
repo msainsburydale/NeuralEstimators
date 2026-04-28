@@ -5,7 +5,7 @@
 #' @param Z data containing `NA` entries
 #' @param c fixed constant with which to replace `NA` entries
 #' @return Augmented data set (U, W). If `Z` is provided as a list, the return type will be a `JuliaProxy` object; these objects can be indexed in the usual manner using `[[`, or converted to an R object using `juliaGet()` (note however that `juliaGet()` can be slow for large data sets). 
-#' @seealso the Julia version of [`encodedata()`](https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/utility/#NeuralEstimators.encodedata)
+#' @seealso the Julia version of [`encodedata()`](https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/miscellaneous#Utility-functions)
 #' @export
 #' @examples
 #' \dontrun{
@@ -52,7 +52,7 @@ tanhloss <- function(k) paste0("(x, y) -> tanhloss(x, y, ", k, ")")
 #' @param stationary Logical. If `TRUE`, edge features store the spatial displacement 
 #'   (vector difference) between nodes, capturing both magnitude and direction. If `FALSE`, 
 #'   edge features include the full spatial locations of both nodes.
-#' @param ... Additional keyword arguments from the Julia function [`adjacencymatrix()`](https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/utility/#NeuralEstimators.adjacencymatrix) 
+#' @param ... Additional keyword arguments from the Julia function [`adjacencymatrix()`](https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/miscellaneous#Utility-functions) 
 #' that define the neighborhood of each node, with the default being a randomly 
 #' selected set of `k=30` neighbors within a radius of `r=0.15` spatial distance units.
 #' @export 

@@ -29,7 +29,7 @@ on the value of \code{stationary}.}
 (vector difference) between nodes, capturing both magnitude and direction. If \code{FALSE},
 edge features include the full spatial locations of both nodes.}
 
-\item{...}{Additional keyword arguments from the Julia function \href{https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/utility/#NeuralEstimators.adjacencymatrix}{\code{adjacencymatrix()}}
+\item{...}{Additional keyword arguments from the Julia function \href{https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/miscellaneous#Utility-functions}{\code{adjacencymatrix()}}
 that define the neighborhood of each node, with the default being a randomly
 selected set of \code{k=30} neighbors within a radius of \code{r=0.15} spatial distance units.}
 }

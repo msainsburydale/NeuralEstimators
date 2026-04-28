@@ -25,5 +25,5 @@ encodedata(Z)
 encodedata(list(Z, Z))}
 }
 \seealso{
-the Julia version of \href{https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/utility/#NeuralEstimators.encodedata}{\code{encodedata()}}
+the Julia version of \href{https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/miscellaneous#Utility-functions}{\code{encodedata()}}
 }
