@@ -143,7 +143,7 @@ test_that("the neural estimator can be trained with simulation on-the-fly (using
   estimator  <- train(estimator, sampler = sampler, simulator = simulator, m = m, epochs = 2, loss = "squared-error", verbose = F)
   estimator  <- train(estimator, sampler = sampler, simulator = simulator, m = m, epochs = 2, loss = "Flux.Losses.mae", verbose = F)
   estimator  <- train(estimator, sampler = sampler, simulator = simulator, m = m, epochs = 2, verbose = F,
-                      device = juliaEval("NeuralEstimators.cpu_device()"), epochs_per_refresh = 2)
+                      device = cpu_device(), epochs_per_refresh = 2)
   
   expect_error(train(estimator, sampler = sampler, simulator = simulator))
   expect_error(train(estimator, sampler = sampler, Z_train = Z_train, Z_val = Z_val, epochs = 2, verbose = F))
@@ -192,6 +192,43 @@ test_that("the neural estimator can be applied to real data using estimate() and
   bs <- bootstrap(estimator, Z, B = B)  
   expect_equal(nrow(bs), p)
   expect_equal(ncol(bs), B)
+})
+
+test_that("R wrappers construct PointEstimator and RatioEstimator", {
+
+  network <- juliaEval('
+    using NeuralEstimators, Flux
+    w = 32
+    psi = Flux.Chain(Flux.Dense(1, w, relu), Flux.Dense(w, w, relu))
+    phi = Flux.Chain(Flux.Dense(w, w, relu), Flux.Dense(w, 2))
+    DeepSet(psi, phi)
+  ')
+  point <- PointEstimator(network)
+  theta_train <- sampler(50)
+  theta_val   <- sampler(50)
+  Z_train <- simulator(theta_train, m)
+  Z_val   <- simulator(theta_val, m)
+  point <- train(point, theta_train = theta_train, theta_val = theta_val,
+                 Z_train = Z_train, Z_val = Z_val, epochs = 2, verbose = FALSE)
+  Z <- simulator(as.matrix(c(0, 0.5)), m)
+  thetahat <- infer(point, Z)
+  expect_equal(nrow(thetahat), 2)
+  expect_equal(ncol(thetahat), 1)
+
+  summary_network <- juliaEval('
+    using NeuralEstimators, Flux
+    d = 2
+    w = 32
+    num_summaries = 3d
+    psi = Flux.Chain(Flux.Dense(1, w, relu), Flux.Dense(w, w, relu))
+    phi = Flux.Chain(Flux.Dense(w, w, relu), Flux.Dense(w, num_summaries))
+    DeepSet(psi, phi)
+  ')
+  ratio <- RatioEstimator(2, summary_network, num_summaries = 6)
+  Z <- simulator(as.matrix(c(0, 0.5)), m)
+  r <- logratio(ratio, Z, as.matrix(c(0, 0.5)))
+  expect_equal(nrow(r), 1)
+  expect_equal(ncol(r), 1)
 })
 
 test_that("neural ratio estimator can be constructed and used to make inference", {
@@ -253,7 +290,7 @@ test_that("a Lux estimator can be trained, saved, loaded, and used for inference
     Z_val   = Z_val,
     epochs = 2,
     verbose = FALSE,
-    device = juliaEval("NeuralEstimators.cpu_device()")
+    device = cpu_device()
   )
 
   Z <- matrix(lux_simulator(as.matrix(c(0, 0.5)), m), nrow = m)

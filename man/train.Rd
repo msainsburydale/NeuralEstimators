@@ -87,7 +87,7 @@ train(
 
 \item{simulate_just_in_time}{flag indicating whether we should simulate "just-in-time", in the sense that only a \code{batchsize} number of parameter vectors and corresponding data are in memory at a given time}
 
-\item{device}{the compute device, as a Julia object from \href{https://github.com/LuxDL/MLDataDevices.jl}{MLDataDevices.jl}, e.g. \code{juliaEval("NeuralEstimators.cpu_device()")}, \code{juliaEval("NeuralEstimators.gpu_device()")}, or \code{juliaEval("NeuralEstimators.reactant_device()")} (the latter requires Lux). If \code{NULL} (default), the device is inferred from \code{use_gpu}. Takes priority over \code{use_gpu}.}
+\item{device}{the compute device, as a Julia object from \href{https://github.com/LuxDL/MLDataDevices.jl}{MLDataDevices.jl}, e.g. \code{\link[=cpu_device]{cpu_device()}}, \code{\link[=gpu_device]{gpu_device()}}, or \code{\link[=reactant_device]{reactant_device()}} (the latter requires Lux). If \code{NULL} (default), the device is inferred from \code{use_gpu}. Takes priority over \code{use_gpu}.}
 
 \item{use_gpu}{a boolean indicating whether to use the GPU if one is available (ignored if \code{device} is provided)}
 
@@ -193,14 +193,6 @@ simulator <- juliaEval("
 
 # Train
 estimator <- train(estimator, sampler = sampler, simulator = simulator, m = m)
-
-##### Lux.jl architecture (DeepSet is Flux-only) ####
-# estimator <- juliaEval('
-#   using NeuralEstimators, Lux
-#   d = 2; n = 30
-#   network = MLP(n, d; depth = 2, width = 32, backend = Lux)
-#   estimator = PointEstimator(network)
-# ')
 }
 }
 \seealso{

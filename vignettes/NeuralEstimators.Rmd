@@ -132,7 +132,7 @@ The typical workflow when using the R interface to `NeuralEstimators` is as foll
 1. Sample parameters $\boldsymbol{\theta}$ (from the prior or proposal distribution) to form training/validation/test parameter sets. Alternatively, define a function to sample parameters dynamically during training. Parameters are typically stored as $d \times K$ matrices, where $d$ is the dimension of $\boldsymbol{\theta}$ and $K$ is the number of parameter vectors in the given parameter set, though any batchable object is supported.
 1. Simulate data from the model conditional on the above parameter sets, to form training/validation/test data sets. Simulated data sets are stored as batches in a format amenable to the chosen neural-network architecture (see Step 3).
 1. (**Julia**) Construct a neural network that maps $K$ data sets to a $d^* \times K$ matrix of summary statistics for $\boldsymbol{\theta}$, where $d^*$ is a user-specified number of learned summary statistics. The architecture class (e.g., MLP, CNN, GNN, DeepSet) should reflect the structure of the data (e.g., unstructured, grid, graph, replicated). Any [Flux.jl](https://fluxml.ai/Flux.jl/stable/) or [Lux.jl](https://lux.csail.mit.edu/stable/) model can be used.
-1. (**Julia**) Construct a [`NeuralEstimator`](https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/estimators) by wrapping the neural network in the subtype corresponding to the intended inferential method (`PointEstimator`, `PosteriorEstimator`, `RatioEstimator`).
+1. Wrap the network in a [`NeuralEstimator`](https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/estimators) corresponding to the intended inferential method, using the R constructors `PointEstimator()`, `PosteriorEstimator()`, or `RatioEstimator()`.
 1. Train the `NeuralEstimator` using `train()` and the training set, monitoring performance and convergence using the validation set.
 1. Assess the `NeuralEstimator` using `assess()` and the test set.
 1. Apply the `NeuralEstimator` to observed data using `infer()` (or `estimate()` / `sampleposterior()`).
@@ -221,7 +221,7 @@ Below is an example of a DeepSets architecture for neural Bayes estimation in th
 
 ```{r, results='hide', message=FALSE}
 # Initialise the estimator
-estimator <- juliaEval('
+network <- juliaEval('
   n = 1    # dimension of each data replicate (univariate)
   d = 2    # dimension of the parameter vector θ
   w = 128  # width of each hidden layer 
@@ -236,11 +236,9 @@ estimator <- juliaEval('
   # Construct inner and outer networks and combine into DeepSet
   psi = Chain(Dense(n, w, relu), Dense(w, w, relu))    
   phi = Chain(Dense(w, w, relu), final_layer)          
-  network = DeepSet(psi, phi)
-
-  # Wrap the neural network as a PointEstimator
-  estimator = PointEstimator(network)
+  DeepSet(psi, phi)
 ')
+estimator <- PointEstimator(network)
 ```
 
 Next, we train the estimator using `train()`, here using the default mean-absolute-error loss, so that the resulting neural Bayes estimator approximates the marginal posterior medians. We use the sets of parameters and simulated data constructed earlier; one may alternatively use the arguments `sampler` and `simulator` to pass functions for sampling from the prior and simulating from the model, respectively, which facilitates the technique known as "simulation on-the-fly". These functions can be defined in R (as we have done in this example) or in Julia using the package `JuliaConnectoR` (see the help file for `train()`).

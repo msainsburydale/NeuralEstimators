@@ -43,6 +43,7 @@ jobs:
               Pkg.add("Flux")
               Pkg.add("Lux")
               Pkg.add("Optimisers")
+              Pkg.add("BSON")
               '
 
       - uses: r-lib/actions/setup-r-dependencies@v2

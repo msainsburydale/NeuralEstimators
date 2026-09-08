@@ -47,6 +47,45 @@
   }
 }
 
+#' @title CPU device
+#'
+#' @description A CPU compute device from [MLDataDevices.jl](https://github.com/LuxDL/MLDataDevices.jl) for the `device` argument of [train()].
+#'
+#' @param ... arguments passed to the Julia function.
+#' @return a Julia device object
+#' @export
+#' @seealso [gpu_device()], [reactant_device()], [train()]
+cpu_device <- function(...) {
+  .getNeuralEstimators()
+  juliaCall("NeuralEstimators.cpu_device", ...)
+}
+
+#' @title GPU device
+#'
+#' @description A GPU compute device from [MLDataDevices.jl](https://github.com/LuxDL/MLDataDevices.jl) for the `device` argument of [train()].
+#'
+#' @param ... arguments passed to the Julia function (e.g. `force`).
+#' @return a Julia device object
+#' @export
+#' @seealso [cpu_device()], [reactant_device()], [train()]
+gpu_device <- function(...) {
+  .getNeuralEstimators()
+  juliaCall("NeuralEstimators.gpu_device", ...)
+}
+
+#' @title Reactant/XLA device
+#'
+#' @description A Reactant/XLA compute device from [MLDataDevices.jl](https://github.com/LuxDL/MLDataDevices.jl) for the `device` argument of [train()]. Requires Lux.
+#'
+#' @param ... arguments passed to the Julia function (e.g. `force`).
+#' @return a Julia device object
+#' @export
+#' @seealso [cpu_device()], [gpu_device()], [train()]
+reactant_device <- function(...) {
+  .getNeuralEstimators()
+  juliaCall("NeuralEstimators.reactant_device", ...)
+}
+
 #' @title Train a neural estimator
 #' 
 #' @description The function caters for different variants of "on-the-fly" simulation. 
@@ -79,7 +118,7 @@
 #' @param stopping_epochs cease training if the risk doesn't improve in this number of epochs (default 5).
 #' @param batchsize the batchsize to use when performing stochastic gradient descent, that is, the number of training samples processed between each update of the neural-network parameters. 
 #' @param savepath path to save the trained estimator and other information; if null (default), nothing is saved. Otherwise, the neural-network parameters (i.e., the weights and biases) will be saved during training as `bson` files; the risk function evaluated over the training and validation sets will also be saved, in the first and second columns of `loss_per_epoch.csv`, respectively; the best parameters (as measured by validation risk) will be saved as `best_network.bson`. 
-#' @param device the compute device, as a Julia object from [MLDataDevices.jl](https://github.com/LuxDL/MLDataDevices.jl), e.g. \code{juliaEval("NeuralEstimators.cpu_device()")}, \code{juliaEval("NeuralEstimators.gpu_device()")}, or \code{juliaEval("NeuralEstimators.reactant_device()")} (the latter requires Lux). If \code{NULL} (default), the device is inferred from \code{use_gpu}. Takes priority over \code{use_gpu}.
+#' @param device the compute device, as a Julia object from [MLDataDevices.jl](https://github.com/LuxDL/MLDataDevices.jl), e.g. [cpu_device()], [gpu_device()], or [reactant_device()] (the latter requires Lux). If \code{NULL} (default), the device is inferred from \code{use_gpu}. Takes priority over \code{use_gpu}.
 #' @param use_gpu a boolean indicating whether to use the GPU if one is available (ignored if \code{device} is provided)
 #' @param shuffle whether to shuffle the training set at each epoch
 #' @param partial whether to include the final incomplete batch; if \code{NULL} (default), the Julia default is used
@@ -171,14 +210,6 @@
 #' 
 #' # Train
 #' estimator <- train(estimator, sampler = sampler, simulator = simulator, m = m)
-#' 
-#' ##### Lux.jl architecture (DeepSet is Flux-only) ####
-#' # estimator <- juliaEval('
-#' #   using NeuralEstimators, Lux
-#' #   d = 2; n = 30
-#' #   network = MLP(n, d; depth = 2, width = 32, backend = Lux)
-#' #   estimator = PointEstimator(network)
-#' # ')
 #' }
 train <- function(estimator,
                   sampler = NULL,   
