@@ -16,11 +16,11 @@ sampleposterior(estimator, Z, N = 1000, ...)
 \item{...}{additional keyword arguments passed to the Julia version of \href{https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/inference#Inference-with-observed-data}{\code{sampleposterior()}}}
 }
 \value{
-d × \code{N} matrix of posterior samples, where d is the dimension of the parameter vector. If \code{Z} contains multiple independent data sets, a list of matrices will be returned
+a \eqn{d \times N \times K}{d x N x K} array of posterior samples, where \eqn{d} is the dimension of the parameter vector, \code{N} is the number of draws, and \eqn{K} is the number of independent data sets in \code{Z} (so a single data set yields a \eqn{d \times N \times 1}{d x N x 1} array)
 }
 \description{
 Samples from the approximate posterior distribution given data \code{Z}.
 }
 \seealso{
-\code{\link[=estimate]{estimate()}} for making inference with neural Bayes estimators
+\code{\link[=infer]{infer()}} for a unified inference interface, and \code{\link[=estimate]{estimate()}} for making inference with neural Bayes estimators
 }

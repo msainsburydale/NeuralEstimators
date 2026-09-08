@@ -71,21 +71,28 @@
 #' @param simulator_args a list of positional arguments passed to the data simulator; if provided, `simulator` is called as \code{simulator(theta, simulator_args...)}.
 #' @param simulator_kwargs a list of positional arguments passed to the data simulator; if provided, `simulator` is called as \code{simulator(theta; simulator_kwargs...)}.
 #' @param m deprecated; use \code{simulator_args}
-#' @param K the number of parameter vectors sampled in the training set at each epoch; the size of the validation set is set to \code{K}/5.
+#' @param K the number of parameter vectors sampled in the training set at each epoch
+#' @param K_val the number of parameter vectors in the validation set; if \code{NULL} (default), the Julia default is used
 #' @param loss the loss function: a string ('absolute-error' for mean-absolute-error loss or 'squared-error' for mean-squared-error loss), or a string of Julia code defining the loss function. For some classes of estimators (e.g., `PosteriorEstimator`, `QuantileEstimator`, `RatioEstimator`), the loss function does not need to be specified.
 #' @param learning_rate the initial learning rate for the optimiser ADAM (default 5e-4) 
 #' @param epochs the number of epochs to train the neural network. An epoch is one complete pass through the entire training data set when doing stochastic gradient descent.
 #' @param stopping_epochs cease training if the risk doesn't improve in this number of epochs (default 5).
 #' @param batchsize the batchsize to use when performing stochastic gradient descent, that is, the number of training samples processed between each update of the neural-network parameters. 
 #' @param savepath path to save the trained estimator and other information; if null (default), nothing is saved. Otherwise, the neural-network parameters (i.e., the weights and biases) will be saved during training as `bson` files; the risk function evaluated over the training and validation sets will also be saved, in the first and second columns of `loss_per_epoch.csv`, respectively; the best parameters (as measured by validation risk) will be saved as `best_network.bson`. 
-#' @param use_gpu a boolean indicating whether to use the GPU if one is available 
+#' @param device the compute device, as a Julia object from [MLDataDevices.jl](https://github.com/LuxDL/MLDataDevices.jl), e.g. \code{juliaEval("NeuralEstimators.cpu_device()")}, \code{juliaEval("NeuralEstimators.gpu_device()")}, or \code{juliaEval("NeuralEstimators.reactant_device()")} (the latter requires Lux). If \code{NULL} (default), the device is inferred from \code{use_gpu}. Takes priority over \code{use_gpu}.
+#' @param use_gpu a boolean indicating whether to use the GPU if one is available (ignored if \code{device} is provided)
+#' @param shuffle whether to shuffle the training set at each epoch
+#' @param partial whether to include the final incomplete batch; if \code{NULL} (default), the Julia default is used
+#' @param freeze_summary_network if \code{TRUE} and the estimator has a summary network, freeze those parameters during training
 #' @param verbose a boolean indicating whether information, including empirical risk values and timings, should be printed to the console during training.
-#' @param epochs_per_Z_refresh integer indicating how often to refresh the training data
-#' @param epochs_per_theta_refresh integer indicating how often to refresh the training parameters; must be a multiple of \code{epochs_per_Z_refresh}
+#' @param epochs_per_refresh integer indicating how often to refresh the training data
+#' @param epochs_per_Z_refresh deprecated; use \code{epochs_per_refresh}
+#' @param epochs_per_theta_refresh integer indicating how often to refresh the training parameters; must be a multiple of \code{epochs_per_refresh}. If \code{NULL} (default), it is set equal to \code{epochs_per_refresh}
 #' @param simulate_just_in_time  flag indicating whether we should simulate "just-in-time", in the sense that only a \code{batchsize} number of parameter vectors and corresponding data are in memory at a given time
+#' @param ... additional keyword arguments passed to the Julia version of [`train()`](https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/training)
 #' @return a trained neural estimator or, if \code{m} is a vector, a list of trained neural estimators
 #' @export
-#' @seealso the Julia version of [`train()`](https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/training), [assess()] for assessing an estimator post training, and [estimate()]/[sampleposterior()] for making inference with observed data
+#' @seealso the Julia version of [`train()`](https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/training), [assess()] for assessing an estimator post training, and [infer()]/[estimate()]/[sampleposterior()] for making inference with observed data
 #' @examples
 #' \dontrun{
 #' # Construct a neural Bayes estimator for replicated univariate Gaussian 
@@ -163,7 +170,16 @@
 #'       end")
 #' 
 #' # Train
-#' estimator <- train(estimator, sampler = sampler, simulator = simulator, m = m)}
+#' estimator <- train(estimator, sampler = sampler, simulator = simulator, m = m)
+#' 
+#' ##### Lux.jl architecture (DeepSet is Flux-only) ####
+#' # estimator <- juliaEval('
+#' #   using NeuralEstimators, Lux
+#' #   d = 2; n = 30
+#' #   network = MLP(n, d; depth = 2, width = 32, backend = Lux)
+#' #   estimator = PointEstimator(network)
+#' # ')
+#' }
 train <- function(estimator,
                   sampler = NULL,   
                   simulator = NULL, 
@@ -172,6 +188,7 @@ train <- function(estimator,
                   Z_train = NULL,
                   Z_val = NULL,
                   K = 10000,
+                  K_val = NULL,
                   m = NULL, # deprecated
                   sampler_args = NULL,
                   sampler_kwargs = NULL, 
@@ -183,11 +200,17 @@ train <- function(estimator,
                   batchsize = 32,
                   savepath = NULL,
                   stopping_epochs = 5,
-                  epochs_per_Z_refresh = 1,      
-                  epochs_per_theta_refresh = 1,  
-                  simulate_just_in_time = FALSE, 
+                  epochs_per_refresh = 1,
+                  epochs_per_Z_refresh = NULL, # deprecated
+                  epochs_per_theta_refresh = NULL,  
+                  simulate_just_in_time = FALSE,
+                  device = NULL,
                   use_gpu = TRUE,
-                  verbose = TRUE
+                  shuffle = TRUE,
+                  partial = NULL,
+                  freeze_summary_network = FALSE,
+                  verbose = TRUE,
+                  ...
                   ) {
 
   # Deprecation coercion 
@@ -195,14 +218,19 @@ train <- function(estimator,
     # warning("The argument `m` in `train()` is deprecated; please use `simulator_kwargs`") #TODO how should R users pass this though? Should be a NamedTuple
     simulator_args <- juliaLet('(m,)', m = as.integer(m))
   }
+  if (!is.null(epochs_per_Z_refresh)) {
+    warning("`epochs_per_Z_refresh` is deprecated; use `epochs_per_refresh`")
+    epochs_per_refresh <- epochs_per_Z_refresh
+  }
   
   # Convert numbers that should be integers (so that the user can write 32 rather than 32L)
   K <- as.integer(K)
   epochs <- as.integer(epochs)
   batchsize <- as.integer(batchsize)
   stopping_epochs <- as.integer(stopping_epochs)
-  epochs_per_Z_refresh <- as.integer(epochs_per_Z_refresh)
-  epochs_per_theta_refresh <- as.integer(epochs_per_theta_refresh)
+  epochs_per_refresh <- as.integer(epochs_per_refresh)
+  if (!is.null(K_val)) K_val <- as.integer(K_val)
+  if (!is.null(epochs_per_theta_refresh)) epochs_per_theta_refresh <- as.integer(epochs_per_theta_refresh)
   
   # Coerce theta_train and theta_val to 1xK matrices if given as K-vectors (which will often be the case in single-parameter settings)
   if (is.vector(theta_train)) theta_train <- t(theta_train)
@@ -253,12 +281,14 @@ train <- function(estimator,
   if (!is.null(simulator)) {
     if (!is.null(simulator_args))   train_code <- paste(train_code, "simulator_args = simulator_args,")
     if (!is.null(simulator_kwargs)) train_code <- paste(train_code, "simulator_kwargs = simulator_kwargs,")
-    train_code <- paste(train_code, "epochs_per_Z_refresh = epochs_per_Z_refresh, simulate_just_in_time = simulate_just_in_time,")
+    train_code <- paste(train_code, "epochs_per_refresh = epochs_per_refresh, simulate_just_in_time = simulate_just_in_time,")
   }
   if (!is.null(sampler)) {
     if (!is.null(sampler_args))   train_code <- paste(train_code, "sampler_args = sampler_args,")
     if (!is.null(sampler_kwargs)) train_code <- paste(train_code, "sampler_kwargs = sampler_kwargs,")
-    train_code <- paste(train_code, "K = K, epochs_per_theta_refresh = epochs_per_theta_refresh,")
+    train_code <- paste(train_code, "K = K,")
+    if (!is.null(K_val)) train_code <- paste(train_code, "K_val = K_val,")
+    if (!is.null(epochs_per_theta_refresh)) train_code <- paste(train_code, "epochs_per_theta_refresh = epochs_per_theta_refresh,")
   }
   
   # Identify which loss function we are using; if it is a string that matches
@@ -272,8 +302,17 @@ train <- function(estimator,
   } else {
     loss = juliaEval(loss)
   }
+
+  dots <- list(...)
+  if (length(dots) && (is.null(names(dots)) || any(!nzchar(names(dots))))) {
+    stop("Additional arguments to train() must be named")
+  }
   
   # Metaprogramming: load Julia packages and add keyword arguments that are applicable to all methods of train()
+  extra_kwargs <- ""
+  if (!is.null(partial)) extra_kwargs <- paste(extra_kwargs, "partial = partial,")
+  if (length(dots)) extra_kwargs <- paste(extra_kwargs, paste(sprintf("%s = %s,", names(dots), names(dots)), collapse = " "))
+
   code <- paste(
   "
   using NeuralEstimators
@@ -289,14 +328,19 @@ train <- function(estimator,
     batchsize = batchsize,
     savepath = savepath,
     stopping_epochs = stopping_epochs,
+    device = device,
     use_gpu = use_gpu,
-    verbose = verbose
+    shuffle = shuffle,
+    freeze_summary_network = freeze_summary_network,
+    verbose = verbose,",
+    extra_kwargs,
+    "
   )
 
   estimator")
 
   # Run the Julia code and pass the arguments from R to Julia
-  estimator = juliaLet(
+  jl_args <- list(
      code,
      estimator = estimator, 
      sampler = sampler, simulator = simulator,
@@ -313,12 +357,23 @@ train <- function(estimator,
      batchsize = batchsize,
      savepath = savepath,
      stopping_epochs = stopping_epochs,
+     device = device,
      use_gpu = use_gpu,
+     shuffle = shuffle,
+     freeze_summary_network = freeze_summary_network,
      verbose = verbose, 
-     epochs_per_theta_refresh = epochs_per_theta_refresh,  
-     epochs_per_Z_refresh = epochs_per_Z_refresh,      
+     epochs_per_refresh = epochs_per_refresh,      
      simulate_just_in_time = simulate_just_in_time
   )
+  if (!is.null(K_val)) jl_args$K_val <- K_val
+  if (!is.null(epochs_per_theta_refresh)) jl_args$epochs_per_theta_refresh <- epochs_per_theta_refresh
+  if (!is.null(partial)) jl_args$partial <- partial
+  if (length(dots)) {
+    overlap <- intersect(names(dots), names(jl_args))
+    if (length(overlap)) stop("Argument(s) already specified: ", paste(overlap, collapse = ", "))
+    jl_args <- c(jl_args, dots)
+  }
+  estimator <- do.call(juliaLet, jl_args)
 
   return(estimator)
 }
@@ -332,33 +387,68 @@ train <- function(estimator,
 #' @return `estimator` updated with the saved state 
 #' @export
 loadstate <- function(estimator, filename) {
-  juliaEval('using NeuralEstimators, Flux')
+  juliaEval('using NeuralEstimators')
   juliaEval('using BSON: @load')
-  juliaLet(
+  is_lux <- juliaLet(
     '
-    @load filename model_state
-    Flux.loadmodel!(estimator, model_state)
-    estimator
+    estimator isa LuxEstimator || begin
+      lux = get(Base.loaded_modules, NeuralEstimators._LUX_UUID, nothing)
+      !isnothing(lux) && NeuralEstimators._is_lux_network(estimator, lux)
+    end
     ',
-    estimator = estimator, filename = filename
+    estimator = estimator
   )
+  if (isTRUE(is_lux)) {
+    juliaLet(
+      '
+      @load filename ps st
+      inner = estimator isa LuxEstimator ? estimator.estimator : estimator
+      LuxEstimator(inner, ps, st)
+      ',
+      estimator = estimator, filename = filename
+    )
+  } else {
+    juliaEval('using Flux')
+    juliaLet(
+      '
+      @load filename model_state
+      Flux.loadmodel!(estimator, model_state)
+      estimator
+      ',
+      estimator = estimator, filename = filename
+    )
+  }
 }
 
 #' @title save the state of a neural estimator
+#' @description Save the state of a neural estimator (e.g., optimised neural-network parameters). Supports both Flux and Lux estimators.
 #' @param estimator the neural estimator that we wish to save
 #' @param filename file in which to save the neural-network state as a \code{bson} file
 #' @return No return value, called for side effects
 #' @export
 savestate <- function(estimator, filename) {
-  juliaEval('using NeuralEstimators, Flux')
+  juliaEval('using NeuralEstimators')
   juliaEval('using BSON: @save')
-  juliaLet(
-    '
-    model_state = Flux.state(estimator)
-    @save filename model_state
-    ',
-    estimator = estimator, filename = filename
-  )
+  is_lux <- juliaLet('estimator isa LuxEstimator', estimator = estimator)
+  if (isTRUE(is_lux)) {
+    juliaLet(
+      '
+      ps = estimator.ps
+      st = estimator.st
+      @save filename ps st
+      ',
+      estimator = estimator, filename = filename
+    )
+  } else {
+    juliaEval('using Flux')
+    juliaLet(
+      '
+      model_state = Flux.state(estimator)
+      @save filename model_state
+      ',
+      estimator = estimator, filename = filename
+    )
+  }
 }
 
 #' @title computes a Monte Carlo approximation of an estimator's Bayes risk
@@ -422,21 +512,24 @@ rmse <- function(assessment, ...) {
   return(df)
 }
 
-#TODO add output information for posterior samples
 #' @title assess a neural estimator
 #' @param estimator a neural estimator (or a list of neural estimators)
 #' @param parameters true parameters, stored as a \eqn{d\times K}{dxK} matrix, where \eqn{d} is the dimension of the parameter vector and \eqn{K} is the number of sampled parameter vectors
 #' @param Z data simulated conditionally on the \code{parameters}. If \code{length(Z)} > K, the parameter matrix will be recycled by horizontal concatenation as `parameters = parameters[, rep(1:K, J)]`, where `J = length(Z) / K`
 #' @param ... additional keyword arguments passed to the Julia version of [`assess()`](https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/assessment)
-#' @return a list of two data frames: \code{runtimes} contains the
-#' total time taken for each estimator, while \code{df} is a long-form
-#' data frame with columns:
+#' @return a list with the following elements:
 #' \itemize{
-#' \item{"parameter"; the name of the parameter}
-#' \item{"truth"; the true value of the parameter}
-#' \item{"estimate"; the estimated value of the parameter}
-#' \item{"k"; the index of the parameter vector in the test set}
-#' \item{"j"; the index of the data set}
+#' \item{\code{estimates}: a long-form data frame with columns
+#'   \itemize{
+#'   \item{"parameter"; the name of the parameter}
+#'   \item{"truth"; the true value of the parameter}
+#'   \item{"estimate"; the estimated value of the parameter}
+#'   \item{"k"; the index of the parameter vector in the test set}
+#'   \item{"j"; the index of the data set}
+#'   }
+#'   For an \code{IntervalEstimator}, \code{estimate} is replaced by columns \code{lower} and \code{upper}. For a \code{QuantileEstimator}, there is an additional column \code{prob} giving the probability level of each quantile estimate.}
+#' \item{\code{runtimes}: a data frame giving the total time taken for each estimator}
+#' \item{\code{samples} (posterior and ratio estimators only): posterior samples stored as a long-form Julia \code{DataFrame} with columns \code{parameter}, \code{truth}, \code{k}, and \code{j} as above, plus \code{draw} (the index of the draw) and \code{value} (the sampled value). This object is not converted to an R data frame, which is slow for large sample collections; extract or summarise it in Julia if needed.}
 #' }
 #' @seealso [risk()], [rmse()], [bias()], [plotestimates()], and [plotdistribution()] for computing various empirical diagnostics and visualisations from an object returned by `assess()`
 #' @export
@@ -463,7 +556,7 @@ assess <- function(
   if (juliaLet("hasproperty(assessment, :samples) && !isnothing(assessment.samples)", assessment = assessment)) {
     samples <- juliaLet('assessment.samples', assessment = assessment)
     if (!is.null(samples)) {
-      #samples <- as.data.frame(samples) # NB this conversion takes a really long time, so just pro
+      #samples <- as.data.frame(samples) # NB this conversion takes a really long time, so just provide the samples directly as a Julia object
       output <- c(output, list(samples = samples))
     }
   }
@@ -479,12 +572,13 @@ assess <- function(
 #' @param Z data in a format amenable to the neural-network architecture of `estimator`
 #' @param N number of approximate posterior samples to draw
 #' @param ... additional keyword arguments passed to the Julia version of [`sampleposterior()`](https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/inference#Inference-with-observed-data)
-#' @return d × `N` matrix of posterior samples, where d is the dimension of the parameter vector. If `Z` contains multiple independent data sets, a list of matrices will be returned
-#' @seealso [estimate()] for making inference with neural Bayes estimators
+#' @return a \eqn{d \times N \times K}{d x N x K} array of posterior samples, where \eqn{d} is the dimension of the parameter vector, \code{N} is the number of draws, and \eqn{K} is the number of independent data sets in \code{Z} (so a single data set yields a \eqn{d \times N \times 1}{d x N x 1} array)
+#' @seealso [infer()] for a unified inference interface, and [estimate()] for making inference with neural Bayes estimators
 #' @export
 sampleposterior <- function(estimator, Z, N = 1000, ...) {
   NE <- .getNeuralEstimators()
-  NE$sampleposterior(estimator, Z, N = as.integer(N), ...)
+  samples <- NE$sampleposterior(estimator, Z, N = as.integer(N), ...)
+  juliaLet('Float64.(samples)', samples = samples)
 }
 
 #' @title estimate
@@ -493,23 +587,36 @@ sampleposterior <- function(estimator, Z, N = 1000, ...) {
 #'
 #' @param estimator a neural estimator that can be applied to data in a call of the form `estimator(Z)`
 #' @param Z data in a format amenable to the neural-network architecture of `estimator`
-#' @param X additional inputs to the neural network; if provided, the call will be of the form `estimator((Z, X))`
 #' @param batchsize the batch size for applying `estimator` to `Z`
 #' @param ... additional keyword arguments passed to the Julia version of [`estimate()`](https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/inference#Inference-with-observed-data)
-#' @return a matrix of outputs resulting from applying `estimator` to `Z` (and possibly `X`)
-#' @seealso [sampleposterior()] for making inference with neural posterior or likelihood-to-evidence-ratio estimators
+#' @return a matrix of outputs resulting from applying `estimator` to `Z`
+#' @seealso [infer()] for a unified inference interface, and [sampleposterior()] for making inference with neural posterior or likelihood-to-evidence-ratio estimators
 #' @export
-estimate <- function(estimator, Z, X = NULL, batchsize = 32, ...) {
+estimate <- function(estimator, Z, batchsize = 32, ...) {
   NE <- .getNeuralEstimators()
-  if (!is.null(X)) {
-    input <- juliaLet('(Z, X)', Z = Z, X = X)
-  } else {
-    input <- Z
-  }
-  
-  thetahat <- NE$estimate(estimator, input, batchsize = as.integer(batchsize), ...)
+  thetahat <- NE$estimate(estimator, Z, batchsize = as.integer(batchsize), ...)
   thetahat <- juliaLet('Float64.(thetahat)', thetahat = thetahat) # convert to regular matrix and Float64
   return(thetahat)
+}
+
+#' @title infer
+#'
+#' @description Unified inference interface that dispatches to [estimate()] for neural Bayes estimators (e.g., `PointEstimator`) and [sampleposterior()] for posterior or ratio estimators.
+#'
+#' @param estimator a neural estimator
+#' @param Z data in a format amenable to the neural-network architecture of `estimator`
+#' @param ... additional keyword arguments passed to the Julia version of [`infer()`](https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/inference#Inference-with-observed-data) (and hence to [estimate()] or [sampleposterior()])
+#' @return For neural Bayes estimators, a matrix of point estimates (see [estimate()]). For posterior or ratio estimators, a \eqn{d \times N \times K}{d x N x K} array of posterior samples (see [sampleposterior()]).
+#' @seealso [estimate()], [sampleposterior()]
+#' @export
+infer <- function(estimator, Z, ...) {
+  NE <- .getNeuralEstimators()
+  dots <- list(...)
+  if (!is.null(dots$batchsize)) dots$batchsize <- as.integer(dots$batchsize)
+  if (!is.null(dots$N)) dots$N <- as.integer(dots$N)
+
+  result <- do.call(NE$infer, c(list(estimator, Z), dots))
+  juliaLet('Float64.(result)', result = result)
 }
 
 #' @title logratio
@@ -522,7 +629,7 @@ estimate <- function(estimator, Z, X = NULL, batchsize = 32, ...) {
 #' @param batchsize the batch size
 #' @param ... additional keyword arguments passed to the Julia version of [`logratio()`](https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/inference#Inference-with-observed-data)
 #' @return A matrix of log ratios with one row per data set and one column per grid point
-#' @seealso [sampleposterior()] for making posterior inferences
+#' @seealso [sampleposterior()] and [infer()] for making posterior inferences
 #' @export
 logratio <- function(estimator, Z, grid, batchsize = 32, ...) {
   NE <- .getNeuralEstimators()

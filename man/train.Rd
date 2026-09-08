@@ -13,6 +13,7 @@ train(
   Z_train = NULL,
   Z_val = NULL,
   K = 10000,
+  K_val = NULL,
   m = NULL,
   sampler_args = NULL,
   sampler_kwargs = NULL,
@@ -24,11 +25,17 @@ train(
   batchsize = 32,
   savepath = NULL,
   stopping_epochs = 5,
-  epochs_per_Z_refresh = 1,
-  epochs_per_theta_refresh = 1,
+  epochs_per_refresh = 1,
+  epochs_per_Z_refresh = NULL,
+  epochs_per_theta_refresh = NULL,
   simulate_just_in_time = FALSE,
+  device = NULL,
   use_gpu = TRUE,
-  verbose = TRUE
+  shuffle = TRUE,
+  partial = NULL,
+  freeze_summary_network = FALSE,
+  verbose = TRUE,
+  ...
 )
 }
 \arguments{
@@ -46,7 +53,9 @@ train(
 
 \item{Z_val}{a simulated data set used for monitoring the performance of the estimator during training}
 
-\item{K}{the number of parameter vectors sampled in the training set at each epoch; the size of the validation set is set to \code{K}/5.}
+\item{K}{the number of parameter vectors sampled in the training set at each epoch}
+
+\item{K_val}{the number of parameter vectors in the validation set; if \code{NULL} (default), the Julia default is used}
 
 \item{m}{deprecated; use \code{simulator_args}}
 
@@ -70,15 +79,27 @@ train(
 
 \item{stopping_epochs}{cease training if the risk doesn't improve in this number of epochs (default 5).}
 
-\item{epochs_per_Z_refresh}{integer indicating how often to refresh the training data}
+\item{epochs_per_refresh}{integer indicating how often to refresh the training data}
 
-\item{epochs_per_theta_refresh}{integer indicating how often to refresh the training parameters; must be a multiple of \code{epochs_per_Z_refresh}}
+\item{epochs_per_Z_refresh}{deprecated; use \code{epochs_per_refresh}}
+
+\item{epochs_per_theta_refresh}{integer indicating how often to refresh the training parameters; must be a multiple of \code{epochs_per_refresh}. If \code{NULL} (default), it is set equal to \code{epochs_per_refresh}}
 
 \item{simulate_just_in_time}{flag indicating whether we should simulate "just-in-time", in the sense that only a \code{batchsize} number of parameter vectors and corresponding data are in memory at a given time}
 
-\item{use_gpu}{a boolean indicating whether to use the GPU if one is available}
+\item{device}{the compute device, as a Julia object from \href{https://github.com/LuxDL/MLDataDevices.jl}{MLDataDevices.jl}, e.g. \code{juliaEval("NeuralEstimators.cpu_device()")}, \code{juliaEval("NeuralEstimators.gpu_device()")}, or \code{juliaEval("NeuralEstimators.reactant_device()")} (the latter requires Lux). If \code{NULL} (default), the device is inferred from \code{use_gpu}. Takes priority over \code{use_gpu}.}
+
+\item{use_gpu}{a boolean indicating whether to use the GPU if one is available (ignored if \code{device} is provided)}
+
+\item{shuffle}{whether to shuffle the training set at each epoch}
+
+\item{partial}{whether to include the final incomplete batch; if \code{NULL} (default), the Julia default is used}
+
+\item{freeze_summary_network}{if \code{TRUE} and the estimator has a summary network, freeze those parameters during training}
 
 \item{verbose}{a boolean indicating whether information, including empirical risk values and timings, should be printed to the console during training.}
+
+\item{...}{additional keyword arguments passed to the Julia version of \href{https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/training}{\code{train()}}}
 }
 \value{
 a trained neural estimator or, if \code{m} is a vector, a list of trained neural estimators
@@ -171,8 +192,17 @@ simulator <- juliaEval("
       end")
 
 # Train
-estimator <- train(estimator, sampler = sampler, simulator = simulator, m = m)}
+estimator <- train(estimator, sampler = sampler, simulator = simulator, m = m)
+
+##### Lux.jl architecture (DeepSet is Flux-only) ####
+# estimator <- juliaEval('
+#   using NeuralEstimators, Lux
+#   d = 2; n = 30
+#   network = MLP(n, d; depth = 2, width = 32, backend = Lux)
+#   estimator = PointEstimator(network)
+# ')
+}
 }
 \seealso{
-the Julia version of \href{https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/training}{\code{train()}}, \code{\link[=assess]{assess()}} for assessing an estimator post training, and \code{\link[=estimate]{estimate()}}/\code{\link[=sampleposterior]{sampleposterior()}} for making inference with observed data
+the Julia version of \href{https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/training}{\code{train()}}, \code{\link[=assess]{assess()}} for assessing an estimator post training, and \code{\link[=infer]{infer()}}/\code{\link[=estimate]{estimate()}}/\code{\link[=sampleposterior]{sampleposterior()}} for making inference with observed data
 }

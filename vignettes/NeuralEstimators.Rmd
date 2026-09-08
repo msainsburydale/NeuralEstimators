@@ -135,7 +135,7 @@ The typical workflow when using the R interface to `NeuralEstimators` is as foll
 1. (**Julia**) Construct a [`NeuralEstimator`](https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/estimators) by wrapping the neural network in the subtype corresponding to the intended inferential method (`PointEstimator`, `PosteriorEstimator`, `RatioEstimator`).
 1. Train the `NeuralEstimator` using `train()` and the training set, monitoring performance and convergence using the validation set.
 1. Assess the `NeuralEstimator` using `assess()` and the test set.
-1. Apply the `NeuralEstimator` to observed data using `estimate()`.
+1. Apply the `NeuralEstimator` to observed data using `infer()` (or `estimate()` / `sampleposterior()`).
 
 Once the `NeuralEstimator` has passed our assessments and is deemed to be well calibrated, it may be used to make inference with observed data. 
 

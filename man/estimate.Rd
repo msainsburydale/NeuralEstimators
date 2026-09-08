@@ -4,25 +4,23 @@
 \alias{estimate}
 \title{estimate}
 \usage{
-estimate(estimator, Z, X = NULL, batchsize = 32, ...)
+estimate(estimator, Z, batchsize = 32, ...)
 }
 \arguments{
 \item{estimator}{a neural estimator that can be applied to data in a call of the form \code{estimator(Z)}}
 
 \item{Z}{data in a format amenable to the neural-network architecture of \code{estimator}}
 
-\item{X}{additional inputs to the neural network; if provided, the call will be of the form \verb{estimator((Z, X))}}
-
 \item{batchsize}{the batch size for applying \code{estimator} to \code{Z}}
 
 \item{...}{additional keyword arguments passed to the Julia version of \href{https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/inference#Inference-with-observed-data}{\code{estimate()}}}
 }
 \value{
-a matrix of outputs resulting from applying \code{estimator} to \code{Z} (and possibly \code{X})
+a matrix of outputs resulting from applying \code{estimator} to \code{Z}
 }
 \description{
 Apply a neural Bayes estimator to data
 }
 \seealso{
-\code{\link[=sampleposterior]{sampleposterior()}} for making inference with neural posterior or likelihood-to-evidence-ratio estimators
+\code{\link[=infer]{infer()}} for a unified inference interface, and \code{\link[=sampleposterior]{sampleposterior()}} for making inference with neural posterior or likelihood-to-evidence-ratio estimators
 }

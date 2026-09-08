@@ -15,5 +15,5 @@ savestate(estimator, filename)
 No return value, called for side effects
 }
 \description{
-save the state of a neural estimator
+Save the state of a neural estimator (e.g., optimised neural-network parameters). Supports both Flux and Lux estimators.
 }

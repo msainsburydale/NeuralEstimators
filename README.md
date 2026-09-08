@@ -1,4 +1,4 @@
-# NeuralEstimators <img align="right" width="200" src="https://github.com/msainsburydale/NeuralEstimators.jl/blob/main/docs/src/assets/logo.svg?raw=true">
+# NeuralEstimators <img align="right" width="100" src="https://github.com/msainsburydale/NeuralEstimators.jl/blob/main/docs/src/assets/logo.svg?raw=true">
 
 [![][CRAN-img]][CRAN-url]
 [![][vignette-img]][vignette-url]

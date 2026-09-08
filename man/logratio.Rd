@@ -24,5 +24,5 @@ A matrix of log ratios with one row per data set and one column per grid point
 Apply a neural ratio estimator to data
 }
 \seealso{
-\code{\link[=sampleposterior]{sampleposterior()}} for making posterior inferences
+\code{\link[=sampleposterior]{sampleposterior()}} and \code{\link[=infer]{infer()}} for making posterior inferences
 }

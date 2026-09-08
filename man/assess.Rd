@@ -16,15 +16,19 @@ assess(estimator, parameters, Z, ...)
 \item{...}{additional keyword arguments passed to the Julia version of \href{https://msainsburydale.github.io/NeuralEstimators.jl/dev/API/assessment}{\code{assess()}}}
 }
 \value{
-a list of two data frames: \code{runtimes} contains the
-total time taken for each estimator, while \code{df} is a long-form
-data frame with columns:
+a list with the following elements:
+\itemize{
+\item{\code{estimates}: a long-form data frame with columns
 \itemize{
 \item{"parameter"; the name of the parameter}
 \item{"truth"; the true value of the parameter}
 \item{"estimate"; the estimated value of the parameter}
 \item{"k"; the index of the parameter vector in the test set}
 \item{"j"; the index of the data set}
+}
+For an \code{IntervalEstimator}, \code{estimate} is replaced by columns \code{lower} and \code{upper}. For a \code{QuantileEstimator}, there is an additional column \code{prob} giving the probability level of each quantile estimate.}
+\item{\code{runtimes}: a data frame giving the total time taken for each estimator}
+\item{\code{samples} (posterior and ratio estimators only): posterior samples stored as a long-form Julia \code{DataFrame} with columns \code{parameter}, \code{truth}, \code{k}, and \code{j} as above, plus \code{draw} (the index of the draw) and \code{value} (the sampled value). This object is not converted to an R data frame, which is slow for large sample collections; extract or summarise it in Julia if needed.}
 }
 }
 \description{

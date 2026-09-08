@@ -41,6 +41,7 @@ jobs:
               using Pkg
               Pkg.add(url="https://github.com/msainsburydale/NeuralEstimators.jl")
               Pkg.add("Flux")
+              Pkg.add("Lux")
               Pkg.add("Optimisers")
               '
 

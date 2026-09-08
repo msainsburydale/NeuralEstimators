@@ -28,6 +28,17 @@ test_that("Flux.jl is available", {
   expect_equal(1, 1)
 })
 
+test_that("Lux.jl is available", {
+  juliaEval('
+  using Pkg
+  installed = "Lux" in keys(Pkg.project().dependencies)
+  if !installed
+    Pkg.add("Lux")
+  end
+')
+  expect_equal(1, 1)
+})
+
 test_that("NeuralEstimators.jl is available", {
   juliaEval('
   # Install the package if not already installed
@@ -63,8 +74,8 @@ test_that("a neural estimator can be initialised", {
   p = 2    # number of parameters in the statistical model
   w = 32   # number of neurons in each layer
 
-  psi = Chain(Dense(1, w, relu), Dense(w, w, relu), Dense(w, w, relu))
-  phi = Chain(Dense(w, w, relu), Dense(w, p))
+  psi = Flux.Chain(Flux.Dense(1, w, relu), Flux.Dense(w, w, relu), Flux.Dense(w, w, relu))
+  phi = Flux.Chain(Flux.Dense(w, w, relu), Flux.Dense(w, p))
   estimator = PointEstimator(DeepSet(psi, phi))
   ')
   
@@ -131,6 +142,8 @@ test_that("the neural estimator can be trained with simulation on-the-fly (using
   estimator  <- train(estimator, sampler = sampler, simulator = simulator, m = m, epochs = 2, verbose = F)
   estimator  <- train(estimator, sampler = sampler, simulator = simulator, m = m, epochs = 2, loss = "squared-error", verbose = F)
   estimator  <- train(estimator, sampler = sampler, simulator = simulator, m = m, epochs = 2, loss = "Flux.Losses.mae", verbose = F)
+  estimator  <- train(estimator, sampler = sampler, simulator = simulator, m = m, epochs = 2, verbose = F,
+                      device = juliaEval("NeuralEstimators.cpu_device()"), epochs_per_refresh = 2)
   
   expect_error(train(estimator, sampler = sampler, simulator = simulator))
   expect_error(train(estimator, sampler = sampler, Z_train = Z_train, Z_val = Z_val, epochs = 2, verbose = F))
@@ -154,8 +167,8 @@ test_that("the neural estimator can be assessed with assess()", {
     using NeuralEstimators, Flux
     p = 1    # number of parameters in the statistical model
     w = 32   # number of neurons in each layer
-    psi = Chain(Dense(1, w, relu), Dense(w, w, relu), Dense(w, w, relu))
-    phi = Chain(Dense(w, w, relu), Dense(w, p))
+    psi = Flux.Chain(Flux.Dense(1, w, relu), Flux.Dense(w, w, relu), Flux.Dense(w, w, relu))
+    phi = Flux.Chain(Flux.Dense(w, w, relu), Flux.Dense(w, p))
     estimator = PointEstimator(DeepSet(psi, phi))
   ')
   assessment <- assess(estimator_one_param, rnorm(100), Z_test)
@@ -171,6 +184,8 @@ test_that("the neural estimator can be applied to real data using estimate() and
   p = 2
   expect_equal(nrow(thetahat), p)
   expect_equal(ncol(thetahat), 1)
+  thetahat_infer <- infer(estimator, Z)
+  expect_equal(dim(thetahat_infer), dim(thetahat))
   
   ## Non-parametric bootstrap estimates
   B  <- 400
@@ -186,8 +201,8 @@ test_that("neural ratio estimator can be constructed and used to make inference"
     d = 2    # number of parameters in the statistical model
     w = 32   # number of neurons in each layer
     num_summaries = 3d
-    psi = Chain(Dense(1, w, relu), Dense(w, w, relu), Dense(w, w, relu))
-    phi = Chain(Dense(w, w, relu), Dense(w, num_summaries))
+    psi = Flux.Chain(Flux.Dense(1, w, relu), Flux.Dense(w, w, relu), Flux.Dense(w, w, relu))
+    phi = Flux.Chain(Flux.Dense(w, w, relu), Flux.Dense(w, num_summaries))
     summary_network = DeepSet(psi, phi)
     estimator = RatioEstimator(summary_network, d; num_summaries = num_summaries)
 ')
@@ -203,6 +218,61 @@ test_that("neural ratio estimator can be constructed and used to make inference"
   
   # Grid-based methods for estimation/posterior sampling
   grid <- t(expand.grid(seq(0, 1, len = 50), seq(0, 1, len = 50)))
-  sampleposterior(estimator, Z[[1]], grid = grid) 
-  sampleposterior(estimator, Z, grid = grid)
+  samples <- sampleposterior(estimator, Z[[1]], grid = grid, N = 50)
+  expect_equal(length(dim(samples)), 3)
+  samples <- sampleposterior(estimator, Z, grid = grid, N = 50)
+  expect_equal(length(dim(samples)), 3)
+  samples_infer <- infer(estimator, Z, grid = grid, N = 50)
+  expect_equal(length(dim(samples_infer)), 3)
+})
+
+test_that("a Lux estimator can be trained, saved, loaded, and used for inference", {
+
+  lux_estimator <- juliaEval('
+    using NeuralEstimators, Lux
+    d = 2
+    n = 15
+    network = MLP(n, d; depth = 2, width = 32, backend = Lux)
+    PointEstimator(network)
+  ')
+
+  theta_train <- sampler(100)
+  theta_val   <- sampler(100)
+  # MLP maps an n-vector; store each data set as a length-m vector (matrix with m rows)
+  lux_simulator <- function(theta_set, m) {
+    apply(theta_set, 2, function(theta) rnorm(m, theta[1], theta[2]))
+  }
+  Z_train <- lux_simulator(theta_train, m)
+  Z_val   <- lux_simulator(theta_val, m)
+
+  lux_estimator <- train(
+    lux_estimator,
+    theta_train = theta_train,
+    theta_val   = theta_val,
+    Z_train = Z_train,
+    Z_val   = Z_val,
+    epochs = 2,
+    verbose = FALSE,
+    device = juliaEval("NeuralEstimators.cpu_device()")
+  )
+
+  Z <- matrix(lux_simulator(as.matrix(c(0, 0.5)), m), nrow = m)
+  thetahat <- estimate(lux_estimator, Z)
+  expect_equal(nrow(thetahat), 2)
+  expect_equal(ncol(thetahat), 1)
+  thetahat_infer <- infer(lux_estimator, Z)
+  expect_equal(dim(thetahat_infer), dim(thetahat))
+
+  filename <- tempfile(fileext = ".bson")
+  savestate(lux_estimator, filename)
+  lux_reload <- juliaEval('
+    using NeuralEstimators, Lux
+    d = 2
+    n = 15
+    network = MLP(n, d; depth = 2, width = 32, backend = Lux)
+    PointEstimator(network)
+  ')
+  lux_reload <- loadstate(lux_reload, filename)
+  thetahat_reload <- estimate(lux_reload, Z)
+  expect_equal(thetahat_reload, thetahat)
 })
